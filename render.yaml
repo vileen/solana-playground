@@ -5,17 +5,32 @@ services:
     buildCommand: |
       yarn install
       # List files in current directory for debugging
+      echo "Current directory content:"
       ls -la
-      # Compile frontend and backend
+      
+      # Compile frontend first
       npx tsc --skipLibCheck
       npx vite build
-      npx tsc --project tsconfig.json --skipLibCheck
-      # List files in dist directory for debugging
-      mkdir -p dist
-      ls -la dist
-      if [ -d "dist/backend" ]; then
-        ls -la dist/backend
-      fi
+      
+      # Create dist/backend directory
+      mkdir -p dist/backend
+      
+      # Run bootstrap script to ensure backend files are compiled
+      echo "Running bootstrap script to compile backend files..."
+      node bootstrap.js
+      
+      # Explicitly compile the backend files as a fallback
+      echo "Compiling backend files with tsc..."
+      npx tsc --project tsconfig.json --outDir dist/backend --skipLibCheck
+      
+      # Check the src/backend folder
+      echo "Source backend files:"
+      ls -la src/backend
+      
+      # Check if compiled backend files exist
+      echo "Compiled files in dist/backend:"
+      ls -la dist/backend || echo "Backend directory is empty!"
+      
       # Make the startup script executable
       chmod +x startup.sh
     startCommand: ./startup.sh
