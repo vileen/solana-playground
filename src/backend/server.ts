@@ -91,8 +91,12 @@ const COLLECTION_ADDRESSES = [
   'EN4u2jn6YHfhbDWvpF5nNcDwn3qdCZQTLJTURbZs6kWw' // base58 c68d8890fb88bd37e0ed9fcd03e60bee08c140394fb8f8f35825ad2876486b3c
 ];
 
-// Ensure data directory exists
-const DATA_DIR = join(__dirname, '../../data');
+// Use Render's persistent disk in production, otherwise use local path
+const DATA_DIR = process.env.NODE_ENV === 'production' 
+  ? '/data' // This matches the mountPath in render.yaml
+  : join(__dirname, '../../data');
+
+console.log(`Using data directory: ${DATA_DIR}`);
 mkdir(DATA_DIR, { recursive: true }).catch(console.error);
 
 // Path for social profiles storage
