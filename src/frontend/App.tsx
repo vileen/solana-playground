@@ -6,7 +6,7 @@ import { Toast } from 'primereact/toast';
 import { InputText } from 'primereact/inputtext';
 import { Dialog } from 'primereact/dialog';
 import { TabView, TabPanel } from 'primereact/tabview';
-import { NFTHolder, TokenHolder } from '../types';
+import { NFTHolder, TokenHolder } from '../types/index.js';
 import './App.css';
 
 const App: React.FC = () => {
@@ -59,10 +59,14 @@ const App: React.FC = () => {
     loadThemeCSS(newThemeValue);
   };
 
+  const getApiUrl = () => {
+    return process.env.VITE_API_URL || 'http://localhost:3001/api';
+  };
+
   const fetchHolders = async () => {
     try {
       setLoading(true);
-      const url = new URL('http://localhost:3001/api/holders');
+      const url = new URL(`${getApiUrl()}/holders`);
       if (searchTerm) {
         url.searchParams.append('search', searchTerm);
       }
@@ -86,7 +90,7 @@ const App: React.FC = () => {
   const fetchTokenHolders = async () => {
     try {
       setLoading(true);
-      const url = new URL('http://localhost:3001/api/token-holders');
+      const url = new URL(`${getApiUrl()}/token-holders`);
       if (searchTerm) {
         url.searchParams.append('search', searchTerm);
       }
@@ -110,7 +114,7 @@ const App: React.FC = () => {
   const fetchSocialProfiles = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:3001/api/social-profiles');
+      const response = await fetch(`${getApiUrl()}/social-profiles`);
       if (!response.ok) throw new Error('Failed to fetch social profiles');
       const data = await response.json();
       setSocialHolders(data);
@@ -130,7 +134,7 @@ const App: React.FC = () => {
   const takeSnapshot = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:3001/api/snapshot');
+      const response = await fetch(`${getApiUrl()}/snapshot`);
       if (!response.ok) throw new Error('Failed to take snapshot');
       const data = await response.json();
       setHolders(data.holders);
@@ -156,7 +160,7 @@ const App: React.FC = () => {
   const takeTokenSnapshot = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:3001/api/token-snapshot');
+      const response = await fetch(`${getApiUrl()}/token-snapshot`);
       if (!response.ok) throw new Error('Failed to take token snapshot');
       const data = await response.json();
       setTokenHolders(data.holders);
@@ -184,7 +188,7 @@ const App: React.FC = () => {
     
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:3001/api/social-profile', {
+      const response = await fetch(`${getApiUrl()}/social-profile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

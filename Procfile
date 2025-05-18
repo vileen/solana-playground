@@ -1,0 +1,1 @@
+web: node --experimental-specifier-resolution=node dist/backend/server.js 

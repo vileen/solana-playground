@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 import { mkdir, readdir, readFile, writeFile } from 'fs/promises';
 import express from 'express';
 import cors from 'cors';
-import { CollectionSnapshot, NFTHolder, TokenHolder, TokenSnapshot } from '../types';
+import { CollectionSnapshot, NFTHolder, TokenHolder, TokenSnapshot } from '../types/index.js';
 import { clusterApiUrl, Connection, PublicKey } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
 
@@ -608,6 +608,22 @@ app.get('/api/social-profiles', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch social profiles' });
   }
 });
+
+// Serve static files in production
+if (process.env.NODE_ENV === 'production') {
+  const distPath = join(__dirname, '../../dist');
+  console.log('Serving static files from:', distPath);
+  app.use(express.static(distPath));
+  
+  // Handle SPA routing - serve index.html for any unmatched routes
+  app.get('*', (req, res, next) => {
+    // Skip API routes
+    if (req.path.startsWith('/api')) {
+      return next();
+    }
+    res.sendFile(join(distPath, 'index.html'));
+  });
+}
 
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);

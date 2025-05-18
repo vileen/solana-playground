@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: solana-snapshot-tool
+    env: node
+    buildCommand: yarn render:build
+    startCommand: yarn render:start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SOLANA_RPC_URL
+        sync: false
+      - key: SOLANA_API_KEY
+        sync: false
+    disk:
+      name: data
+      mountPath: /data
+      sizeGB: 1 
