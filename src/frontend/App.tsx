@@ -60,6 +60,11 @@ const App: React.FC = () => {
   };
 
   const getApiUrl = () => {
+    // In production, API endpoints are on the same domain, so use relative URLs
+    if (process.env.NODE_ENV === 'production' || window.location.hostname !== 'localhost') {
+      return '/api';
+    }
+    // In development, use the local dev server
     return process.env.VITE_API_URL || 'http://localhost:3001/api';
   };
 
@@ -70,17 +75,23 @@ const App: React.FC = () => {
       if (searchTerm) {
         url.searchParams.append('search', searchTerm);
       }
+      console.log('Fetching holders from:', url.toString());
       const response = await fetch(url.toString());
-      if (!response.ok) throw new Error('Failed to fetch holders');
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`Failed to fetch holders: ${response.status} ${response.statusText} ${errorData.message || ''}`);
+      }
+      
       const data = await response.json();
       setHolders(data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching holders:', error);
       toast.current?.show({
         severity: 'error',
         summary: 'Error',
-        detail: 'Failed to fetch holders',
-        life: 3000
+        detail: `Failed to fetch holders: ${error.message || 'Unknown error'}`,
+        life: 5000
       });
     } finally {
       setLoading(false);
@@ -94,17 +105,23 @@ const App: React.FC = () => {
       if (searchTerm) {
         url.searchParams.append('search', searchTerm);
       }
+      console.log('Fetching token holders from:', url.toString());
       const response = await fetch(url.toString());
-      if (!response.ok) throw new Error('Failed to fetch token holders');
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`Failed to fetch token holders: ${response.status} ${response.statusText} ${errorData.message || ''}`);
+      }
+      
       const data = await response.json();
       setTokenHolders(data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching token holders:', error);
       toast.current?.show({
         severity: 'error',
         summary: 'Error',
-        detail: 'Failed to fetch token holders',
-        life: 3000
+        detail: `Failed to fetch token holders: ${error.message || 'Unknown error'}`,
+        life: 5000
       });
     } finally {
       setLoading(false);
