@@ -8,5 +8,5 @@ import 'primeflex/primeflex.css';
 // App specific styles last
 import './index.css';
 import './TabViewFix.css';
-import App from './App';
+import App from './App.js';
 ReactDOM.createRoot(document.getElementById('root')).render(_jsx(React.StrictMode, { children: _jsx(App, {}) }));

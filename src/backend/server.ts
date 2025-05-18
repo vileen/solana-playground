@@ -316,31 +316,33 @@ async function saveSocialProfile(walletAddress: string, socialData: { twitter?: 
       // Get the latest snapshot
       const latestSnapshot = snapshots.sort((a: CollectionSnapshot, b: CollectionSnapshot) => b.timestamp - a.timestamp)[0];
       
-      // Find holder and update social profiles
-      let holderFound = false;
-      const updatedHolders = latestSnapshot.holders.map((holder: NFTHolder) => {
-        if (holder.address === walletAddress) {
-          holderFound = true;
-          return {
-            ...holder,
-            socialProfiles: {
-              ...holder.socialProfiles,
-              ...socialData
-            }
-          };
-        }
-        return holder;
-      });
-      
-      // If holder found, update and save NFT snapshot
-      if (holderFound) {
-        // Save updated snapshot
-        latestSnapshot.holders = updatedHolders;
-        const filename = `snapshot_${latestSnapshot.timestamp}.json`;
-        const filePath = join(DATA_DIR, filename);
+      if (latestSnapshot && latestSnapshot.holders) {
+        // Find holder and update social profiles
+        let holderFound = false;
+        const updatedHolders = latestSnapshot.holders.map((holder: NFTHolder) => {
+          if (holder.address === walletAddress) {
+            holderFound = true;
+            return {
+              ...holder,
+              socialProfiles: {
+                ...holder.socialProfiles,
+                ...socialData
+              }
+            };
+          }
+          return holder;
+        });
         
-        await writeFile(filePath, JSON.stringify(latestSnapshot, null, 2));
-        console.log(`Updated social profile for NFT holder ${walletAddress}`);
+        // If holder found, update and save NFT snapshot
+        if (holderFound) {
+          // Save updated snapshot
+          latestSnapshot.holders = updatedHolders;
+          const filename = `snapshot_${latestSnapshot.timestamp}.json`;
+          const filePath = join(DATA_DIR, filename);
+          
+          await writeFile(filePath, JSON.stringify(latestSnapshot, null, 2));
+          console.log(`Updated social profile for NFT holder ${walletAddress}`);
+        }
       }
     }
   } catch (error) {
@@ -365,31 +367,33 @@ async function saveSocialProfile(walletAddress: string, socialData: { twitter?: 
       // Get the latest snapshot
       const latestTokenSnapshot = tokenSnapshots.sort((a: TokenSnapshot, b: TokenSnapshot) => b.timestamp - a.timestamp)[0];
       
-      // Find holder and update social profiles
-      let tokenHolderFound = false;
-      const updatedTokenHolders = latestTokenSnapshot.holders.map((holder: TokenHolder) => {
-        if (holder.address === walletAddress) {
-          tokenHolderFound = true;
-          return {
-            ...holder,
-            socialProfiles: {
-              ...holder.socialProfiles,
-              ...socialData
-            }
-          };
-        }
-        return holder;
-      });
-      
-      // If holder found, update and save token snapshot
-      if (tokenHolderFound) {
-        // Save updated snapshot
-        latestTokenSnapshot.holders = updatedTokenHolders;
-        const filename = `token_snapshot_${latestTokenSnapshot.timestamp}.json`;
-        const filePath = join(DATA_DIR, filename);
+      if (latestTokenSnapshot && latestTokenSnapshot.holders) {
+        // Find holder and update social profiles
+        let tokenHolderFound = false;
+        const updatedTokenHolders = latestTokenSnapshot.holders.map((holder: TokenHolder) => {
+          if (holder.address === walletAddress) {
+            tokenHolderFound = true;
+            return {
+              ...holder,
+              socialProfiles: {
+                ...holder.socialProfiles,
+                ...socialData
+              }
+            };
+          }
+          return holder;
+        });
         
-        await writeFile(filePath, JSON.stringify(latestTokenSnapshot, null, 2));
-        console.log(`Updated social profile for token holder ${walletAddress}`);
+        // If holder found, update and save token snapshot
+        if (tokenHolderFound) {
+          // Save updated snapshot
+          latestTokenSnapshot.holders = updatedTokenHolders;
+          const filename = `token_snapshot_${latestTokenSnapshot.timestamp}.json`;
+          const filePath = join(DATA_DIR, filename);
+          
+          await writeFile(filePath, JSON.stringify(latestTokenSnapshot, null, 2));
+          console.log(`Updated social profile for token holder ${walletAddress}`);
+        }
       }
     }
   } catch (error) {
@@ -498,12 +502,13 @@ app.get('/api/token-holders', async (req, res) => {
 });
 
 // API Endpoints for Social Profiles
-app.post('/api/social-profile', express.json(), async (req, res) => {
+app.post('/api/social-profile', async (req, res) => {
   try {
     const { walletAddress, twitter, discord, comment } = req.body;
     
     if (!walletAddress) {
-      return res.status(400).json({ error: 'Wallet address is required' });
+      res.status(400).json({ error: 'Wallet address is required' });
+      return;
     }
     
     const result = await saveSocialProfile(walletAddress, { twitter, discord, comment });
@@ -531,9 +536,11 @@ app.get('/api/social-profiles', async (req, res) => {
     let nftHoldersWithSocial: NFTHolder[] = [];
     if (nftSnapshots.length > 0) {
       const latestSnapshot = nftSnapshots.sort((a: CollectionSnapshot, b: CollectionSnapshot) => b.timestamp - a.timestamp)[0];
-      nftHoldersWithSocial = latestSnapshot.holders.filter(
-        holder => holder.socialProfiles?.twitter || holder.socialProfiles?.discord || holder.socialProfiles?.comment
-      );
+      if (latestSnapshot && latestSnapshot.holders) {
+        nftHoldersWithSocial = latestSnapshot.holders.filter(
+          holder => holder.socialProfiles?.twitter || holder.socialProfiles?.discord || holder.socialProfiles?.comment
+        );
+      }
     }
     
     // Get token holders with social profiles
@@ -549,9 +556,11 @@ app.get('/api/social-profiles', async (req, res) => {
     let tokenHoldersWithSocial: TokenHolder[] = [];
     if (tokenSnapshots.length > 0) {
       const latestTokenSnapshot = tokenSnapshots.sort((a: TokenSnapshot, b: TokenSnapshot) => b.timestamp - a.timestamp)[0];
-      tokenHoldersWithSocial = latestTokenSnapshot.holders.filter(
-        holder => holder.socialProfiles?.twitter || holder.socialProfiles?.discord || holder.socialProfiles?.comment
-      );
+      if (latestTokenSnapshot && latestTokenSnapshot.holders) {
+        tokenHoldersWithSocial = latestTokenSnapshot.holders.filter(
+          holder => holder.socialProfiles?.twitter || holder.socialProfiles?.discord || holder.socialProfiles?.comment
+        );
+      }
     }
     
     // Combine and deduplicate social profiles
