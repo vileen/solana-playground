@@ -9,10 +9,11 @@
     "dev:frontend": "vite",
     "build": "npx tsc --skipLibCheck && npx vite build",
     "build:backend": "npx tsc --project tsconfig.json --skipLibCheck",
-    "start": "node --experimental-specifier-resolution=node dist/backend/server.js",
+    "postinstall": "mkdir -p /opt/render/project/src || true",
+    "start": "node --experimental-specifier-resolution=node ./dist/backend/server.js",
     "preview": "vite preview",
     "render:build": "yarn && yarn build && yarn build:backend",
-    "render:start": "node --experimental-specifier-resolution=node dist/backend/server.js"
+    "render:start": "node --experimental-specifier-resolution=node ./dist/backend/server.js"
   },
   "dependencies": {
     "@metaplex-foundation/digital-asset-standard-api": "latest",
