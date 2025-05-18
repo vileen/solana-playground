@@ -32,7 +32,26 @@ const port = 3001;
 // Token address to track
 const TOKEN_ADDRESS = '31k88G5Mq7ptbRDf3AM13HAq6wRQHXHikR8hik7wPygk';
 
-app.use(cors());
+// Replace the basic CORS setup with a more configurable one
+const corsOptions = {
+  origin: function(origin, callback) {
+    // In production, only allow same-origin requests or no origin (like mobile apps)
+    if (process.env.NODE_ENV === 'production') {
+      if (!origin || origin === process.env.RENDER_EXTERNAL_URL) {
+        callback(null, true);
+      } else {
+        callback(null, false);
+      }
+    } else {
+      // In development, allow all origins
+      callback(null, true);
+    }
+  },
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Initialize UMI with DAS API
@@ -633,6 +652,16 @@ if (process.env.NODE_ENV === 'production') {
     res.sendFile(join(distPath, 'index.html'));
   });
 }
+
+// Add general error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Server error:', err);
+  res.status(500).json({
+    error: 'Internal Server Error',
+    message: err.message,
+    stack: process.env.NODE_ENV === 'production' ? undefined : err.stack
+  });
+});
 
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
