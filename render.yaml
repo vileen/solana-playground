@@ -4,26 +4,21 @@ services:
     env: node
     buildCommand: |
       yarn install
-      # Make a directory link to ensure consistent paths
-      mkdir -p /opt/render/project/src
-      cp -R . /opt/render/project/src/ || true
+      # List files in current directory for debugging
+      ls -la
+      # Compile frontend and backend
       npx tsc --skipLibCheck
       npx vite build
       npx tsc --project tsconfig.json --skipLibCheck
-      ls -la
+      # List files in dist directory for debugging
+      mkdir -p dist
       ls -la dist
-      ls -la dist/backend
-    startCommand: |
-      node diagnose.js
-      # Try both possible paths
-      if [ -f ./dist/backend/server.js ]; then
-        node --experimental-specifier-resolution=node ./dist/backend/server.js
-      elif [ -f /opt/render/project/src/dist/backend/server.js ]; then
-        node --experimental-specifier-resolution=node /opt/render/project/src/dist/backend/server.js
-      else
-        echo "Cannot find server.js in either location"
-        exit 1
+      if [ -d "dist/backend" ]; then
+        ls -la dist/backend
       fi
+      # Make the startup script executable
+      chmod +x startup.sh
+    startCommand: ./startup.sh
     envVars:
       - key: NODE_ENV
         value: production
