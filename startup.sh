@@ -4,6 +4,26 @@
 echo "=== SERVER STARTUP SHELL SCRIPT ==="
 echo "Current directory: $(pwd)"
 echo "Node version: $(node -v)"
+echo "Environment: $NODE_ENV"
+
+# Set default PORT if not provided
+if [ -z "$PORT" ]; then
+  echo "PORT not set, defaulting to 3001"
+  export PORT=3001
+else
+  echo "Using PORT: $PORT"
+fi
+
+# Check for environment variables
+if [ -z "$SOLANA_RPC_URL" ] && [ -n "$VITE_SOLANA_RPC_URL" ]; then
+  echo "SOLANA_RPC_URL not set but VITE_SOLANA_RPC_URL is available, using it"
+  export SOLANA_RPC_URL="$VITE_SOLANA_RPC_URL"
+fi
+
+if [ -z "$SOLANA_API_KEY" ] && [ -n "$VITE_SOLANA_API_KEY" ]; then
+  echo "SOLANA_API_KEY not set but VITE_SOLANA_API_KEY is available, using it"
+  export SOLANA_API_KEY="$VITE_SOLANA_API_KEY"
+fi
 
 # List of possible server file locations
 POSSIBLE_PATHS=(
@@ -70,12 +90,14 @@ if [ -z "$SERVER_PATH" ]; then
   if [ -z "$SERVER_PATH" ] && [ -f "src/backend/server.ts" ]; then
     echo "Attempting to run TypeScript file directly with tsx..."
     if npx tsx --version > /dev/null 2>&1; then
+      echo "Environment variables set: SOLANA_RPC_URL=$SOLANA_RPC_URL, PORT=$PORT"
       exec npx tsx src/backend/server.ts
       exit $?
     else
       echo "tsx not available, trying to install it..."
       npm install -g tsx
       if [ $? -eq 0 ]; then
+        echo "Environment variables set: SOLANA_RPC_URL=$SOLANA_RPC_URL, PORT=$PORT"
         exec npx tsx src/backend/server.ts
         exit $?
       fi
@@ -94,4 +116,5 @@ fi
 
 # Run the server
 echo "Starting server from: $SERVER_PATH"
+echo "Environment variables set: SOLANA_RPC_URL=$SOLANA_RPC_URL, PORT=$PORT"
 exec node --experimental-specifier-resolution=node "$SERVER_PATH" 

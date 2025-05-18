@@ -41,10 +41,17 @@ services:
         value: 16
       - key: YARN_VERSION
         value: 1.22.19
+      - key: PORT
+        value: 10000
       - key: SOLANA_RPC_URL
         sync: false
       - key: SOLANA_API_KEY
         sync: false
+      # Add Vite prefixed versions for the frontend
+      - key: VITE_SOLANA_RPC_URL
+        fromKey: SOLANA_RPC_URL
+      - key: VITE_SOLANA_API_KEY
+        fromKey: SOLANA_API_KEY
     disk:
       name: data
       mountPath: /data
