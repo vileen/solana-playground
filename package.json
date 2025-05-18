@@ -10,10 +10,10 @@
     "build": "npx tsc --skipLibCheck && npx vite build",
     "build:backend": "npx tsc --project tsconfig.json --skipLibCheck",
     "postinstall": "mkdir -p /opt/render/project/src || true",
-    "start": "node --experimental-specifier-resolution=node ./dist/backend/server.js",
+    "start": "chmod +x startup.sh && ./startup.sh",
     "preview": "vite preview",
     "render:build": "yarn && yarn build && yarn build:backend",
-    "render:start": "node --experimental-specifier-resolution=node ./dist/backend/server.js"
+    "render:start": "chmod +x startup.sh && ./startup.sh"
   },
   "dependencies": {
     "@metaplex-foundation/digital-asset-standard-api": "latest",
