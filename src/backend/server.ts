@@ -95,6 +95,32 @@ const COLLECTION_ADDRESSES = [
 const DATA_DIR = join(__dirname, '../../data');
 mkdir(DATA_DIR, { recursive: true }).catch(console.error);
 
+// Path for social profiles storage
+const SOCIAL_PROFILES_FILE = join(DATA_DIR, 'social_profiles.json');
+
+// Function to load social profiles
+async function loadSocialProfiles(): Promise<Record<string, any>> {
+  try {
+    if (existsSync(SOCIAL_PROFILES_FILE)) {
+      const content = await readFile(SOCIAL_PROFILES_FILE, 'utf-8');
+      return JSON.parse(content);
+    }
+  } catch (error) {
+    console.error('Error loading social profiles:', error);
+  }
+  return {};
+}
+
+// Function to save social profiles
+async function saveSocialProfilesFile(profiles: Record<string, any>): Promise<void> {
+  try {
+    await writeFile(SOCIAL_PROFILES_FILE, JSON.stringify(profiles, null, 2));
+    console.log('Social profiles saved');
+  } catch (error) {
+    console.error('Error saving social profiles:', error);
+  }
+}
+
 // Get all NFTs from collections
 async function getCollectionNFTs() {
   const allItems: any[] = [];
@@ -163,6 +189,9 @@ async function createHolderSnapshot(): Promise<CollectionSnapshot> {
     nfts: any[] 
   }>();
   
+  // Load existing social profiles
+  const socialProfiles = await loadSocialProfiles();
+  
   for (const asset of assets) {
     try {
       const owner = asset.ownership.owner;
@@ -199,13 +228,18 @@ async function createHolderSnapshot(): Promise<CollectionSnapshot> {
   }
 
   // Convert to array format
-  const holders: NFTHolder[] = Array.from(holderMap.entries()).map(([address, { count, gen1Count, infantCount, nfts }]) => ({
-    address,
-    nftCount: count,
-    gen1Count,
-    infantCount,
-    nfts
-  }));
+  const holders: NFTHolder[] = Array.from(holderMap.entries()).map(([address, { count, gen1Count, infantCount, nfts }]) => {
+    // Include social profiles if available
+    const socialData = socialProfiles[address];
+    return {
+      address,
+      nftCount: count,
+      gen1Count,
+      infantCount,
+      nfts,
+      socialProfiles: socialData || undefined
+    };
+  });
 
   const snapshot: CollectionSnapshot = {
     collectionAddress: COLLECTION_ADDRESSES,
@@ -334,6 +368,9 @@ async function getTokenHolders(tokenAddress: string): Promise<TokenHolder[]> {
 async function createTokenSnapshot(): Promise<TokenSnapshot> {
   let holders: TokenHolder[] = [];
   
+  // Load existing social profiles
+  const socialProfiles = await loadSocialProfiles();
+  
   try {
     // Only try to get token holders if API key is available
     if (API_KEY) {
@@ -391,6 +428,12 @@ async function createTokenSnapshot(): Promise<TokenSnapshot> {
     }
   }
   
+  // Add social profiles to holders
+  holders = holders.map(holder => ({
+    ...holder,
+    socialProfiles: socialProfiles[holder.address] || undefined
+  }));
+  
   // Create the snapshot
   const snapshot: TokenSnapshot = {
     tokenAddress: TOKEN_ADDRESS,
@@ -417,7 +460,19 @@ async function createTokenSnapshot(): Promise<TokenSnapshot> {
 
 // Save social profile for a wallet
 async function saveSocialProfile(walletAddress: string, socialData: { twitter?: string; discord?: string; comment?: string }) {
-  // Try updating NFT holder profile first
+  // Load all social profiles
+  const socialProfiles = await loadSocialProfiles();
+  
+  // Update or create the profile for this wallet
+  socialProfiles[walletAddress] = {
+    ...(socialProfiles[walletAddress] || {}),
+    ...socialData
+  };
+  
+  // Save back to file
+  await saveSocialProfilesFile(socialProfiles);
+  
+  // Also update existing snapshots to maintain compatibility
   try {
     // Get the latest NFT snapshot
     const files = await readdir(DATA_DIR);
@@ -684,6 +739,10 @@ app.post('/api/social-profile', async (req, res) => {
 
 app.get('/api/social-profiles', async (req, res) => {
   try {
+    // Load social profiles from separate file
+    const socialProfiles = await loadSocialProfiles();
+    
+    // Also load from snapshot files for backward compatibility
     const files = await readdir(DATA_DIR);
     
     // Get NFT holders with social profiles
@@ -771,6 +830,22 @@ app.get('/api/social-profiles', async (req, res) => {
         });
       }
     }
+    
+    // Merge with standalone social profiles
+    Object.entries(socialProfiles).forEach(([address, profile]) => {
+      if (!socialProfileMap.has(address)) {
+        socialProfileMap.set(address, {
+          address,
+          nftCount: 0,
+          gen1Count: 0,
+          infantCount: 0,
+          tokenBalance: 0,
+          socialProfiles: profile,
+          hasNfts: false,
+          hasTokens: false
+        });
+      }
+    });
     
     // Convert to array and send
     const combinedSocialProfiles = Array.from(socialProfileMap.values());
