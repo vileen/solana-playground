@@ -400,7 +400,6 @@ async function getTokenHolders(tokenAddress: string): Promise<TokenHolder[]> {
     
     // Convert to array format and filter out holders with less than 1 token
     const holders: TokenHolder[] = Array.from(holderMap.entries())
-      .filter(([_, balance]) => balance >= 10) // Only include holders with 1 or more tokens
       .map(([address, balance]) => ({
         address,
         balance,
