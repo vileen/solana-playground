@@ -464,7 +464,7 @@ const App: React.FC = () => {
           onClick={toggleTheme}
           className="p-button-rounded p-button-text"
           tooltip={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
-          tooltipOptions={{ position: 'bottom' }}
+          tooltipOptions={{ position: 'left' }}
           aria-label="Toggle Theme"
         />
       </div>
