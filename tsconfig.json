@@ -12,11 +12,11 @@
     "noImplicitAny": false,
     "strictNullChecks": true,
     "noUncheckedIndexedAccess": true,
-    "jsx": "react-jsx",
     "allowJs": true,
+    "jsx": "react-jsx",
     "outDir": "dist",
     "lib": ["DOM", "DOM.Iterable", "ES2022"]
   },
-  "include": ["src"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.js", "src/**/*.jsx"],
   "exclude": ["node_modules", "dist"]
 } 
