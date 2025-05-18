@@ -18,6 +18,41 @@ const serverTsPath = path.join(process.cwd(), 'src/backend/server.ts');
 if (fs.existsSync(serverTsPath)) {
   console.log('Found server.ts at', serverTsPath);
   
+  // Patch the server.ts file to use dynamic port and environment variables
+  try {
+    console.log('Patching server.ts for dynamic port...');
+    let serverContent = fs.readFileSync(serverTsPath, 'utf8');
+    
+    // Check if the file contains port = 3001 declaration
+    if (serverContent.includes('const port = 3001;')) {
+      console.log('Patching hardcoded port to use environment variable');
+      serverContent = serverContent.replace(
+        'const port = 3001;', 
+        'const port = process.env.PORT ? parseInt(process.env.PORT) : 3001;'
+      );
+      fs.writeFileSync(serverTsPath, serverContent);
+      console.log('Server file patched for dynamic port binding');
+    }
+    
+    // Check if environment variable fallbacks are needed
+    if (serverContent.includes('if (!RPC_URL)')) {
+      console.log('Adding VITE_ prefixed variable fallback');
+      const fallbackCode = `if (!RPC_URL && process.env.VITE_SOLANA_RPC_URL) {
+  console.log('Using VITE_SOLANA_RPC_URL as fallback');
+  RPC_URL = process.env.VITE_SOLANA_RPC_URL;
+}`;
+      
+      serverContent = serverContent.replace(
+        'if (!RPC_URL) {',
+        fallbackCode
+      );
+      fs.writeFileSync(serverTsPath, serverContent);
+      console.log('Server file patched with environment variable fallbacks');
+    }
+  } catch (error) {
+    console.error('Error patching server.ts:', error.message);
+  }
+  
   // Try to compile it directly
   try {
     console.log('Attempting to compile server.ts directly');
@@ -30,6 +65,39 @@ if (fs.existsSync(serverTsPath)) {
   const serverJsPath = path.join(process.cwd(), 'dist/backend/server.js');
   if (fs.existsSync(serverJsPath)) {
     console.log('Successfully compiled server.js to', serverJsPath);
+    
+    // Patch the compiled JS file as well
+    try {
+      console.log('Patching compiled server.js for environment compatibility...');
+      let jsContent = fs.readFileSync(serverJsPath, 'utf8');
+      
+      // Add port environment variable support
+      if (jsContent.includes('const port = 3001;')) {
+        jsContent = jsContent.replace(
+          'const port = 3001;', 
+          'const port = process.env.PORT ? parseInt(process.env.PORT) : 3001;'
+        );
+        fs.writeFileSync(serverJsPath, jsContent);
+        console.log('Compiled server.js patched for dynamic port binding');
+      }
+      
+      // Add environment variable fallbacks
+      if (jsContent.includes('if (!RPC_URL)')) {
+        const fallbackCode = `if (!RPC_URL && process.env.VITE_SOLANA_RPC_URL) {
+    console.log('Using VITE_SOLANA_RPC_URL as fallback');
+    RPC_URL = process.env.VITE_SOLANA_RPC_URL;
+}`;
+        
+        jsContent = jsContent.replace(
+          'if (!RPC_URL) {',
+          fallbackCode
+        );
+        fs.writeFileSync(serverJsPath, jsContent);
+        console.log('Compiled server.js patched with environment variable fallbacks');
+      }
+    } catch (error) {
+      console.error('Error patching compiled server.js:', error.message);
+    }
   } else {
     console.log('Compilation failed, copying TypeScript file');
     
