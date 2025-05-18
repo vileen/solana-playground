@@ -1,0 +1,82 @@
+/* Tab View fixes */
+.p-tabview {
+  padding: 0;
+}
+
+/* Fix for the blue ink bar - prevent it from showing in wrong places */
+.p-tabview-ink-bar {
+  display: none !important;
+}
+
+.p-tabview .p-tabview-nav {
+  display: flex;
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  border-bottom: 1px solid var(--surface-border, #dee2e6);
+  position: relative; /* Add this for proper positioning context */
+}
+
+.p-tabview .p-tabview-nav li {
+  margin-right: 0;
+  display: inline-block;
+}
+
+/* Recreate the ink bar effect with our own styling */
+.p-tabview .p-tabview-nav li.p-highlight::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background-color: var(--primary-color, #4338ca);
+  transition: all 0.2s;
+}
+
+.p-tabview .p-tabview-nav li a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 1rem 1.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--text-color-secondary, #6c757d);
+  border: none;
+  background: transparent;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.p-tabview .p-tabview-nav li.p-highlight a {
+  color: var(--primary-color, #4338ca);
+  background: transparent;
+}
+
+.p-tabview .p-tabview-nav li a::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: transparent;
+  transition: all 0.2s;
+}
+
+.p-tabview .p-tabview-nav li.p-highlight a::after {
+  background: var(--primary-color, #4338ca);
+  transform: scaleX(1);
+}
+
+.p-tabview .p-tabview-panels {
+  padding: 1.25rem 0;
+  background: transparent;
+  border: 0 none;
+}
+
+/* Fix for bullet points */
+.p-tabview .p-tabview-nav li:before {
+  display: none !important;
+} 

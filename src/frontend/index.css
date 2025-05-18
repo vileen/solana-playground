@@ -1,0 +1,86 @@
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  padding: 0;
+}
+
+.flex {
+  display: flex !important;
+}
+
+.justify-between {
+  justify-content: space-between !important;
+}
+
+.items-center {
+  align-items: center !important;
+}
+
+.mb-4 {
+  margin-bottom: 1rem !important;
+}
+
+.text-2xl {
+  font-size: 1.5rem !important;
+}
+
+.font-bold {
+  font-weight: 700 !important;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+.p-tabview-panels {
+  padding: 0 !important;
+}
+
+.p-datatable .p-datatable-header {
+  background: transparent;
+  border: none;
+  padding: 0.5rem 1rem;
+}
+
+.p-datatable .p-paginator {
+  padding: 0.5rem 0;
+}
+
+.p-rowexpansion-content {
+  padding: 0 !important;
+}
+
+/* Fix for DataTable row styling issues */
+.p-datatable tbody tr {
+  background: inherit;
+}
+
+.p-datatable .p-datatable-tbody > tr > td {
+  border: 1px solid var(--surface-border, #dee2e6);
+  border-width: 0 0 1px 0;
+}
+
+/* Fix datatable striping */
+.p-datatable-striped .p-datatable-tbody > tr.p-row-odd {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+/* Fix for misplaced TabView ink bar */
+li.p-tabview-ink-bar,
+.p-tabview-ink-bar {
+  display: none !important;
+  visibility: hidden !important;
+  position: absolute !important;
+  top: -9999px !important;
+  left: -9999px !important;
+  opacity: 0 !important;
+  z-index: -1 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+} 

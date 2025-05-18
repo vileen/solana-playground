@@ -1,0 +1,154 @@
+.search-input-wrapper {
+  position: relative;
+  display: inline-block;
+  margin-right: 1rem;
+  width: 250px;
+}
+
+.search-input-wrapper .pi-search {
+  position: absolute;
+  left: 10px;
+  color: #aaa;
+  font-size: 1.1rem;
+  pointer-events: none;
+}
+
+.search-input-wrapper > .p-inputtext {
+  padding-left: 2.2rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Fix TabView layout */
+.p-tabview .p-tabview-nav {
+  display: flex;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.p-tabview .p-tabview-nav li {
+  margin-right: 0;
+  position: relative;
+}
+
+.p-tabview .p-tabview-nav li .p-tabview-nav-link {
+  border: none;
+  background: none;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+}
+
+.p-tabview .p-tabview-nav li.p-highlight .p-tabview-nav-link {
+  border-bottom: 2px solid #4338ca;
+  color: #4338ca;
+}
+
+/* Clean up table rows */
+.p-datatable .p-datatable-tbody > tr {
+  background: transparent !important;
+  transition: background-color 0.2s;
+}
+
+.p-datatable .p-datatable-tbody > tr:hover {
+  background: rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Fix for row expansion */
+.p-datatable .p-datatable-tbody > tr.p-datatable-row-expansion {
+  background: transparent !important;
+}
+
+/* Fix social profile rows */
+.has-social-profile td {
+  background-color: inherit !important;
+}
+
+/* Theme-related styles */
+.dark-theme {
+  background-color: #1e1e1e;
+  color: #e0e0e0;
+}
+
+.light-theme {
+  background-color: #f5f5f5;
+  color: #212121;
+}
+
+/* Theme switcher button */
+.theme-switcher {
+  position: fixed;
+  top: 5px;
+  right: 10px;
+  z-index: 1000;
+}
+
+.theme-switcher .p-button {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+}
+
+.dark-theme .theme-switcher .p-button {
+  color: #ffd54f;
+}
+
+.light-theme .theme-switcher .p-button {
+  color: #5c6bc0;
+}
+
+.social-link {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  transition: color 0.3s;
+}
+
+.social-link.twitter {
+  color: #1DA1F2;
+}
+
+.social-link.twitter:hover {
+  color: #4db5f5;
+  text-decoration: underline;
+}
+
+.field {
+  margin-bottom: 1rem;
+}
+
+/* Highlight rows with social profiles - more direct approach */
+.p-datatable-tbody > tr.has-social-profile {
+  background-color: rgba(25, 118, 210, 0.15) !important;
+}
+
+.dark-theme .p-datatable-tbody > tr.has-social-profile {
+  background-color: rgba(25, 118, 210, 0.2) !important;
+}
+
+.light-theme .p-datatable-tbody > tr.has-social-profile {
+  background-color: rgba(227, 242, 253, 0.8) !important;
+}
+
+/* Override any conflicting styles */
+.p-datatable-tbody > tr.has-social-profile > td {
+  background-color: transparent !important;
+}
+
+/* Super specific selector for highlighted rows */
+table tbody tr.has-social-profile {
+  background-color: rgba(25, 118, 210, 0.2) !important;
+}
+
+.dark-theme table tbody tr.has-social-profile {
+  background-color: rgba(25, 118, 210, 0.25) !important;
+}
+
+.light-theme table tbody tr.has-social-profile {
+  background-color: rgba(227, 242, 253, 0.8) !important;
+} 
