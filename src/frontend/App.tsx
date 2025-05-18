@@ -71,12 +71,26 @@ const App: React.FC = () => {
   const fetchHolders = async () => {
     try {
       setLoading(true);
-      const url = new URL(`${getApiUrl()}/holders`);
-      if (searchTerm) {
-        url.searchParams.append('search', searchTerm);
+      const baseUrl = getApiUrl();
+      let url;
+      
+      // Handle relative URLs properly
+      if (baseUrl.startsWith('/')) {
+        // For relative URLs, append to current origin
+        url = `${window.location.origin}${baseUrl}/holders`;
+      } else {
+        // For absolute URLs, use as is
+        url = `${baseUrl}/holders`;
       }
-      console.log('Fetching holders from:', url.toString());
-      const response = await fetch(url.toString());
+      
+      // Add search parameter if needed
+      const finalUrl = new URL(url);
+      if (searchTerm) {
+        finalUrl.searchParams.append('search', searchTerm);
+      }
+      
+      console.log('Fetching holders from:', finalUrl.toString());
+      const response = await fetch(finalUrl.toString());
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -101,12 +115,26 @@ const App: React.FC = () => {
   const fetchTokenHolders = async () => {
     try {
       setLoading(true);
-      const url = new URL(`${getApiUrl()}/token-holders`);
-      if (searchTerm) {
-        url.searchParams.append('search', searchTerm);
+      const baseUrl = getApiUrl();
+      let url;
+      
+      // Handle relative URLs properly
+      if (baseUrl.startsWith('/')) {
+        // For relative URLs, append to current origin
+        url = `${window.location.origin}${baseUrl}/token-holders`;
+      } else {
+        // For absolute URLs, use as is
+        url = `${baseUrl}/token-holders`;
       }
-      console.log('Fetching token holders from:', url.toString());
-      const response = await fetch(url.toString());
+      
+      // Add search parameter if needed
+      const finalUrl = new URL(url);
+      if (searchTerm) {
+        finalUrl.searchParams.append('search', searchTerm);
+      }
+      
+      console.log('Fetching token holders from:', finalUrl.toString());
+      const response = await fetch(finalUrl.toString());
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -131,17 +159,35 @@ const App: React.FC = () => {
   const fetchSocialProfiles = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${getApiUrl()}/social-profiles`);
-      if (!response.ok) throw new Error('Failed to fetch social profiles');
+      const baseUrl = getApiUrl();
+      let url;
+      
+      // Handle relative URLs properly
+      if (baseUrl.startsWith('/')) {
+        // For relative URLs, append to current origin
+        url = `${window.location.origin}${baseUrl}/social-profiles`;
+      } else {
+        // For absolute URLs, use as is
+        url = `${baseUrl}/social-profiles`;
+      }
+      
+      console.log('Fetching social profiles from:', url);
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`Failed to fetch social profiles: ${response.status} ${response.statusText} ${errorData.message || ''}`);
+      }
+      
       const data = await response.json();
       setSocialHolders(data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching social profiles:', error);
       toast.current?.show({
         severity: 'error',
         summary: 'Error', 
-        detail: 'Failed to fetch social profiles',
-        life: 3000
+        detail: `Failed to fetch social profiles: ${error.message || 'Unknown error'}`,
+        life: 5000
       });
     } finally {
       setLoading(false);
@@ -151,8 +197,26 @@ const App: React.FC = () => {
   const takeSnapshot = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${getApiUrl()}/snapshot`);
-      if (!response.ok) throw new Error('Failed to take snapshot');
+      const baseUrl = getApiUrl();
+      let url;
+      
+      // Handle relative URLs properly
+      if (baseUrl.startsWith('/')) {
+        // For relative URLs, append to current origin
+        url = `${window.location.origin}${baseUrl}/snapshot`;
+      } else {
+        // For absolute URLs, use as is
+        url = `${baseUrl}/snapshot`;
+      }
+      
+      console.log('Taking snapshot from:', url);
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`Failed to take snapshot: ${response.status} ${response.statusText} ${errorData.message || ''}`);
+      }
+      
       const data = await response.json();
       setHolders(data.holders);
       toast.current?.show({
@@ -161,13 +225,13 @@ const App: React.FC = () => {
         detail: 'NFT snapshot taken successfully',
         life: 3000
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error taking snapshot:', error);
       toast.current?.show({
         severity: 'error',
         summary: 'Error',
-        detail: 'Failed to take snapshot',
-        life: 3000
+        detail: `Failed to take snapshot: ${error.message || 'Unknown error'}`,
+        life: 5000
       });
     } finally {
       setLoading(false);
@@ -177,8 +241,26 @@ const App: React.FC = () => {
   const takeTokenSnapshot = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${getApiUrl()}/token-snapshot`);
-      if (!response.ok) throw new Error('Failed to take token snapshot');
+      const baseUrl = getApiUrl();
+      let url;
+      
+      // Handle relative URLs properly
+      if (baseUrl.startsWith('/')) {
+        // For relative URLs, append to current origin
+        url = `${window.location.origin}${baseUrl}/token-snapshot`;
+      } else {
+        // For absolute URLs, use as is
+        url = `${baseUrl}/token-snapshot`;
+      }
+      
+      console.log('Taking token snapshot from:', url);
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`Failed to take token snapshot: ${response.status} ${response.statusText} ${errorData.message || ''}`);
+      }
+      
       const data = await response.json();
       setTokenHolders(data.holders);
       toast.current?.show({
@@ -187,13 +269,13 @@ const App: React.FC = () => {
         detail: 'Token snapshot taken successfully',
         life: 3000
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error taking token snapshot:', error);
       toast.current?.show({
         severity: 'error',
         summary: 'Error',
-        detail: 'Failed to take token snapshot',
-        life: 3000
+        detail: `Failed to take token snapshot: ${error.message || 'Unknown error'}`,
+        life: 5000
       });
     } finally {
       setLoading(false);
@@ -205,7 +287,20 @@ const App: React.FC = () => {
     
     try {
       setLoading(true);
-      const response = await fetch(`${getApiUrl()}/social-profile`, {
+      const baseUrl = getApiUrl();
+      let url;
+      
+      // Handle relative URLs properly
+      if (baseUrl.startsWith('/')) {
+        // For relative URLs, append to current origin
+        url = `${window.location.origin}${baseUrl}/social-profile`;
+      } else {
+        // For absolute URLs, use as is
+        url = `${baseUrl}/social-profile`;
+      }
+      
+      console.log('Saving social profile to:', url);
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -218,7 +313,10 @@ const App: React.FC = () => {
         }),
       });
       
-      if (!response.ok) throw new Error('Failed to save social profile');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`Failed to save social profile: ${response.status} ${response.statusText} ${errorData.message || ''}`);
+      }
       
       const data = await response.json();
       if (data.success) {
@@ -239,13 +337,13 @@ const App: React.FC = () => {
         
         setSocialDialogVisible(false);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving social profile:', error);
       toast.current?.show({
         severity: 'error',
         summary: 'Error',
-        detail: 'Failed to save social profile',
-        life: 3000
+        detail: `Failed to save social profile: ${error.message || 'Unknown error'}`,
+        life: 5000
       });
     } finally {
       setLoading(false);
