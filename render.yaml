@@ -2,13 +2,19 @@ services:
   - type: web
     name: solana-snapshot-tool
     env: node
-    buildCommand: yarn install && yarn render:build
-    startCommand: yarn render:start
+    buildCommand: |
+      yarn install
+      npx tsc --skipLibCheck
+      npx vite build
+      npx tsc --project tsconfig.json --skipLibCheck
+    startCommand: node --experimental-specifier-resolution=node dist/backend/server.js
     envVars:
       - key: NODE_ENV
         value: production
       - key: NODE_VERSION
         value: 16
+      - key: YARN_VERSION
+        value: 1.22.19
       - key: SOLANA_RPC_URL
         sync: false
       - key: SOLANA_API_KEY
