@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import { mkdir } from 'fs/promises';
+import { existsSync } from 'fs';
 import { join } from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
@@ -55,8 +56,7 @@ if (process.env.NODE_ENV === 'production') {
   ];
   
   // Find the first path that exists
-  const fs = require('fs');
-  distPath = possiblePaths.find(path => fs.existsSync(path)) || possiblePaths[0];
+  distPath = possiblePaths.find(path => existsSync(path)) || possiblePaths[0];
   console.log(`Using static files from: ${distPath}`);
 } else {
   // In development, use the usual path
