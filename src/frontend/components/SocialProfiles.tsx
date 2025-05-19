@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { Button } from 'primereact/button';
-import { fetchNftHolders, fetchTokenHolders, fetchSocialProfiles, saveSocialProfile as apiSaveSocialProfile } from '../services/api.js';
+import { fetchNftHolders, fetchTokenHolders, fetchSocialProfiles, saveSocialProfile as apiSaveSocialProfile, deleteSocialProfile as apiDeleteSocialProfile } from '../services/api.js';
 import SearchBar from './SearchBar.js';
 import ProfileDialog from './ProfileDialog.js';
 
@@ -35,18 +35,24 @@ interface GroupedSocialProfile {
   totalNftCount: number;
 }
 
-const SocialProfiles: React.FC<SocialProfilesProps> = ({
+// Use forwardRef to expose methods to parent component
+const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, SocialProfilesProps>(({
   onError,
   onSuccess,
   onShowSocialDialog,
   searchTerm,
   onSearchChange
-}) => {
+}, ref) => {
   const [socialProfiles, setSocialProfiles] = useState<GroupedSocialProfile[]>([]);
   const [loading, setLoading] = useState(false);
   const [expandedRows, setExpandedRows] = useState<any>(null);
   const [profileDialogVisible, setProfileDialogVisible] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState<any>(null);
+
+  // Expose methods via ref
+  useImperativeHandle(ref, () => ({
+    loadSocialProfiles
+  }));
 
   useEffect(() => {
     loadSocialProfiles();
@@ -80,12 +86,11 @@ const SocialProfiles: React.FC<SocialProfilesProps> = ({
       const groupedProfiles = new Map<string, GroupedSocialProfile>();
       
       profiles.forEach(profile => {
-        // Create a unique identifier for each social profile
-        // Use either twitter, discord, or comment as the identifier
-        const socialId = profile.twitter || profile.discord || profile.comment;
+        // Get the actual backend ID, or fall back to a content identifier
+        const profileId = profile.id || (profile.twitter || profile.discord || profile.comment);
         
-        if (!socialId) {
-          // Skip profiles with no social info (shouldn't happen)
+        if (!profileId) {
+          // Skip profiles with no ID or social info (shouldn't happen)
           return;
         }
         
@@ -103,9 +108,9 @@ const SocialProfiles: React.FC<SocialProfilesProps> = ({
         };
         
         // Create or update the grouped profile
-        if (groupedProfiles.has(socialId)) {
+        if (groupedProfiles.has(profileId)) {
           // Add this wallet to existing profile
-          const existingProfile = groupedProfiles.get(socialId)!;
+          const existingProfile = groupedProfiles.get(profileId)!;
           existingProfile.wallets.push(walletData);
           existingProfile.totalTokenBalance += tokenBalance;
           existingProfile.totalGen1Count += nftData.gen1Count;
@@ -119,8 +124,8 @@ const SocialProfiles: React.FC<SocialProfilesProps> = ({
         } else {
           // Create a new profile group
           const displayName = profile.comment || profile.twitter || profile.discord || 'Unknown';
-          groupedProfiles.set(socialId, {
-            id: socialId,
+          groupedProfiles.set(profileId, {
+            id: profileId,
             displayName,
             twitter: profile.twitter,
             discord: profile.discord,
@@ -186,6 +191,23 @@ const SocialProfiles: React.FC<SocialProfilesProps> = ({
       onSuccess(profileData.id ? 'Profile updated successfully' : 'New profile created successfully');
     } catch (error: any) {
       onError(`Failed to save profile: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Add a new method to handle profile deletion
+  const handleDeleteProfile = async (profileId: string) => {
+    try {
+      setLoading(true);
+      
+      const result = await apiDeleteSocialProfile(profileId);
+      
+      setProfileDialogVisible(false);
+      await loadSocialProfiles();
+      onSuccess('Profile deleted successfully');
+    } catch (error: any) {
+      onError(`Failed to delete profile: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -421,10 +443,11 @@ const SocialProfiles: React.FC<SocialProfilesProps> = ({
         visible={profileDialogVisible}
         onHide={() => setProfileDialogVisible(false)}
         onSave={handleSaveProfile}
+        onDelete={handleDeleteProfile}
         profile={selectedProfile}
       />
     </div>
   );
-};
+});
 
 export default SocialProfiles; 

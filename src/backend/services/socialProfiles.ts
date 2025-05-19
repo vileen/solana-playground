@@ -34,10 +34,12 @@ export async function loadSocialProfiles(): Promise<Record<string, any>> {
           const profile = data.profiles[socialId];
           
           if (profile) {
+            // Include the actual backend socialId (e.g., "social_12345678_abc123") as the id
             walletToProfileMap[address] = {
               twitter: profile.twitter,
               discord: profile.discord,
-              comment: profile.comment
+              comment: profile.comment,
+              id: socialId
             };
           }
         }
@@ -145,9 +147,8 @@ export async function saveSocialProfile(walletAddressOrProfile: string | SocialD
 // New function to save a grouped social profile with multiple wallets
 async function saveGroupedSocialProfile(profileData: SocialData): Promise<boolean> {
   try {
-    if (!profileData.wallets || profileData.wallets.length === 0) {
-      throw new Error('At least one wallet address is required');
-    }
+    // Allow empty wallets array
+    const walletAddresses = profileData.wallets?.map(w => w.address) || [];
     
     // Create/load profiles storage
     let profileStore: ProfileStore;
@@ -180,7 +181,6 @@ async function saveGroupedSocialProfile(profileData: SocialData): Promise<boolea
     
     // Check if we're updating an existing profile
     let socialId = profileData.id;
-    const walletAddresses = profileData.wallets.map(w => w.address);
     
     if (!socialId) {
       // Check if any of these wallets are already associated with a profile
@@ -195,6 +195,22 @@ async function saveGroupedSocialProfile(profileData: SocialData): Promise<boolea
       if (!socialId) {
         socialId = `social_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
       }
+    }
+    
+    // Find all wallets that were previously associated with this socialId
+    const previousWallets = Object.entries(profileStore.byWallet)
+      .filter(([_, data]) => data.socialId === socialId)
+      .map(([addr, _]) => addr);
+    
+    // Find wallets that are no longer in the list and need to be removed
+    const walletsToRemove = previousWallets.filter(addr => !walletAddresses.includes(addr));
+    
+    console.log(`Updating profile ${socialId}: Adding ${walletAddresses.length} wallets, removing ${walletsToRemove.length} wallets`);
+    
+    // Remove wallet mappings that are no longer associated with this profile
+    for (const wallet of walletsToRemove) {
+      delete profileStore.byWallet[wallet];
+      console.log(`Removed wallet ${wallet} from profile ${socialId}`);
     }
     
     // Remove any existing mappings for these wallets to avoid duplicates
@@ -232,6 +248,60 @@ async function saveGroupedSocialProfile(profileData: SocialData): Promise<boolea
     return true;
   } catch (error) {
     console.error('Error saving grouped social profile:', error);
+    return false;
+  }
+}
+
+// Function to delete a social profile
+export async function deleteSocialProfile(socialId: string): Promise<boolean> {
+  try {
+    let profileStore: ProfileStore;
+    
+    // Load existing profile data
+    try {
+      if (existsSync(SOCIAL_PROFILES_FILE)) {
+        const content = await readFile(SOCIAL_PROFILES_FILE, 'utf-8');
+        profileStore = JSON.parse(content);
+        
+        if (!profileStore.byWallet || !profileStore.profiles) {
+          return false; // Invalid profile store format
+        }
+      } else {
+        return false; // Profile file doesn't exist
+      }
+    } catch (error) {
+      console.error('Error reading social profiles file:', error);
+      return false;
+    }
+    
+    // Check if the profile exists
+    if (!profileStore.profiles[socialId]) {
+      console.error(`Profile with ID ${socialId} not found`);
+      return false;
+    }
+    
+    console.log(`Deleting profile ${socialId}`);
+    
+    // Find all wallets associated with this profile
+    const associatedWallets = Object.entries(profileStore.byWallet)
+      .filter(([_, data]) => data.socialId === socialId)
+      .map(([addr, _]) => addr);
+    
+    // Remove all wallet mappings for this profile
+    for (const wallet of associatedWallets) {
+      delete profileStore.byWallet[wallet];
+      console.log(`Removed wallet mapping for ${wallet}`);
+    }
+    
+    // Delete the profile itself
+    delete profileStore.profiles[socialId];
+    
+    // Save the updated profiles
+    await saveSocialProfilesFile(profileStore);
+    console.log(`Profile ${socialId} successfully deleted`);
+    return true;
+  } catch (error) {
+    console.error('Error deleting social profile:', error);
     return false;
   }
 } 

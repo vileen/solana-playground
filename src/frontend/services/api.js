@@ -130,4 +130,36 @@ export const saveSocialProfile = async (profileData) => {
     console.error('Error saving social profile:', error);
     throw error;
   }
+};
+
+// Delete social profile
+export const deleteSocialProfile = async (profileId) => {
+  try {
+    if (!profileId) {
+      console.error('Cannot delete profile: No profile ID provided');
+      throw new Error('No profile ID provided');
+    }
+    
+    console.log(`Attempting to delete profile with ID: ${profileId}`);
+    const url = `${API_BASE_URL}/social-profiles/${encodeURIComponent(profileId)}`;
+    
+    console.log(`Deleting social profile at URL:`, url);
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error(`Delete profile failed with status ${response.status}:`, errorData);
+      throw new Error(`Failed to delete social profile: ${response.status} ${response.statusText}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error deleting social profile:', error);
+    throw error;
+  }
 }; 

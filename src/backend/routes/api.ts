@@ -1,7 +1,7 @@
 import express, { Router, Request, Response } from 'express';
 import { getHolders, createHolderSnapshot, loadHolderSnapshot } from '../services/nftCollections.js';
 import { getFilteredTokenHolders, createTokenSnapshot, loadTokenSnapshot } from '../services/tokenService.js';
-import { saveSocialProfile, loadSocialProfiles } from '../services/socialProfiles.js';
+import { saveSocialProfile, loadSocialProfiles, deleteSocialProfile } from '../services/socialProfiles.js';
 
 const router = Router();
 
@@ -141,6 +141,35 @@ router.get('/summary', async (req: Request, res: Response) => {
     console.error('Error in /summary endpoint:', error);
     res.status(500).json({ error: error.message || 'Internal server error' });
   }
+});
+
+// Delete a social profile
+router.delete('/social-profiles/:id', (req: Request, res: Response) => {
+  (async () => {
+    try {
+      const profileId = req.params.id;
+      
+      if (!profileId) {
+        console.error('Delete profile failed: No ID provided in URL');
+        return res.status(400).json({ error: 'Profile ID is required' });
+      }
+      
+      console.log(`Delete profile request received for ID: ${profileId}`);
+      
+      const success = await deleteSocialProfile(profileId);
+      
+      if (success) {
+        console.log(`Profile ${profileId} deleted successfully`);
+        res.json({ success: true, message: 'Social profile deleted successfully' });
+      } else {
+        console.error(`Profile not found or could not be deleted: ${profileId}`);
+        res.status(404).json({ error: 'Profile not found or could not be deleted' });
+      }
+    } catch (error: any) {
+      console.error('Error in DELETE /social-profiles endpoint:', error);
+      res.status(500).json({ error: error.message || 'Internal server error' });
+    }
+  })();
 });
 
 export default router; 
