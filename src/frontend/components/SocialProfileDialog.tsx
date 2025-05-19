@@ -42,10 +42,7 @@ const SocialProfileDialog: React.FC<SocialProfileDialogProps> = ({
     try {
       setLoading(true);
       const success = await saveSocialProfile(
-        selectedHolder.address,
-        twitterHandle,
-        discordHandle,
-        comment
+        selectedHolder
       );
       
       if (success) {

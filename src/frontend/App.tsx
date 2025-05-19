@@ -5,17 +5,19 @@ import { Button } from 'primereact/button';
 
 import NftHolders from './components/NftHolders.js';
 import TokenHolders from './components/TokenHolders.js';
-import SocialProfileDialog from './components/SocialProfileDialog.js';
+import ProfileDialog from './components/ProfileDialog.js';
 import SocialProfiles from './components/SocialProfiles.js';
 import { getSavedTheme, toggleTheme, loadThemeCSS } from './utils/theme.js';
 import './App.css';
 import './TabViewFix.css';
+import { saveSocialProfile as apiSaveSocialProfile } from './services/api.js';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [isDarkMode, setIsDarkMode] = useState(true);
-  const [socialDialogVisible, setSocialDialogVisible] = useState(false);
+  const [profileDialogVisible, setProfileDialogVisible] = useState(false);
   const [selectedHolder, setSelectedHolder] = useState<any>(null);
+  const [sharedSearchTerm, setSharedSearchTerm] = useState('');
   
   const toast = useRef<Toast>(null);
 
@@ -31,8 +33,45 @@ const App: React.FC = () => {
   };
 
   const showSocialDialog = (holder: any) => {
-    setSelectedHolder(holder);
-    setSocialDialogVisible(true);
+    // Format the holder data to fit ProfileDialog's expected format
+    const profile = {
+      id: holder.id,
+      twitter: holder.twitter || '',
+      discord: holder.discord || '',
+      comment: holder.comment || '',
+      wallets: holder.address ? [{ address: holder.address }] : []
+    };
+    
+    setSelectedHolder(profile);
+    setProfileDialogVisible(true);
+  };
+
+  const handleSaveProfile = async (profileData: any) => {
+    try {
+      if (!profileData.wallets || profileData.wallets.length === 0) {
+        handleError('At least one wallet address is required');
+        return;
+      }
+      
+      const result = await apiSaveSocialProfile(profileData);
+      setProfileDialogVisible(false);
+      
+      // Refresh the current tab
+      if (activeTab === 0) {
+        // NFT Holders tab
+        // Component will handle its own refresh
+      } else if (activeTab === 1) {
+        // Token Holders tab
+        // Component will handle its own refresh
+      } else if (activeTab === 2) {
+        // Social Profiles tab
+        // Component will handle its own refresh
+      }
+      
+      handleSuccess(profileData.id ? 'Profile updated successfully' : 'New profile created successfully');
+    } catch (error: any) {
+      handleError(`Failed to save profile: ${error.message}`);
+    }
   };
 
   const handleSuccess = (message: string) => {
@@ -79,6 +118,8 @@ const App: React.FC = () => {
             onError={handleError}
             onSuccess={handleSuccess}
             onShowSocialDialog={showSocialDialog}
+            searchTerm={sharedSearchTerm}
+            onSearchChange={setSharedSearchTerm}
           />
         </TabPanel>
         
@@ -87,6 +128,8 @@ const App: React.FC = () => {
             onError={handleError}
             onSuccess={handleSuccess}
             onShowSocialDialog={showSocialDialog}
+            searchTerm={sharedSearchTerm}
+            onSearchChange={setSharedSearchTerm}
           />
         </TabPanel>
         
@@ -95,16 +138,17 @@ const App: React.FC = () => {
             onError={handleError}
             onSuccess={handleSuccess}
             onShowSocialDialog={showSocialDialog}
+            searchTerm={sharedSearchTerm}
+            onSearchChange={setSharedSearchTerm}
           />
         </TabPanel>
       </TabView>
       
-      <SocialProfileDialog 
-        visible={socialDialogVisible}
-        onHide={() => setSocialDialogVisible(false)}
-        selectedHolder={selectedHolder}
-        onSuccess={handleSuccess}
-        onError={handleError}
+      <ProfileDialog 
+        visible={profileDialogVisible}
+        onHide={() => setProfileDialogVisible(false)}
+        onSave={handleSaveProfile}
+        profile={selectedHolder}
       />
     </div>
   );

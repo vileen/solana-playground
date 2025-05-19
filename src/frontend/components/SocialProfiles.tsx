@@ -2,23 +2,51 @@ import React, { useState, useEffect } from 'react';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { Button } from 'primereact/button';
-import { fetchNftHolders, fetchTokenHolders, fetchSocialProfiles } from '../services/api.js';
+import { fetchNftHolders, fetchTokenHolders, fetchSocialProfiles, saveSocialProfile as apiSaveSocialProfile } from '../services/api.js';
 import SearchBar from './SearchBar.js';
+import ProfileDialog from './ProfileDialog.js';
 
 interface SocialProfilesProps {
   onError: (message: string) => void;
   onSuccess: (message: string) => void;
   onShowSocialDialog: (holder: any) => void;
+  searchTerm: string;
+  onSearchChange: (value: string) => void;
+}
+
+interface WalletData {
+  address: string;
+  tokenBalance: number;
+  gen1Count: number;
+  infantCount: number;
+  nftCount: number;
+}
+
+interface GroupedSocialProfile {
+  id: string;
+  displayName: string;
+  twitter: string | null;
+  discord: string | null;
+  comment: string | null;
+  wallets: WalletData[];
+  totalTokenBalance: number;
+  totalGen1Count: number;
+  totalInfantCount: number;
+  totalNftCount: number;
 }
 
 const SocialProfiles: React.FC<SocialProfilesProps> = ({
   onError,
   onSuccess,
-  onShowSocialDialog
+  onShowSocialDialog,
+  searchTerm,
+  onSearchChange
 }) => {
-  const [socialHolders, setSocialHolders] = useState<any[]>([]);
+  const [socialProfiles, setSocialProfiles] = useState<GroupedSocialProfile[]>([]);
   const [loading, setLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [expandedRows, setExpandedRows] = useState<any>(null);
+  const [profileDialogVisible, setProfileDialogVisible] = useState(false);
+  const [selectedProfile, setSelectedProfile] = useState<any>(null);
 
   useEffect(() => {
     loadSocialProfiles();
@@ -28,10 +56,8 @@ const SocialProfiles: React.FC<SocialProfilesProps> = ({
     try {
       setLoading(true);
       
-      // First fetch social profiles to get the base data
+      // Fetch all data
       const profiles = await fetchSocialProfiles();
-      
-      // Then fetch NFT and token data to combine
       const nftHolders = await fetchNftHolders();
       const tokenHolders = await fetchTokenHolders();
       
@@ -43,7 +69,6 @@ const SocialProfiles: React.FC<SocialProfilesProps> = ({
       
       const nftMap = new Map();
       nftHolders.forEach(holder => {
-        // Ensure we're capturing the correct count values
         nftMap.set(holder.address, {
           gen1Count: holder.gen1Count || 0,
           infantCount: holder.infantCount || 0,
@@ -51,37 +76,81 @@ const SocialProfiles: React.FC<SocialProfilesProps> = ({
         });
       });
       
-      // Combine all data - start with profiles
-      const combinedData = profiles.map((profile: any) => {
-        const nftData = nftMap.get(profile.address) || { gen1Count: 0, infantCount: 0, nftCount: 0 };
+      // Group wallets by social identity
+      const groupedProfiles = new Map<string, GroupedSocialProfile>();
+      
+      profiles.forEach(profile => {
+        // Create a unique identifier for each social profile
+        // Use either twitter, discord, or comment as the identifier
+        const socialId = profile.twitter || profile.discord || profile.comment;
         
-        return {
+        if (!socialId) {
+          // Skip profiles with no social info (shouldn't happen)
+          return;
+        }
+        
+        // Fetch NFT and token data for this wallet
+        const nftData = nftMap.get(profile.address) || { gen1Count: 0, infantCount: 0, nftCount: 0 };
+        const tokenBalance = tokenMap.get(profile.address) || 0;
+        
+        // Prepare wallet data
+        const walletData: WalletData = {
           address: profile.address,
-          socialProfiles: {
-            twitter: profile.twitter,
-            discord: profile.discord,
-            comment: profile.comment
-          },
-          tokenBalance: tokenMap.get(profile.address) || 0,
+          tokenBalance,
           gen1Count: nftData.gen1Count,
           infantCount: nftData.infantCount,
           nftCount: nftData.nftCount
         };
+        
+        // Create or update the grouped profile
+        if (groupedProfiles.has(socialId)) {
+          // Add this wallet to existing profile
+          const existingProfile = groupedProfiles.get(socialId)!;
+          existingProfile.wallets.push(walletData);
+          existingProfile.totalTokenBalance += tokenBalance;
+          existingProfile.totalGen1Count += nftData.gen1Count;
+          existingProfile.totalInfantCount += nftData.infantCount;
+          existingProfile.totalNftCount += nftData.nftCount;
+          
+          // Update the profile if this wallet has a comment and the profile doesn't
+          if (profile.comment && !existingProfile.comment) {
+            existingProfile.comment = profile.comment;
+          }
+        } else {
+          // Create a new profile group
+          const displayName = profile.comment || profile.twitter || profile.discord || 'Unknown';
+          groupedProfiles.set(socialId, {
+            id: socialId,
+            displayName,
+            twitter: profile.twitter,
+            discord: profile.discord,
+            comment: profile.comment,
+            wallets: [walletData],
+            totalTokenBalance: tokenBalance,
+            totalGen1Count: nftData.gen1Count,
+            totalInfantCount: nftData.infantCount,
+            totalNftCount: nftData.nftCount
+          });
+        }
       });
       
-      // Filter if search term is provided
-      let filteredData = combinedData;
+      // Convert map to array
+      const groupedProfilesArray = Array.from(groupedProfiles.values());
+      
+      // Filter by search term if provided
+      let filteredProfiles = groupedProfilesArray;
       if (searchTerm) {
         const searchLower = searchTerm.toLowerCase();
-        filteredData = combinedData.filter(holder => 
-          holder.address.toLowerCase().includes(searchLower) ||
-          holder.socialProfiles?.twitter?.toLowerCase().includes(searchLower) ||
-          holder.socialProfiles?.discord?.toLowerCase().includes(searchLower) ||
-          holder.socialProfiles?.comment?.toLowerCase().includes(searchLower)
+        filteredProfiles = groupedProfilesArray.filter(profile => 
+          profile.displayName.toLowerCase().includes(searchLower) ||
+          (profile.twitter?.toLowerCase().includes(searchLower) || false) ||
+          (profile.discord?.toLowerCase().includes(searchLower) || false) ||
+          (profile.comment?.toLowerCase().includes(searchLower) || false) ||
+          profile.wallets.some(wallet => wallet.address.toLowerCase().includes(searchLower))
         );
       }
       
-      setSocialHolders(filteredData);
+      setSocialProfiles(filteredProfiles);
     } catch (error: any) {
       onError(`Error loading social profiles: ${error.message}`);
     } finally {
@@ -89,93 +158,154 @@ const SocialProfiles: React.FC<SocialProfilesProps> = ({
     }
   };
 
-  // Table templates
-  const addressTemplate = (rowData: any) => (
-    <a 
-      href={`https://solscan.io/account/${rowData.address}`}
-      target="_blank" 
-      rel="noopener noreferrer"
-      className="wallet-link"
-    >
-      {rowData.address.substring(0, 4)}...{rowData.address.substring(rowData.address.length - 4)}
-    </a>
-  );
-  
-  const twitterTemplate = (rowData: any) => {
-    if (!rowData.socialProfiles?.twitter) return <span>N/A</span>;
-    return (
-      <a 
-        href={`https://twitter.com/${rowData.socialProfiles.twitter.replace('@', '')}`} 
-        target="_blank" 
-        rel="noopener noreferrer"
-        className="social-link"
+  const openNewProfileDialog = () => {
+    setSelectedProfile(null);
+    setProfileDialogVisible(true);
+  };
+
+  const openEditProfileDialog = (profile: GroupedSocialProfile) => {
+    setSelectedProfile(profile);
+    setProfileDialogVisible(true);
+  };
+
+  const handleSaveProfile = async (profileData: any) => {
+    try {
+      setLoading(true);
+      // If there are no wallets in the data, show an error
+      if (!profileData.wallets || profileData.wallets.length === 0) {
+        onError('At least one wallet address is required');
+        setLoading(false);
+        return;
+      }
+      
+      // Call the API with the correct parameter
+      const result = await apiSaveSocialProfile(profileData);
+      
+      setProfileDialogVisible(false);
+      await loadSocialProfiles();
+      onSuccess(profileData.id ? 'Profile updated successfully' : 'New profile created successfully');
+    } catch (error: any) {
+      onError(`Failed to save profile: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Row expansion template to show wallet details
+  const rowExpansionTemplate = (data: GroupedSocialProfile) => (
+    <div className="wallet-details p-3">
+      <h4 className="mb-3">Wallets: {data.wallets.length}</h4>
+      <DataTable 
+        value={data.wallets} 
+        className="p-datatable-sm" 
+        size="small"
+        dataKey="address"
       >
-        {rowData.socialProfiles.twitter}
-      </a>
-    );
-  };
-  
-  const discordTemplate = (rowData: any) => {
-    return rowData.socialProfiles?.discord || 'N/A';
-  };
-  
-  const socialTemplate = (rowData: any) => {
+        <Column 
+          field="address" 
+          header="Wallet Address" 
+          body={(wallet: WalletData) => (
+            <a 
+              href={`https://solscan.io/account/${wallet.address}`}
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="wallet-link"
+            >
+              {wallet.address.substring(0, 8)}...{wallet.address.substring(wallet.address.length - 8)}
+            </a>
+          )} 
+        />
+        <Column 
+          field="tokenBalance" 
+          header="Token Balance" 
+          body={(wallet: WalletData) => formatTokenBalance(wallet.tokenBalance)} 
+        />
+        <Column field="gen1Count" header="Gen1 Count" />
+        <Column field="infantCount" header="Infant Count" />
+        <Column field="nftCount" header="Total NFTs" />
+        <Column 
+          body={(wallet: WalletData) => (
+            <a 
+              href={`https://solscan.io/account/${wallet.address}`}
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="p-button p-button-text p-button-sm"
+            >
+              <i className="pi pi-external-link" />
+            </a>
+          )} 
+          style={{ width: '4rem' }}
+        />
+      </DataTable>
+    </div>
+  );
+
+  // Main table templates
+  const primaryIdentifierTemplate = (rowData: GroupedSocialProfile) => {
     // Priority: comment > twitter > discord
-    const tooltipContent = `${rowData.socialProfiles?.twitter || ''} ${rowData.socialProfiles?.discord || ''}`.trim();
-    
-    if (rowData.socialProfiles?.comment) {
-      return (
-        <span 
-          title={tooltipContent}
-          className="social-comment"
-        >
-          {rowData.socialProfiles.comment}
-        </span>
-      );
+    if (rowData.comment) {
+      return <span className="social-comment">{rowData.comment}</span>;
     }
     
-    if (rowData.socialProfiles?.twitter) {
+    if (rowData.twitter) {
       return (
         <a 
-          href={`https://twitter.com/${rowData.socialProfiles.twitter.replace('@', '')}`} 
+          href={`https://twitter.com/${rowData.twitter.replace('@', '')}`} 
           target="_blank" 
           rel="noopener noreferrer"
           className="social-link twitter-link"
         >
-          {rowData.socialProfiles.twitter}
+          {rowData.twitter}
         </a>
       );
     }
     
-    if (rowData.socialProfiles?.discord) {
-      return <span className="discord-tag">{rowData.socialProfiles.discord}</span>;
+    if (rowData.discord) {
+      return <span className="discord-tag">{rowData.discord}</span>;
     }
     
-    return <span>N/A</span>;
+    return <span>Unknown</span>;
   };
   
-  const socialActionsTemplate = (rowData: any) => (
-    <Button 
-      icon="pi pi-user-edit" 
-      className="p-button-rounded p-button-text" 
-      onClick={() => onShowSocialDialog({
-        address: rowData.address,
-        twitter: rowData.socialProfiles?.twitter,
-        discord: rowData.socialProfiles?.discord,
-        comment: rowData.socialProfiles?.comment
-      })} 
-      tooltip="Edit social info"
-    />
-  );
+  const twitterTemplate = (rowData: GroupedSocialProfile) => {
+    if (!rowData.twitter) return <span>-</span>;
+    return (
+      <a 
+        href={`https://twitter.com/${rowData.twitter.replace('@', '')}`} 
+        target="_blank" 
+        rel="noopener noreferrer"
+        className="social-link"
+      >
+        {rowData.twitter}
+      </a>
+    );
+  };
+  
+  const discordTemplate = (rowData: GroupedSocialProfile) => {
+    return rowData.discord || '-';
+  };
+  
+  const walletsCountTemplate = (rowData: GroupedSocialProfile) => {
+    return <span className="font-bold">{rowData.wallets.length}</span>;
+  };
   
   const formatTokenBalance = (value: number) => {
     return value ? value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0';
   };
   
-  const getRowClassName = (rowData: any) => {
+  const socialActionsTemplate = (rowData: GroupedSocialProfile) => (
+    <Button 
+      icon="pi pi-user-edit" 
+      className="p-button-rounded p-button-text" 
+      onClick={() => openEditProfileDialog(rowData)} 
+      tooltip="Edit social info"
+    />
+  );
+  
+  const getRowClassName = (rowData: GroupedSocialProfile) => {
     return {
-      'highlight-row': rowData.nftCount >= 5 || rowData.tokenBalance >= 10000,
-      'whale-row': rowData.nftCount >= 10 || rowData.tokenBalance >= 100000
+      'highlight-row': rowData.totalNftCount >= 5 || rowData.totalTokenBalance >= 10000,
+      'whale-row': rowData.totalNftCount >= 10 || rowData.totalTokenBalance >= 100000
     };
   };
 
@@ -183,16 +313,16 @@ const SocialProfiles: React.FC<SocialProfilesProps> = ({
   const footerTemplate = () => (
     <div className="flex justify-between">
       <div>
-        <strong>Total Profiles:</strong> {socialHolders.length}
+        <strong>Total Profiles:</strong> {socialProfiles.length}
       </div>
       <div>
-        <strong>With Twitter:</strong> {socialHolders.filter(h => h.socialProfiles?.twitter).length}
+        <strong>Total Wallets:</strong> {socialProfiles.reduce((acc, profile) => acc + profile.wallets.length, 0)}
       </div>
       <div>
-        <strong>With Discord:</strong> {socialHolders.filter(h => h.socialProfiles?.discord).length}
+        <strong>Total NFTs:</strong> {socialProfiles.reduce((acc, profile) => acc + profile.totalNftCount, 0)}
       </div>
       <div>
-        <strong>With Comments:</strong> {socialHolders.filter(h => h.socialProfiles?.comment).length}
+        <strong>Total Tokens:</strong> {formatTokenBalance(socialProfiles.reduce((acc, profile) => acc + profile.totalTokenBalance, 0))}
       </div>
     </div>
   );
@@ -200,15 +330,21 @@ const SocialProfiles: React.FC<SocialProfilesProps> = ({
   return (
     <div className="social-profiles">
       <div className="flex justify-between items-center mb-3 table-header">
-        <h3 className="m-0">Social Profiles: {socialHolders.length}</h3>
+        <h3 className="m-0">Social Profiles: {socialProfiles.length}</h3>
         <div className="flex gap-2 items-center">
           <SearchBar 
             searchTerm={searchTerm} 
-            onSearchChange={setSearchTerm} 
+            onSearchChange={onSearchChange} 
             placeholder="Search social profiles..."
           />
           <Button 
-            label="Refresh Data" 
+            label="Add Profile" 
+            icon="pi pi-plus" 
+            onClick={openNewProfileDialog} 
+            className="p-button-success"
+          />
+          <Button 
+            label="Refresh" 
             icon="pi pi-refresh" 
             onClick={loadSocialProfiles} 
             loading={loading}
@@ -216,57 +352,61 @@ const SocialProfiles: React.FC<SocialProfilesProps> = ({
         </div>
       </div>
       <DataTable
-        value={socialHolders}
+        value={socialProfiles}
         loading={loading}
         paginator
         rows={10}
-        dataKey="address"
+        dataKey="id"
+        expandedRows={expandedRows}
+        onRowToggle={(e) => setExpandedRows(e.data)}
+        rowExpansionTemplate={rowExpansionTemplate}
         className="p-datatable-sm"
         rowClassName={getRowClassName}
         footer={footerTemplate}
       >
+        <Column expander style={{ width: '3rem' }} />
         <Column
-          field="address"
-          header="Wallet Address"
-          body={addressTemplate}
+          field="displayName"
+          header="Identity"
+          body={primaryIdentifierTemplate}
           sortable
         />
         <Column
-          field="socialProfiles.twitter"
+          field="twitter"
           header="Twitter"
           body={twitterTemplate}
           sortable
         />
         <Column
-          field="socialProfiles.discord"
+          field="discord"
           header="Discord"
           body={discordTemplate}
           sortable
         />
         <Column
-          field="socialProfiles.comment"
-          header="Comment"
-          body={socialTemplate}
+          field="wallets"
+          header="Wallets"
+          body={walletsCountTemplate}
           sortable
         />
         <Column
-          field="tokenBalance"
-          header="Token Balance"
-          body={(rowData) => formatTokenBalance(rowData.tokenBalance)}
+          field="totalTokenBalance"
+          header="Total Tokens"
+          body={(rowData) => formatTokenBalance(rowData.totalTokenBalance)}
           sortable
         />
         <Column
-          field="gen1Count"
-          header="Gen1 Count"
+          field="totalGen1Count"
+          header="Total Gen1"
           sortable
         />
         <Column
-          field="infantCount"
-          header="Infant Count"
+          field="totalInfantCount"
+          header="Total Infant"
           sortable
         />
         <Column
-          field="nftCount"
+          field="totalNftCount"
           header="Total NFTs"
           sortable
         />
@@ -276,6 +416,13 @@ const SocialProfiles: React.FC<SocialProfilesProps> = ({
           header="Actions"
         />
       </DataTable>
+      
+      <ProfileDialog 
+        visible={profileDialogVisible}
+        onHide={() => setProfileDialogVisible(false)}
+        onSave={handleSaveProfile}
+        profile={selectedProfile}
+      />
     </div>
   );
 };

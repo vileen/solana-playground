@@ -53,26 +53,52 @@ router.get('/token-snapshot', async (req: Request, res: Response) => {
   }
 });
 
-// Save social profile
-router.post('/social-profile', async (req: Request, res: Response) => {
-  try {
-    const { walletAddress, twitter, discord, comment } = req.body;
-    
-    if (!walletAddress) {
-      return res.status(400).json({ error: 'Wallet address is required' });
+// Save social profile (single wallet)
+router.post('/social-profile', (req: Request, res: Response) => {
+  (async () => {
+    try {
+      const { walletAddress, twitter, discord, comment } = req.body;
+      
+      if (!walletAddress) {
+        return res.status(400).json({ error: 'Wallet address is required' });
+      }
+      
+      const success = await saveSocialProfile(walletAddress, { twitter, discord, comment });
+      
+      if (success) {
+        res.json({ success: true, message: 'Social profile saved' });
+      } else {
+        res.status(500).json({ error: 'Failed to save social profile' });
+      }
+    } catch (error: any) {
+      console.error('Error in /social-profile endpoint:', error);
+      res.status(500).json({ error: error.message || 'Internal server error' });
     }
-    
-    const success = await saveSocialProfile(walletAddress, { twitter, discord, comment });
-    
-    if (success) {
-      res.json({ success: true, message: 'Social profile saved' });
-    } else {
-      res.status(500).json({ error: 'Failed to save social profile' });
+  })();
+});
+
+// Updated endpoint to handle new profile format (multiple wallets)
+router.post('/social-profiles', (req: Request, res: Response) => {
+  (async () => {
+    try {
+      const profileData = req.body;
+      
+      if (!profileData.wallets || !profileData.wallets.length) {
+        return res.status(400).json({ error: 'At least one wallet address is required' });
+      }
+      
+      const success = await saveSocialProfile(profileData);
+      
+      if (success) {
+        res.json({ success: true, message: 'Social profile saved' });
+      } else {
+        res.status(500).json({ error: 'Failed to save social profile' });
+      }
+    } catch (error: any) {
+      console.error('Error in /social-profiles endpoint:', error);
+      res.status(500).json({ error: error.message || 'Internal server error' });
     }
-  } catch (error: any) {
-    console.error('Error in /social-profile endpoint:', error);
-    res.status(500).json({ error: error.message || 'Internal server error' });
-  }
+  })();
 });
 
 // Get all social profiles
