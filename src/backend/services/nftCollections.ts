@@ -17,7 +17,7 @@ export async function getCollectionNFTs() {
   const pageSize = 1000;
   let page = 1;
 
-  for (let i = 0; i < 3; i++) { // up to 3000 NFTs (3 pages)
+  for (let i = 0; i < 20; i++) { // up to 20000 NFTs (20 pages)
     const requestBody = {
       jsonrpc: '2.0',
       id: 'my-id',

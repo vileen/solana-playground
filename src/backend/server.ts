@@ -44,11 +44,32 @@ mkdir(DATA_DIR, { recursive: true }).catch(console.error);
 app.use('/api', apiRoutes);
 
 // Serve static files from 'dist' directory
-app.use(express.static(join(__dirname, '../../../dist')));
+let distPath;
+if (process.env.NODE_ENV === 'production') {
+  // In production (Render), check multiple possible paths
+  const possiblePaths = [
+    join(__dirname, '../../../dist'),      // Default path
+    join(__dirname, '../../dist'),         // Shorter path if backend is at different location
+    join(process.cwd(), 'dist'),           // Root-relative path
+    '/opt/render/project/src/dist'         // Absolute path for Render
+  ];
+  
+  // Find the first path that exists
+  const fs = require('fs');
+  distPath = possiblePaths.find(path => fs.existsSync(path)) || possiblePaths[0];
+  console.log(`Using static files from: ${distPath}`);
+} else {
+  // In development, use the usual path
+  distPath = join(__dirname, '../../../dist');
+}
+
+app.use(express.static(distPath));
 
 // Catch-all route for SPA
 app.get('*', (req, res) => {
-  res.sendFile(join(__dirname, '../../../dist/index.html'));
+  const indexPath = join(distPath, 'index.html');
+  console.log(`Serving SPA from: ${indexPath}`);
+  res.sendFile(indexPath);
 });
 
 // Start the server
