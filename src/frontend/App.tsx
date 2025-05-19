@@ -1,17 +1,23 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { TabView, TabPanel } from 'primereact/tabview';
-import { Toast } from 'primereact/toast';
+import React, { useEffect, useRef, useState } from 'react';
+
 import { Button } from 'primereact/button';
 import { ConfirmDialog } from 'primereact/confirmdialog';
+import { TabPanel, TabView } from 'primereact/tabview';
+import { Toast } from 'primereact/toast';
 
-import NftHolders from './components/NftHolders.js';
-import TokenHolders from './components/TokenHolders.js';
-import ProfileDialog from './components/ProfileDialog.js';
-import SocialProfiles from './components/SocialProfiles.js';
-import { getSavedTheme, toggleTheme, loadThemeCSS } from './utils/theme.js';
 import './App.css';
 import './TabViewFix.css';
-import { saveSocialProfile as apiSaveSocialProfile, deleteSocialProfile as apiDeleteSocialProfile, fetchNftHolders, fetchTokenHolders } from './services/api.js';
+import NftHolders from './components/NftHolders.js';
+import ProfileDialog from './components/ProfileDialog.js';
+import SocialProfiles from './components/SocialProfiles.js';
+import TokenHolders from './components/TokenHolders.js';
+import {
+  deleteSocialProfile as apiDeleteSocialProfile,
+  saveSocialProfile as apiSaveSocialProfile,
+  fetchNftHolders,
+  fetchTokenHolders,
+} from './services/api.js';
+import { getSavedTheme, loadThemeCSS, toggleTheme } from './utils/theme.js';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0);
@@ -19,12 +25,12 @@ const App: React.FC = () => {
   const [profileDialogVisible, setProfileDialogVisible] = useState(false);
   const [selectedHolder, setSelectedHolder] = useState<any>(null);
   const [sharedSearchTerm, setSharedSearchTerm] = useState('');
-  
+
   // References to child components for refreshing
   const nftHoldersRef = useRef<any>(null);
   const tokenHoldersRef = useRef<any>(null);
   const socialProfilesRef = useRef<any>(null);
-  
+
   const toast = useRef<Toast>(null);
 
   useEffect(() => {
@@ -45,9 +51,9 @@ const App: React.FC = () => {
       twitter: holder.twitter || '',
       discord: holder.discord || '',
       comment: holder.comment || '',
-      wallets: holder.address ? [{ address: holder.address }] : []
+      wallets: holder.address ? [{ address: holder.address }] : [],
     };
-    
+
     console.log('Opening social dialog with profile:', profile);
     setSelectedHolder(profile);
     setProfileDialogVisible(true);
@@ -59,11 +65,11 @@ const App: React.FC = () => {
     if (nftHoldersRef.current && nftHoldersRef.current.fetchHolders) {
       nftHoldersRef.current.fetchHolders();
     }
-    
+
     if (tokenHoldersRef.current && tokenHoldersRef.current.fetchHolders) {
       tokenHoldersRef.current.fetchHolders();
     }
-    
+
     if (socialProfilesRef.current && socialProfilesRef.current.loadSocialProfiles) {
       socialProfilesRef.current.loadSocialProfiles();
     }
@@ -75,14 +81,16 @@ const App: React.FC = () => {
         handleError('At least one wallet address is required');
         return;
       }
-      
+
       const result = await apiSaveSocialProfile(profileData);
       setProfileDialogVisible(false);
-      
+
       // Refresh data in all tabs
       refreshAllData();
-      
-      handleSuccess(profileData.id ? 'Profile updated successfully' : 'New profile created successfully');
+
+      handleSuccess(
+        profileData.id ? 'Profile updated successfully' : 'New profile created successfully'
+      );
     } catch (error: any) {
       handleError(`Failed to save profile: ${error.message}`);
     }
@@ -92,14 +100,14 @@ const App: React.FC = () => {
     try {
       // First call the API to delete the profile
       await apiDeleteSocialProfile(profileId);
-      
+
       // Only after successful deletion:
       // 1. Close the profile dialog (if it hasn't been closed already)
       setProfileDialogVisible(false);
-      
+
       // 2. Refresh data in all tabs
       refreshAllData();
-      
+
       // 3. Show success message
       handleSuccess('Profile deleted successfully');
     } catch (error: any) {
@@ -112,7 +120,7 @@ const App: React.FC = () => {
       severity: 'success',
       summary: 'Success',
       detail: message,
-      life: 3000
+      life: 3000,
     });
   };
 
@@ -121,7 +129,7 @@ const App: React.FC = () => {
       severity: 'error',
       summary: 'Error',
       detail: message,
-      life: 5000
+      life: 5000,
     });
   };
 
@@ -129,26 +137,26 @@ const App: React.FC = () => {
     <div className="app-container">
       <Toast ref={toast} />
       <ConfirmDialog />
-      
+
       <header className="app-header">
         <h1>Solana NFT Snapshot Tool</h1>
         <div className="header-actions">
-          <Button 
-            icon={isDarkMode ? "pi pi-sun" : "pi pi-moon"} 
-            className="p-button-rounded p-button-text" 
-            onClick={handleThemeToggle} 
-            tooltip={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+          <Button
+            icon={isDarkMode ? 'pi pi-sun' : 'pi pi-moon'}
+            className="p-button-rounded p-button-text"
+            onClick={handleThemeToggle}
+            tooltip={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
           />
         </div>
       </header>
-      
-      <TabView 
-        activeIndex={activeTab} 
-        onTabChange={(e) => setActiveTab(e.index)}
+
+      <TabView
+        activeIndex={activeTab}
+        onTabChange={e => setActiveTab(e.index)}
         className="tab-view"
       >
         <TabPanel header="NFT Holders">
-          <NftHolders 
+          <NftHolders
             ref={nftHoldersRef}
             onError={handleError}
             onSuccess={handleSuccess}
@@ -157,9 +165,9 @@ const App: React.FC = () => {
             onSearchChange={setSharedSearchTerm}
           />
         </TabPanel>
-        
+
         <TabPanel header="Token Holders">
-          <TokenHolders 
+          <TokenHolders
             ref={tokenHoldersRef}
             onError={handleError}
             onSuccess={handleSuccess}
@@ -168,20 +176,19 @@ const App: React.FC = () => {
             onSearchChange={setSharedSearchTerm}
           />
         </TabPanel>
-        
+
         <TabPanel header="Social Profiles">
           <SocialProfiles
             ref={socialProfilesRef}
             onError={handleError}
             onSuccess={handleSuccess}
-            onShowSocialDialog={showSocialDialog}
             searchTerm={sharedSearchTerm}
             onSearchChange={setSharedSearchTerm}
           />
         </TabPanel>
       </TabView>
-      
-      <ProfileDialog 
+
+      <ProfileDialog
         visible={profileDialogVisible}
         onHide={() => setProfileDialogVisible(false)}
         onSave={handleSaveProfile}
@@ -192,4 +199,4 @@ const App: React.FC = () => {
   );
 };
 
-export default App; 
+export default App;

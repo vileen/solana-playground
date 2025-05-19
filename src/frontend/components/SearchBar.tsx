@@ -1,4 +1,5 @@
 import React from 'react';
+
 import { InputText } from 'primereact/inputtext';
 
 interface SearchBarProps {
@@ -7,21 +8,21 @@ interface SearchBarProps {
   placeholder?: string;
 }
 
-const SearchBar: React.FC<SearchBarProps> = ({ 
-  searchTerm, 
-  onSearchChange, 
-  placeholder = "Search by wallet, Twitter, Discord..." 
+const SearchBar: React.FC<SearchBarProps> = ({
+  searchTerm,
+  onSearchChange,
+  placeholder = 'Search by wallet, Twitter, Discord...',
 }) => {
   return (
     <span className="p-input-icon-left">
       <i className="pi pi-search" />
       <InputText
         value={searchTerm}
-        onChange={(e) => onSearchChange(e.target.value)}
+        onChange={e => onSearchChange(e.target.value)}
         placeholder={placeholder}
       />
     </span>
   );
 };
 
-export default SearchBar; 
+export default SearchBar;

@@ -294,50 +294,28 @@ export async function loadTokenSnapshot(): Promise<TokenSnapshot | null> {
 }
 
 // Get token holders with optional search filter
-export async function getFilteredTokenHolders(searchTerm?: string, limit?: number): Promise<TokenHolder[]> {
+export async function getFilteredTokenHolders(searchTerm?: string): Promise<TokenHolder[]> {
   try {
     const snapshot = await loadTokenSnapshot();
-    if (!snapshot || !snapshot.holders) {
-      console.log('No token holder snapshot found');
+    if (!snapshot) {
       return [];
     }
 
-    // Load social profiles to ensure they're included
-    const socialProfiles = await loadSocialProfiles();
-    
-    // Make sure all holders have the latest social profile data
-    let holders = snapshot.holders.map(holder => {
-      if (socialProfiles[holder.address]) {
-        return {
-          ...holder,
-          twitter: socialProfiles[holder.address].twitter || holder.twitter,
-          discord: socialProfiles[holder.address].discord || holder.discord,
-          comment: socialProfiles[holder.address].comment || holder.comment,
-          id: socialProfiles[holder.address].id,
-        };
-      }
-      return holder;
-    });
-
+    // Apply search filter if provided
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
-      holders = holders.filter(
+      return snapshot.holders.filter(
         holder =>
           holder.address.toLowerCase().includes(searchLower) ||
-          (holder.twitter && holder.twitter.toLowerCase().includes(searchLower)) ||
-          (holder.discord && holder.discord.toLowerCase().includes(searchLower)) ||
-          (holder.comment && holder.comment.toLowerCase().includes(searchLower))
+          holder.twitter?.toLowerCase().includes(searchLower) ||
+          holder.discord?.toLowerCase().includes(searchLower) ||
+          holder.comment?.toLowerCase().includes(searchLower)
       );
     }
-    
-    // Apply limit if provided
-    if (limit && limit > 0) {
-      holders = holders.slice(0, limit);
-    }
-    
-    return holders;
+
+    return snapshot.holders;
   } catch (error) {
-    console.error('Error getting filtered token holders:', error);
+    console.error('Error getting token holders:', error);
     return [];
   }
 }

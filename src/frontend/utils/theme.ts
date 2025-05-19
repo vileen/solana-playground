@@ -1,7 +1,7 @@
 // Load theme CSS
 export const loadThemeCSS = (dark: boolean): void => {
   const themeLink = document.getElementById('app-theme') as HTMLLinkElement;
-  
+
   if (themeLink) {
     themeLink.href = `https://cdn.jsdelivr.net/npm/primereact@9/resources/themes/lara-${dark ? 'dark' : 'light'}-indigo/theme.css`;
   } else {
@@ -29,4 +29,4 @@ export const toggleTheme = (isDarkMode: boolean): boolean => {
 export const getSavedTheme = (): boolean => {
   const savedTheme = localStorage.getItem('theme-preference');
   return savedTheme === 'light' ? false : true; // Default to dark if not set
-}; 
+};
