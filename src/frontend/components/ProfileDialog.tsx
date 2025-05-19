@@ -6,7 +6,6 @@ import { Chip } from 'primereact/chip';
 import { confirmDialog } from 'primereact/confirmdialog';
 import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
-import { InputTextarea } from 'primereact/inputtextarea';
 
 import { fetchSocialProfiles } from '../services/api.js';
 
@@ -46,6 +45,11 @@ const ProfileDialog: React.FC<ProfileDialogProps> = ({
   const [suggestions, setSuggestions] = useState<SocialProfileSuggestion[]>([]);
   const [allProfiles, setAllProfiles] = useState<SocialProfileSuggestion[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // For Twitter, Discord, Comment autocomplete
+  const [twitterSuggestions, setTwitterSuggestions] = useState<string[]>([]);
+  const [discordSuggestions, setDiscordSuggestions] = useState<string[]>([]);
+  const [commentSuggestions, setCommentSuggestions] = useState<string[]>([]);
 
   useEffect(() => {
     if (visible) {
@@ -142,6 +146,114 @@ const ProfileDialog: React.FC<ProfileDialogProps> = ({
 
     console.log(`Found ${filteredProfiles.length} profile suggestions for "${query}"`);
     setSuggestions(filteredProfiles);
+  };
+
+  // Search for Twitter handles
+  const searchTwitterHandles = (event: { query: string }) => {
+    const query = event.query.toLowerCase();
+    
+    if (!query) {
+      setTwitterSuggestions([]);
+      return;
+    }
+    
+    const filteredHandles = allProfiles
+      .filter(profile => profile.twitter && profile.twitter.toLowerCase().includes(query))
+      .map(profile => profile.twitter || '')
+      .filter((value, index, self) => self.indexOf(value) === index); // Remove duplicates
+    
+    setTwitterSuggestions(filteredHandles);
+  };
+
+  // Search for Discord handles
+  const searchDiscordHandles = (event: { query: string }) => {
+    const query = event.query.toLowerCase();
+    
+    if (!query) {
+      setDiscordSuggestions([]);
+      return;
+    }
+    
+    const filteredHandles = allProfiles
+      .filter(profile => profile.discord && profile.discord.toLowerCase().includes(query))
+      .map(profile => profile.discord || '')
+      .filter((value, index, self) => self.indexOf(value) === index); // Remove duplicates
+    
+    setDiscordSuggestions(filteredHandles);
+  };
+
+  // Search for Comments
+  const searchComments = (event: { query: string }) => {
+    const query = event.query.toLowerCase();
+    
+    if (!query) {
+      setCommentSuggestions([]);
+      return;
+    }
+    
+    const filteredComments = allProfiles
+      .filter(profile => profile.comment && profile.comment.toLowerCase().includes(query))
+      .map(profile => profile.comment || '')
+      .filter((value, index, self) => self.indexOf(value) === index); // Remove duplicates
+    
+    setCommentSuggestions(filteredComments);
+  };
+
+  // When a user selects a Twitter handle, find the associated profile
+  const onTwitterSelect = (value: string) => {
+    const matchingProfile = allProfiles.find(profile => profile.twitter === value);
+    if (matchingProfile) {
+      setDiscord(matchingProfile.discord || '');
+      setComment(matchingProfile.comment || '');
+      
+      // Add wallet addresses if they don't already exist
+      const existingWallets = new Set(wallets);
+      const newWallets = matchingProfile.wallets
+        .map(w => w.address)
+        .filter(address => !existingWallets.has(address));
+      
+      if (newWallets.length > 0) {
+        setWallets([...wallets, ...newWallets]);
+      }
+    }
+  };
+
+  // When a user selects a Discord handle, find the associated profile
+  const onDiscordSelect = (value: string) => {
+    const matchingProfile = allProfiles.find(profile => profile.discord === value);
+    if (matchingProfile) {
+      setTwitter(matchingProfile.twitter || '');
+      setComment(matchingProfile.comment || '');
+      
+      // Add wallet addresses if they don't already exist
+      const existingWallets = new Set(wallets);
+      const newWallets = matchingProfile.wallets
+        .map(w => w.address)
+        .filter(address => !existingWallets.has(address));
+      
+      if (newWallets.length > 0) {
+        setWallets([...wallets, ...newWallets]);
+      }
+    }
+  };
+
+  // When a user selects a Comment, find the associated profile
+  const onCommentSelect = (value: string) => {
+    const matchingProfile = allProfiles.find(profile => profile.comment === value);
+    if (matchingProfile) {
+      setTwitter(matchingProfile.twitter || '');
+      setDiscord(matchingProfile.discord || '');
+      
+      // Add wallet addresses if they don't already exist
+      const existingWallets = new Set(wallets);
+      const newWallets = matchingProfile.wallets
+        .map(w => w.address)
+        .filter(address => !existingWallets.has(address));
+      
+      if (newWallets.length > 0) {
+        setWallets([...wallets, ...newWallets]);
+      }
+    }
   };
 
   const selectProfile = (profile: SocialProfileSuggestion) => {
@@ -312,32 +424,46 @@ const ProfileDialog: React.FC<ProfileDialogProps> = ({
 
         <div className="field">
           <label htmlFor="twitter">Twitter</label>
-          <InputText
+          <AutoComplete
             id="twitter"
             value={twitter}
-            onChange={e => setTwitter(e.target.value)}
+            suggestions={twitterSuggestions}
+            completeMethod={searchTwitterHandles}
+            onChange={e => setTwitter(e.value)}
+            onSelect={e => onTwitterSelect(e.value)}
             placeholder="@username"
+            className="w-full"
+            aria-label="Twitter"
           />
         </div>
 
         <div className="field">
           <label htmlFor="discord">Discord</label>
-          <InputText
+          <AutoComplete
             id="discord"
             value={discord}
-            onChange={e => setDiscord(e.target.value)}
+            suggestions={discordSuggestions}
+            completeMethod={searchDiscordHandles}
+            onChange={e => setDiscord(e.value)}
+            onSelect={e => onDiscordSelect(e.value)}
             placeholder="username#1234"
+            className="w-full"
+            aria-label="Discord"
           />
         </div>
 
         <div className="field">
           <label htmlFor="comment">Comment/Note</label>
-          <InputTextarea
+          <AutoComplete
             id="comment"
             value={comment}
-            onChange={e => setComment(e.target.value)}
-            rows={3}
+            suggestions={commentSuggestions}
+            completeMethod={searchComments}
+            onChange={e => setComment(e.value)}
+            onSelect={e => onCommentSelect(e.value)}
             placeholder="Add a note about this profile"
+            className="w-full"
+            aria-label="Comment"
           />
         </div>
 
