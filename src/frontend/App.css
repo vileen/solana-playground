@@ -1,3 +1,195 @@
+:root {
+  --primary-color: #6366f1;
+  --surface-ground: #f8f9fa;
+  --surface-section: #ffffff;
+  --surface-card: #ffffff;
+  --surface-overlay: #ffffff;
+  --surface-border: #dfe7ef;
+  --text-color: #495057;
+  --text-color-secondary: #6c757d;
+}
+
+[data-theme='dark'] {
+  --surface-ground: #121212;
+  --surface-section: #1e1e1e;
+  --surface-card: #262626;
+  --surface-overlay: #2b2b2b;
+  --surface-border: #383838;
+  --text-color: #f8f9fa;
+  --text-color-secondary: #e0e0e0;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--surface-ground);
+  color: var(--text-color);
+  margin: 0;
+  padding: 0;
+}
+
+.app-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.app-header h1 {
+  margin: 0;
+  color: var(--primary-color);
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.search-container {
+  margin-bottom: 0.5rem;
+}
+
+.wallet-link {
+  font-family: monospace;
+  font-weight: 500;
+}
+
+.social-link {
+  color: var(--primary-color);
+}
+
+.nft-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.5rem;
+}
+
+.nft-item {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  background-color: rgba(99, 102, 241, 0.1);
+}
+
+.nft-item.gen1 {
+  background-color: rgba(99, 102, 241, 0.2);
+}
+
+.nft-item.infant {
+  background-color: rgba(240, 180, 41, 0.2);
+}
+
+.highlight-row {
+  background-color: rgba(99, 102, 241, 0.05) !important;
+}
+
+.whale-row {
+  background-color: rgba(99, 102, 241, 0.1) !important;
+  font-weight: 500;
+}
+
+/* Table header styles */
+.table-header {
+  margin-bottom: 1rem;
+}
+
+/* Adjust table appearance */
+.p-datatable-sm .p-datatable-thead > tr > th {
+  padding: 0.5rem 0.75rem;
+}
+
+.p-datatable-sm .p-datatable-tbody > tr > td {
+  padding: 0.5rem 0.75rem;
+}
+
+/* Fix for tab view border radius */
+.tab-view .p-tabview-panels {
+  background-color: var(--surface-card);
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
+  border-top-right-radius: 6px;
+  padding: 1.25rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .app-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .search-container {
+    width: 100%;
+  }
+  
+  .table-header {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .table-header h3 {
+    margin-bottom: 0.5rem;
+  }
+}
+
+/* Fix formatting for the social profile dialog */
+.social-profile-dialog .p-dialog-content {
+  padding-top: 1rem;
+}
+
+.social-profile-dialog .p-field {
+  margin-bottom: 1rem;
+}
+
+.social-profile-dialog label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+/* Apply Tailwind-like utilities */
+.flex {
+  display: flex;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.justify-end {
+  justify-content: flex-end;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.m-0 {
+  margin: 0;
+}
+
+.mb-2 {
+  margin-bottom: 0.5rem;
+}
+
+.mb-3 {
+  margin-bottom: 0.75rem;
+}
+
+.mb-4 {
+  margin-bottom: 1rem;
+}
+
+.gap-2 {
+  gap: 0.5rem;
+}
+
 .search-input-wrapper {
   position: relative;
   display: inline-block;
@@ -151,4 +343,4 @@ table tbody tr.has-social-profile {
 
 .light-theme table tbody tr.has-social-profile {
   background-color: rgba(227, 242, 253, 0.8) !important;
-} 
+}
