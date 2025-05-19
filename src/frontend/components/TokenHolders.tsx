@@ -153,9 +153,10 @@ const TokenHolders: React.FC<TokenHoldersProps> = ({
             loading={loading}
           />
           <Button
-            label="Export CSV"
-            icon="pi pi-download"
+            label="Take New Snapshot"
+            icon="pi pi-refresh"
             onClick={takeSnapshot}
+            loading={loading}
           />
         </div>
       </div>
