@@ -37,10 +37,6 @@ body {
   min-height: 100vh;
 }
 
-.p-tabview-panels {
-  padding: 0 !important;
-}
-
 .p-datatable .p-datatable-header {
   background: transparent;
   border: none;
