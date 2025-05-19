@@ -4,11 +4,13 @@ import { Button } from 'primereact/button';
 import { InputText } from 'primereact/inputtext';
 import { Chip } from 'primereact/chip';
 import { InputTextarea } from 'primereact/inputtextarea';
+import { confirmDialog } from 'primereact/confirmdialog';
 
 interface ProfileDialogProps {
   visible: boolean;
   onHide: () => void;
   onSave: (profile: any) => void;
+  onDelete?: (profileId: string) => void;
   profile?: any;
 }
 
@@ -16,6 +18,7 @@ const ProfileDialog: React.FC<ProfileDialogProps> = ({
   visible,
   onHide,
   onSave,
+  onDelete,
   profile
 }) => {
   const [twitter, setTwitter] = useState('');
@@ -52,6 +55,21 @@ const ProfileDialog: React.FC<ProfileDialogProps> = ({
     onSave(updatedProfile);
   };
 
+  const handleDelete = () => {
+    if (onDelete && profile?.id) {
+      confirmDialog({
+        message: 'Are you sure you want to delete this profile? This action cannot be undone.',
+        header: 'Confirm Delete',
+        icon: 'pi pi-exclamation-triangle',
+        acceptClassName: 'p-button-danger',
+        accept: () => {
+          onDelete(profile.id);
+          onHide();
+        }
+      });
+    }
+  };
+
   const addWallet = () => {
     if (newWallet && !wallets.includes(newWallet)) {
       setWallets([...wallets, newWallet]);
@@ -64,14 +82,24 @@ const ProfileDialog: React.FC<ProfileDialogProps> = ({
   };
 
   const dialogFooter = (
-    <div>
-      <Button label="Cancel" icon="pi pi-times" className="p-button-text" onClick={onHide} />
-      <Button 
-        label="Save" 
-        icon="pi pi-check" 
-        onClick={handleSave} 
-        disabled={!twitter && !discord && !comment}
-      />
+    <div className="flex justify-content-between w-full">
+      {isEditing && onDelete && (
+        <Button 
+          label="Delete" 
+          icon="pi pi-trash" 
+          className="p-button-danger" 
+          onClick={handleDelete} 
+        />
+      )}
+      <div className={isEditing && onDelete ? "ml-auto" : ""}>
+        <Button label="Cancel" icon="pi pi-times" className="p-button-text" onClick={onHide} />
+        <Button 
+          label="Save" 
+          icon="pi pi-check" 
+          onClick={handleSave} 
+          disabled={!twitter && !discord && !comment}
+        />
+      </div>
     </div>
   );
 

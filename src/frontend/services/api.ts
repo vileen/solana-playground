@@ -206,4 +206,39 @@ export const saveSocialProfile = async (profileData: any): Promise<any> => {
     console.error('Error saving social profile:', error);
     throw error;
   }
+};
+
+// Delete social profile
+export const deleteSocialProfile = async (profileId: string): Promise<any> => {
+  try {
+    const baseUrl = getApiUrl();
+    let url;
+    
+    // Handle relative URLs properly
+    if (baseUrl.startsWith('/')) {
+      // For relative URLs, append to current origin
+      url = `${window.location.origin}${baseUrl}/social-profiles/${profileId}`;
+    } else {
+      // For absolute URLs, use as is
+      url = `${baseUrl}/social-profiles/${profileId}`;
+    }
+    
+    console.log(`Deleting social profile:`, url);
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(`Failed to delete social profile: ${response.status} ${response.statusText} ${errorData.message || ''}`);
+    }
+    
+    return await response.json();
+  } catch (error: any) {
+    console.error('Error deleting social profile:', error);
+    throw error;
+  }
 }; 

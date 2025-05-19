@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { Button } from 'primereact/button';
@@ -14,18 +14,24 @@ interface NftHoldersProps {
   onSearchChange: (value: string) => void;
 }
 
-const NftHolders: React.FC<NftHoldersProps> = ({ 
+// Use forwardRef to expose methods to parent component
+const NftHolders = forwardRef<{ fetchHolders: () => Promise<void> }, NftHoldersProps>(({ 
   onError, 
   onSuccess, 
   onShowSocialDialog,
   searchTerm,
   onSearchChange
-}) => {
+}, ref) => {
   const [holders, setHolders] = useState<NFTHolder[]>([]);
   const [loading, setLoading] = useState(false);
   const [expandedRows, setExpandedRows] = useState<any>(null);
   const [sortField, setSortField] = useState('nftCount');
   const [sortOrder, setSortOrder] = useState<1 | -1>(-1);
+
+  // Expose methods via ref
+  useImperativeHandle(ref, () => ({
+    fetchHolders
+  }));
 
   useEffect(() => {
     fetchHolders();
@@ -197,7 +203,7 @@ const NftHolders: React.FC<NftHoldersProps> = ({
       </DataTable>
     </div>
   );
-};
+});
 
 export default NftHolders;
 

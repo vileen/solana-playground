@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { Button } from 'primereact/button';
@@ -14,17 +14,23 @@ interface TokenHoldersProps {
   onSearchChange: (value: string) => void;
 }
 
-const TokenHolders: React.FC<TokenHoldersProps> = ({ 
+// Use forwardRef to expose methods to parent component
+const TokenHolders = forwardRef<{ fetchHolders: () => Promise<void> }, TokenHoldersProps>(({ 
   onError, 
   onSuccess, 
   onShowSocialDialog,
   searchTerm,
   onSearchChange 
-}) => {
+}, ref) => {
   const [holders, setHolders] = useState<TokenHolder[]>([]);
   const [loading, setLoading] = useState(false);
   const [sortField, setSortField] = useState('balance');
   const [sortOrder, setSortOrder] = useState<1 | -1>(-1);
+
+  // Expose methods via ref
+  useImperativeHandle(ref, () => ({
+    fetchHolders
+  }));
 
   useEffect(() => {
     fetchHolders();
@@ -185,6 +191,6 @@ const TokenHolders: React.FC<TokenHoldersProps> = ({
       </DataTable>
     </div>
   );
-};
+});
 
 export default TokenHolders; 
