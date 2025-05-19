@@ -64,66 +64,20 @@ if (API_KEY && !RPC_URL.includes('api-key=') && !RPC_URL.includes('@')) {
   console.log('Added API key to RPC URL');
 }
 
-// Determine the best data directory to use
-let DATA_DIR = join(__dirname, '../../../data'); // Default value to avoid uninitialized variable
+// Create a data directory in the project root
+const DATA_DIR = join(rootDir, 'data');
+console.log(`Using data directory: ${DATA_DIR}`);
 
-// Check for Render environment specific directories
-if (process.env.NODE_ENV === 'production') {
-  // Try several possible locations in priority order
-  const possiblePaths = [
-    '/data', // Render mountpoint specified in render.yaml
-    process.env.RENDER_DATA_DIR, // Check if Render provides a data dir env var
-    '/opt/render/project/data', // Common Render project data path
-    join(process.cwd(), 'data'), // Fallback to CWD/data
-    join(__dirname, '../../../data'), // Fallback to source relative
-  ].filter(Boolean) as string[]; // Filter out undefined paths and typecasting
-
-  let foundPath = false;
-  // Find the first directory that exists or is creatable
-  for (const path of possiblePaths) {
-    if (!path) continue;
-
-    try {
-      // Check if directory exists
-      if (existsSync(path)) {
-        DATA_DIR = path;
-        console.log(`Using existing data directory: ${DATA_DIR}`);
-        foundPath = true;
-        break;
-      }
-
-      // Try to create the directory
-      mkdir(path, { recursive: true });
-      DATA_DIR = path;
-      console.log(`Created and using data directory: ${DATA_DIR}`);
-      foundPath = true;
-      break;
-    } catch (error: any) {
-      // Properly type error
-      console.warn(`Cannot use or create directory at ${path}: ${error.message}`);
-      // Continue to next path option
-    }
+// Create the directory if it doesn't exist
+try {
+  if (!existsSync(DATA_DIR)) {
+    mkdir(DATA_DIR, { recursive: true });
+    console.log(`Created data directory: ${DATA_DIR}`);
+  } else {
+    console.log(`Using existing data directory: ${DATA_DIR}`);
   }
-
-  // If no suitable directory was found, use a temp fallback
-  if (!foundPath) {
-    DATA_DIR = join(process.cwd(), 'temp_data');
-    console.warn(
-      `WARNING: Using temporary directory ${DATA_DIR}. Data will not persist across deployments!`
-    );
-    try {
-      mkdir(DATA_DIR, { recursive: true });
-    } catch (error: any) {
-      // Properly type error
-      console.error(`CRITICAL: Cannot create any data directory: ${error.message}`);
-      // Continue with the path anyway and let individual operations fail if needed
-    }
-  }
-} else {
-  // In development, use the local data directory
-  DATA_DIR = join(__dirname, '../../../data');
-  console.log(`Using development data directory: ${DATA_DIR}`);
-  mkdir(DATA_DIR, { recursive: true }).catch(console.error);
+} catch (error: any) {
+  console.error(`Error creating data directory: ${error.message}`);
 }
 
 export { DATA_DIR };

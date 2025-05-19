@@ -2,12 +2,12 @@ import cors from 'cors';
 import express from 'express';
 import { existsSync } from 'fs';
 import { mkdir } from 'fs/promises';
-import { join } from 'path';
-import { dirname } from 'path';
+import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
 import { DATA_DIR, PORT } from './config/config.js';
 import apiRoutes from './routes/api.js';
+import eventsRoutes from './routes/events.js';
 
 // Get the directory name for the current module
 const __filename = fileURLToPath(import.meta.url);
@@ -44,6 +44,7 @@ mkdir(DATA_DIR, { recursive: true }).catch(console.error);
 
 // Set up API routes
 app.use('/api', apiRoutes);
+app.use('/api/events', eventsRoutes);
 
 // Serve static files from 'dist' directory
 let distPath;

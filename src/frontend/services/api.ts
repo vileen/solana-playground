@@ -1,4 +1,4 @@
-import { NFTHolder, TokenHolder } from '../../types/index.js';
+import { EventNFTSnapshot, EventTokenSnapshot, NFTHolder, TokenHolder } from '../../types/index.js';
 
 // Helper to get the base API URL based on environment
 export const getApiUrl = (): string => {
@@ -264,3 +264,90 @@ export const deleteSocialProfile = async (profileId: string): Promise<any> => {
     throw error;
   }
 };
+
+/**
+ * Frontend API service to interact with the backend
+ */
+
+// Types
+interface TokenEvent {
+  id: number;
+  event_timestamp: string;
+  event_type: string;
+  source_address?: string;
+  destination_address?: string;
+  amount: number;
+  previous_balance?: number;
+  new_balance?: number;
+  snapshot_id: number;
+  snapshot_timestamp: string;
+}
+
+interface NFTEvent {
+  id: number;
+  event_timestamp: string;
+  event_type: string;
+  mint: string;
+  nft_name: string;
+  nft_type: string;
+  source_address?: string;
+  destination_address?: string;
+  snapshot_id: number;
+  snapshot_timestamp: string;
+}
+
+interface TokenSnapshot {
+  id: number;
+  timestamp: string;
+  token_address: string;
+  total_supply: number;
+  events: TokenEvent[];
+}
+
+interface NFTSnapshot {
+  id: number;
+  timestamp: string;
+  total_count: number;
+  events: NFTEvent[];
+}
+
+// Base API URL
+const API_BASE = '/api';
+
+/**
+ * Fetch token snapshots with associated events
+ */
+export async function fetchTokenSnapshotsWithEvents(limit = 5): Promise<EventTokenSnapshot[]> {
+  try {
+    const response = await fetch(`${API_BASE}/events/token/snapshots?limit=${limit}`);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch token snapshots: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching token snapshots with events:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetch NFT snapshots with associated events
+ */
+export async function fetchNFTSnapshotsWithEvents(limit = 5): Promise<EventNFTSnapshot[]> {
+  try {
+    const response = await fetch(`${API_BASE}/events/nft/snapshots?limit=${limit}`);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch NFT snapshots: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching NFT snapshots with events:', error);
+    return [];
+  }
+}
