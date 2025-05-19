@@ -16,7 +16,9 @@
     "render:start": "chmod +x startup.sh && ./startup.sh",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css}\"",
-    "lint": "yarn format:check"
+    "lint": "yarn format:check",
+    "db:migrate": "tsx src/backend/db/migrations/migrateToDatabase.ts",
+    "db:init": "tsx src/backend/db/initDb.ts"
   },
   "dependencies": {
     "@metaplex-foundation/digital-asset-standard-api": "latest",
@@ -32,12 +34,14 @@
     "dotenv": "^16.4.1",
     "express": "^4.18.2",
     "node-fetch": "^3.3.2",
+    "pg": "^8.16.0",
     "primeflex": "^4.0.0",
     "primeicons": "^6.0.1",
     "primereact": "^10.5.1",
     "react": "^18.2.0",
     "react-chartjs-2": "^5.2.0",
     "react-dom": "^18.2.0",
+    "react-router-dom": "^7.6.0",
     "typescript": "^5.3.3",
     "vite": "^5.0.8"
   },
@@ -46,11 +50,13 @@
     "@types/cors": "^2.8.18",
     "@types/express": "^5.0.2",
     "@types/node": "^20.11.16",
+    "@types/pg": "^8.10.9",
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",
     "concurrently": "^8.2.2",
     "prettier": "^3.5.3",
     "prettier-plugin-organize-imports": "^4.1.0",
+    "ts-node": "^10.9.2",
     "tsx": "^4.7.0"
   },
   "engines": {

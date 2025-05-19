@@ -44,3 +44,50 @@ export interface TokenDistribution {
   status: 'pending' | 'sent' | 'failed';
   transactionId?: string;
 }
+
+// Event Types
+export interface TokenEvent {
+  id: number;
+  event_timestamp: string;
+  event_type: string;
+  source_address?: string;
+  destination_address?: string;
+  amount: number;
+  previous_balance?: number;
+  new_balance?: number;
+  snapshot_id: number;
+  snapshot_timestamp: string;
+  source_twitter?: string;
+  source_discord?: string;
+  dest_twitter?: string;
+  dest_discord?: string;
+}
+
+export interface NFTEvent {
+  id: number;
+  event_timestamp: string;
+  event_type: string;
+  mint: string;
+  nft_name: string;
+  nft_type: string;
+  source_address?: string;
+  destination_address?: string;
+  snapshot_id: number;
+  snapshot_timestamp: string;
+}
+
+// Interfaces for events API
+export interface EventTokenSnapshot {
+  id: number;
+  timestamp: string;
+  token_address: string;
+  total_supply: number;
+  events: TokenEvent[];
+}
+
+export interface EventNFTSnapshot {
+  id: number;
+  timestamp: string;
+  total_count: number;
+  events: NFTEvent[];
+}

@@ -1,22 +1,37 @@
 import { Request, Response, Router } from 'express';
+import { ParamsDictionary } from 'express-serve-static-core';
+import { ParsedQs } from 'qs';
 
+import { query } from '../db/index.js';
 import {
-    createHolderSnapshot,
-    getHolders,
-    loadHolderSnapshot,
-} from '../services/nftCollections.js';
+  getNFTEventsForSnapshot,
+  getNFTSnapshotsWithEvents,
+  getTokenEventsForSnapshot,
+  getTokenSnapshotsWithEvents,
+} from '../services/eventsService.js';
 import {
-    deleteSocialProfile,
-    loadSocialProfiles,
-    saveSocialProfile,
-} from '../services/socialProfiles.js';
+  createHolderSnapshot,
+  getHolders,
+  loadHolderSnapshot,
+} from '../services/nftCollectionsDb.js';
 import {
-    createTokenSnapshot,
-    getFilteredTokenHolders,
-    loadTokenSnapshot,
-} from '../services/tokenService.js';
+  deleteSocialProfile,
+  loadSocialProfiles,
+  saveSocialProfile,
+} from '../services/socialProfilesDb.js';
+import {
+  createTokenSnapshot,
+  getFilteredTokenHolders,
+  loadTokenSnapshot,
+} from '../services/tokenServiceDb.js';
+
+// Fallback to file-based versions when needed
 
 const router = Router();
+
+// Define a typed request handler to avoid TypeScript errors
+type RequestHandler<P extends ParamsDictionary = ParamsDictionary, ResBody = any, ReqBody = any> = 
+  (req: Request<P, ResBody, ReqBody, ParsedQs>, res: Response<ResBody>) => Promise<void | Response<ResBody>>;
 
 // Get NFT holders with optional search filter
 router.get('/holders', async (req: Request, res: Response) => {
@@ -59,11 +74,19 @@ router.get('/token-holders', async (req: Request, res: Response) => {
 // Take a new NFT snapshot
 router.get('/snapshot', async (req: Request, res: Response) => {
   try {
-    console.log('Taking new NFT snapshot...');
+    const startTime = Date.now();
+    console.log(`[API] NFT snapshot requested at ${new Date().toISOString()}`);
+    console.log('[API] Taking new NFT snapshot...');
+    
     const snapshot = await createHolderSnapshot();
+    
+    const duration = (Date.now() - startTime) / 1000;
+    console.log(`[API] NFT snapshot completed in ${duration.toFixed(2)} seconds`);
+    console.log(`[API] Snapshot contains ${snapshot.holders.length} holders and ${snapshot.total} NFTs`);
+    
     res.json(snapshot);
   } catch (error: any) {
-    console.error('Error in /snapshot endpoint:', error);
+    console.error('[API] Error in /snapshot endpoint:', error);
     res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
@@ -71,11 +94,19 @@ router.get('/snapshot', async (req: Request, res: Response) => {
 // Take a new token snapshot
 router.get('/token-snapshot', async (req: Request, res: Response) => {
   try {
-    console.log('Taking new token snapshot...');
+    const startTime = Date.now();
+    console.log(`[API] Token snapshot requested at ${new Date().toISOString()}`);
+    console.log('[API] Taking new token snapshot...');
+    
     const snapshot = await createTokenSnapshot();
+    
+    const duration = (Date.now() - startTime) / 1000;
+    console.log(`[API] Token snapshot completed in ${duration.toFixed(2)} seconds`);
+    console.log(`[API] Snapshot contains ${snapshot.holders.length} holders and ${snapshot.totalSupply} tokens`);
+    
     res.json(snapshot);
   } catch (error: any) {
-    console.error('Error in /token-snapshot endpoint:', error);
+    console.error('[API] Error in /token-snapshot endpoint:', error);
     res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
@@ -197,6 +228,162 @@ router.delete('/social-profiles/:id', (req: Request, res: Response) => {
       res.status(500).json({ error: error.message || 'Internal server error' });
     }
   })();
+});
+
+// Get token events for latest snapshot
+// @ts-ignore - TypeScript has issues with router.get types
+router.get('/token-events/latest', async (req: Request, res: Response) => {
+  try {
+    // First get the latest snapshot
+    const snapshot = await loadTokenSnapshot();
+    
+    if (!snapshot) {
+      return res.status(404).json({ error: 'No token snapshot found' });
+    }
+    
+    // Get the latest snapshot ID from database
+    const snapshotResult = await query(
+      'SELECT id FROM token_snapshots ORDER BY timestamp DESC LIMIT 1'
+    );
+    
+    if (snapshotResult.rowCount === 0) {
+      return res.status(404).json({ error: 'No token snapshots found in database' });
+    }
+    
+    const snapshotId = snapshotResult.rows[0].id;
+    const events = await getTokenEventsForSnapshot(snapshotId);
+    res.json(events);
+  } catch (error: any) {
+    console.error('Error in /token-events/latest endpoint:', error);
+    res.status(500).json({ error: error.message || 'Internal server error' });
+  }
+});
+
+// Get token events for a specific snapshot
+// @ts-ignore - TypeScript has issues with router.get types
+router.get('/token-events/:id', async (req: Request, res: Response) => {
+  try {
+    const snapshotId = parseInt(req.params.id || '0');
+    
+    if (isNaN(snapshotId) || snapshotId === 0) {
+      return res.status(400).json({ error: 'Invalid snapshot ID' });
+    }
+    
+    const events = await getTokenEventsForSnapshot(snapshotId);
+    res.json(events);
+  } catch (error: any) {
+    console.error(`Error in /token-events/:id endpoint:`, error);
+    res.status(500).json({ error: error.message || 'Internal server error' });
+  }
+});
+
+// Get NFT events for latest snapshot
+// @ts-ignore - TypeScript has issues with router.get types
+router.get('/nft-events/latest', async (req: Request, res: Response) => {
+  try {
+    // First get the latest snapshot
+    const snapshot = await loadHolderSnapshot();
+    
+    if (!snapshot) {
+      return res.status(404).json({ error: 'No NFT snapshot found' });
+    }
+    
+    // Get the latest snapshot ID from database
+    const snapshotResult = await query(
+      'SELECT id FROM nft_snapshots ORDER BY timestamp DESC LIMIT 1'
+    );
+    
+    if (snapshotResult.rowCount === 0) {
+      return res.status(404).json({ error: 'No NFT snapshots found in database' });
+    }
+    
+    const snapshotId = snapshotResult.rows[0].id;
+    const events = await getNFTEventsForSnapshot(snapshotId);
+    res.json(events);
+  } catch (error: any) {
+    console.error('Error in /nft-events/latest endpoint:', error);
+    res.status(500).json({ error: error.message || 'Internal server error' });
+  }
+});
+
+// Get NFT events for a specific snapshot
+// @ts-ignore - TypeScript has issues with router.get types
+router.get('/nft-events/:id', async (req: Request, res: Response) => {
+  try {
+    const snapshotId = parseInt(req.params.id || '0');
+    
+    if (isNaN(snapshotId) || snapshotId === 0) {
+      return res.status(400).json({ error: 'Invalid snapshot ID' });
+    }
+    
+    const events = await getNFTEventsForSnapshot(snapshotId);
+    res.json(events);
+  } catch (error: any) {
+    console.error(`Error in /nft-events/:id endpoint:`, error);
+    res.status(500).json({ error: error.message || 'Internal server error' });
+  }
+});
+
+// Get recent token snapshots with their events
+router.get('/token-snapshots/events', async (req: Request, res: Response) => {
+  try {
+    const { limit } = req.query;
+    let limitNum = 5; // Default limit
+    
+    // Convert limit to number if provided
+    if (limit && !isNaN(Number(limit))) {
+      limitNum = Number(limit);
+    }
+    
+    const snapshots = await getTokenSnapshotsWithEvents(limitNum);
+    res.json(snapshots);
+  } catch (error: any) {
+    console.error('Error in /token-snapshots/events endpoint:', error);
+    res.status(500).json({ error: error.message || 'Internal server error' });
+  }
+});
+
+// Get recent NFT snapshots with their events
+router.get('/nft-snapshots/events', async (req: Request, res: Response) => {
+  try {
+    const { limit } = req.query;
+    let limitNum = 5; // Default limit
+    
+    // Convert limit to number if provided
+    if (limit && !isNaN(Number(limit))) {
+      limitNum = Number(limit);
+    }
+    
+    const snapshots = await getNFTSnapshotsWithEvents(limitNum);
+    res.json(snapshots);
+  } catch (error: any) {
+    console.error('Error in /nft-snapshots/events endpoint:', error);
+    res.status(500).json({ error: error.message || 'Internal server error' });
+  }
+});
+
+// Get token snapshots with their events
+router.get('/token/snapshots/events', async (req: Request, res: Response) => {
+  try {
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : 5;
+    const snapshots = await getTokenSnapshotsWithEvents(limit);
+    res.json(snapshots);
+  } catch (error: any) {
+    console.error('Error fetching token snapshots with events:', error);
+    res.status(500).json({ error: error.message || 'Failed to fetch token snapshots with events' });
+  }
+});
+
+// Get NFT snapshots with their events
+router.get('/nft/snapshots/events', async (req: Request, res: Response) => {
+  try {
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : 5;
+    const snapshots = await getNFTSnapshotsWithEvents(limit);
+    res.json(snapshots);
+  } catch (error: any) {
+    console.error('Error fetching NFT snapshots with events:', error);
+    res.status(500).json({ error: error.message || 'Failed to fetch NFT snapshots with events' });
+  }
 });
 
 export default router;

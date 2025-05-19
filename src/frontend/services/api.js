@@ -164,3 +164,87 @@ export const deleteSocialProfile = async profileId => {
     throw error;
   }
 };
+
+// Fetch latest token events
+export const fetchLatestTokenEvents = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/token-events/latest`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching latest token events:', error);
+    return [];
+  }
+};
+
+// Fetch latest NFT events
+export const fetchLatestNFTEvents = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/nft-events/latest`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching latest NFT events:', error);
+    return [];
+  }
+};
+
+// Fetch token events for a specific snapshot
+export const fetchTokenEventsForSnapshot = async (snapshotId) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/token-events/${snapshotId}`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error(`Error fetching token events for snapshot ${snapshotId}:`, error);
+    return [];
+  }
+};
+
+// Fetch NFT events for a specific snapshot
+export const fetchNFTEventsForSnapshot = async (snapshotId) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/nft-events/${snapshotId}`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error(`Error fetching NFT events for snapshot ${snapshotId}:`, error);
+    return [];
+  }
+};
+
+// Fetch token snapshots with their events
+export const fetchTokenSnapshotsWithEvents = async (limit = 5) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/events/token/snapshots?limit=${limit}`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching token snapshots with events:', error);
+    return [];
+  }
+};
+
+// Fetch NFT snapshots with their events
+export const fetchNFTSnapshotsWithEvents = async (limit = 5) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/events/nft/snapshots?limit=${limit}`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching NFT snapshots with events:', error);
+    return [];
+  }
+};

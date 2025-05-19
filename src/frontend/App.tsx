@@ -1,27 +1,23 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 
-import { Button } from 'primereact/button';
 import { ConfirmDialog } from 'primereact/confirmdialog';
 import { TabPanel, TabView } from 'primereact/tabview';
 import { Toast } from 'primereact/toast';
 
 import './App.css';
 import './TabViewFix.css';
+import EventsPanel from './components/EventsPanel.js';
 import NftHolders from './components/NftHolders.js';
 import ProfileDialog from './components/ProfileDialog.js';
 import SocialProfiles from './components/SocialProfiles.js';
 import TokenHolders from './components/TokenHolders.js';
 import {
   deleteSocialProfile as apiDeleteSocialProfile,
-  saveSocialProfile as apiSaveSocialProfile,
-  fetchNftHolders,
-  fetchTokenHolders,
+  saveSocialProfile as apiSaveSocialProfile
 } from './services/api.js';
-import { getSavedTheme, loadThemeCSS, toggleTheme } from './utils/theme.js';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0);
-  const [isDarkMode, setIsDarkMode] = useState(true);
   const [profileDialogVisible, setProfileDialogVisible] = useState(false);
   const [selectedHolder, setSelectedHolder] = useState<any>(null);
   const [sharedSearchTerm, setSharedSearchTerm] = useState('');
@@ -32,17 +28,6 @@ const App: React.FC = () => {
   const socialProfilesRef = useRef<any>(null);
 
   const toast = useRef<Toast>(null);
-
-  useEffect(() => {
-    // Load saved theme preference
-    const savedIsDarkMode = getSavedTheme();
-    setIsDarkMode(savedIsDarkMode);
-    loadThemeCSS(savedIsDarkMode);
-  }, []);
-
-  const handleThemeToggle = () => {
-    setIsDarkMode(toggleTheme(isDarkMode));
-  };
 
   const showSocialDialog = (holder: any) => {
     // Format the holder data to fit ProfileDialog's expected format
@@ -134,21 +119,9 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="app-container">
+    <>
       <Toast ref={toast} />
       <ConfirmDialog />
-
-      <header className="app-header">
-        <h1>Solana NFT Snapshot Tool</h1>
-        <div className="header-actions">
-          <Button
-            icon={isDarkMode ? 'pi pi-sun' : 'pi pi-moon'}
-            className="p-button-rounded p-button-text"
-            onClick={handleThemeToggle}
-            tooltip={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-          />
-        </div>
-      </header>
 
       <TabView
         activeIndex={activeTab}
@@ -177,6 +150,10 @@ const App: React.FC = () => {
           />
         </TabPanel>
 
+        <TabPanel header="Events">
+          <EventsPanel />
+        </TabPanel>
+
         <TabPanel header="Social Profiles">
           <SocialProfiles
             ref={socialProfilesRef}
@@ -195,7 +172,7 @@ const App: React.FC = () => {
         onDelete={handleDeleteProfile}
         profile={selectedHolder}
       />
-    </div>
+    </>
   );
 };
 

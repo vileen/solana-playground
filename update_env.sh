@@ -1,0 +1,13 @@
+#!/bin/bash
+cat > .env.local << 'EOF'
+SOLANA_RPC_URL=https://mainnet.helius-rpc.com/
+SOLANA_API_KEY=60c95dc6-5b60-4926-bf58-d2c76b6b65df
+
+# PostgreSQL Database Connection
+DATABASE_URL=postgres://snapshot_tool_db_user:qo5lKA3jF4wRiN3B4hsgeW6CL7Jpfgcm@dpg-d01m1c2dbo4c73aq31d0-a.frankfurt-postgres.render.com:5432/snapshot_tool_db
+PGHOST=dpg-d01m1c2dbo4c73aq31d0-a.frankfurt-postgres.render.com
+PGPORT=5432
+PGDATABASE=snapshot_tool_db
+PGUSER=snapshot_tool_db_user
+PGPASSWORD=qo5lKA3jF4wRiN3B4hsgeW6CL7Jpfgcm
+EOF
