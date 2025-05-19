@@ -13,7 +13,10 @@
     "start": "chmod +x startup.sh && ./startup.sh",
     "preview": "vite preview",
     "render:build": "yarn && yarn build && yarn build:backend",
-    "render:start": "chmod +x startup.sh && ./startup.sh"
+    "render:start": "chmod +x startup.sh && ./startup.sh",
+    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css}\"",
+    "lint": "yarn format:check"
   },
   "dependencies": {
     "@metaplex-foundation/digital-asset-standard-api": "latest",
@@ -39,12 +42,15 @@
     "vite": "^5.0.8"
   },
   "devDependencies": {
+    "@trivago/prettier-plugin-sort-imports": "^5.2.2",
     "@types/cors": "^2.8.18",
     "@types/express": "^5.0.2",
     "@types/node": "^20.11.16",
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",
     "concurrently": "^8.2.2",
+    "prettier": "^3.5.3",
+    "prettier-plugin-organize-imports": "^4.1.0",
     "tsx": "^4.7.0"
   },
   "engines": {

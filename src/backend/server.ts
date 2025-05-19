@@ -1,12 +1,13 @@
-import express from 'express';
 import cors from 'cors';
-import { mkdir } from 'fs/promises';
+import express from 'express';
 import { existsSync } from 'fs';
+import { mkdir } from 'fs/promises';
 import { join } from 'path';
-import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+import { DATA_DIR, PORT } from './config/config.js';
 import apiRoutes from './routes/api.js';
-import { PORT, DATA_DIR } from './config/config.js';
 
 // Get the directory name for the current module
 const __filename = fileURLToPath(import.meta.url);
@@ -17,7 +18,7 @@ const app = express();
 
 // CORS configuration
 const corsOptions = {
-  origin: function(origin, callback) {
+  origin: function (origin, callback) {
     // In production, only allow same-origin requests or no origin (like mobile apps)
     if (process.env.NODE_ENV === 'production') {
       if (!origin || origin === process.env.RENDER_EXTERNAL_URL) {
@@ -31,7 +32,7 @@ const corsOptions = {
     }
   },
   credentials: true,
-  optionsSuccessStatus: 200
+  optionsSuccessStatus: 200,
 };
 
 // Apply middleware
@@ -49,12 +50,12 @@ let distPath;
 if (process.env.NODE_ENV === 'production') {
   // In production (Render), check multiple possible paths
   const possiblePaths = [
-    join(__dirname, '../../../dist'),      // Default path
-    join(__dirname, '../../dist'),         // Shorter path if backend is at different location
-    join(process.cwd(), 'dist'),           // Root-relative path
-    '/opt/render/project/src/dist'         // Absolute path for Render
+    join(__dirname, '../../../dist'), // Default path
+    join(__dirname, '../../dist'), // Shorter path if backend is at different location
+    join(process.cwd(), 'dist'), // Root-relative path
+    '/opt/render/project/src/dist', // Absolute path for Render
   ];
-  
+
   // Find the first path that exists
   distPath = possiblePaths.find(path => existsSync(path)) || possiblePaths[0];
   console.log(`Using static files from: ${distPath}`);
@@ -75,4 +76,4 @@ app.get('*', (req, res) => {
 // Start the server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-}); 
+});

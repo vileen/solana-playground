@@ -129,16 +129,16 @@ body {
     flex-direction: column;
     align-items: flex-start;
   }
-  
+
   .search-container {
     width: 100%;
   }
-  
+
   .table-header {
     flex-direction: column;
     gap: 0.5rem;
   }
-  
+
   .table-header h3 {
     margin-bottom: 0.5rem;
   }
@@ -308,7 +308,7 @@ body {
 }
 
 .social-link.twitter {
-  color: #1DA1F2;
+  color: #1da1f2;
 }
 
 .social-link.twitter:hover {

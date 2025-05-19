@@ -1,15 +1,35 @@
-import express, { Router, Request, Response } from 'express';
-import { getHolders, createHolderSnapshot, loadHolderSnapshot } from '../services/nftCollections.js';
-import { getFilteredTokenHolders, createTokenSnapshot, loadTokenSnapshot } from '../services/tokenService.js';
-import { saveSocialProfile, loadSocialProfiles, deleteSocialProfile } from '../services/socialProfiles.js';
+import { Request, Response, Router } from 'express';
+
+import {
+    createHolderSnapshot,
+    getHolders,
+    loadHolderSnapshot,
+} from '../services/nftCollections.js';
+import {
+    deleteSocialProfile,
+    loadSocialProfiles,
+    saveSocialProfile,
+} from '../services/socialProfiles.js';
+import {
+    createTokenSnapshot,
+    getFilteredTokenHolders,
+    loadTokenSnapshot,
+} from '../services/tokenService.js';
 
 const router = Router();
 
 // Get NFT holders with optional search filter
 router.get('/holders', async (req: Request, res: Response) => {
   try {
-    const searchTerm = req.query.search as string | undefined;
-    const holders = await getHolders(searchTerm);
+    const { search, limit } = req.query;
+    let limitNum: number | undefined = undefined;
+    
+    // Convert limit to number if provided
+    if (limit && !isNaN(Number(limit))) {
+      limitNum = Number(limit);
+    }
+    
+    const holders = await getHolders(search as string, limitNum);
     res.json(holders);
   } catch (error: any) {
     console.error('Error in /holders endpoint:', error);
@@ -20,8 +40,15 @@ router.get('/holders', async (req: Request, res: Response) => {
 // Get token holders with optional search filter
 router.get('/token-holders', async (req: Request, res: Response) => {
   try {
-    const searchTerm = req.query.search as string | undefined;
-    const holders = await getFilteredTokenHolders(searchTerm);
+    const { search, limit } = req.query;
+    let limitNum: number | undefined = undefined;
+    
+    // Convert limit to number if provided
+    if (limit && !isNaN(Number(limit))) {
+      limitNum = Number(limit);
+    }
+    
+    const holders = await getFilteredTokenHolders(search as string, limitNum);
     res.json(holders);
   } catch (error: any) {
     console.error('Error in /token-holders endpoint:', error);
@@ -58,13 +85,13 @@ router.post('/social-profile', (req: Request, res: Response) => {
   (async () => {
     try {
       const { walletAddress, twitter, discord, comment } = req.body;
-      
+
       if (!walletAddress) {
         return res.status(400).json({ error: 'Wallet address is required' });
       }
-      
+
       const success = await saveSocialProfile(walletAddress, { twitter, discord, comment });
-      
+
       if (success) {
         res.json({ success: true, message: 'Social profile saved' });
       } else {
@@ -82,13 +109,13 @@ router.post('/social-profiles', (req: Request, res: Response) => {
   (async () => {
     try {
       const profileData = req.body;
-      
+
       if (!profileData.wallets || !profileData.wallets.length) {
         return res.status(400).json({ error: 'At least one wallet address is required' });
       }
-      
+
       const success = await saveSocialProfile(profileData);
-      
+
       if (success) {
         res.json({ success: true, message: 'Social profile saved' });
       } else {
@@ -105,13 +132,13 @@ router.post('/social-profiles', (req: Request, res: Response) => {
 router.get('/social-profiles', async (req: Request, res: Response) => {
   try {
     const profiles = await loadSocialProfiles();
-    
+
     // Convert to array format for easier consumption
     const profileArray = Object.entries(profiles).map(([address, data]) => ({
       address,
-      ...data
+      ...data,
     }));
-    
+
     res.json(profileArray);
   } catch (error: any) {
     console.error('Error in /social-profiles endpoint:', error);
@@ -124,18 +151,18 @@ router.get('/summary', async (req: Request, res: Response) => {
   try {
     const nftSnapshot = await loadHolderSnapshot();
     const tokenSnapshot = await loadTokenSnapshot();
-    
+
     res.json({
       nft: {
         totalNFTs: nftSnapshot?.total || 0,
         totalHolders: nftSnapshot?.holders.length || 0,
-        lastUpdated: nftSnapshot?.timestamp || null
+        lastUpdated: nftSnapshot?.timestamp || null,
       },
       token: {
         totalSupply: tokenSnapshot?.totalSupply || 0,
         totalHolders: tokenSnapshot?.holders.length || 0,
-        lastUpdated: tokenSnapshot?.timestamp || null
-      }
+        lastUpdated: tokenSnapshot?.timestamp || null,
+      },
     });
   } catch (error: any) {
     console.error('Error in /summary endpoint:', error);
@@ -148,16 +175,16 @@ router.delete('/social-profiles/:id', (req: Request, res: Response) => {
   (async () => {
     try {
       const profileId = req.params.id;
-      
+
       if (!profileId) {
         console.error('Delete profile failed: No ID provided in URL');
         return res.status(400).json({ error: 'Profile ID is required' });
       }
-      
+
       console.log(`Delete profile request received for ID: ${profileId}`);
-      
+
       const success = await deleteSocialProfile(profileId);
-      
+
       if (success) {
         console.log(`Profile ${profileId} deleted successfully`);
         res.json({ success: true, message: 'Social profile deleted successfully' });
@@ -172,4 +199,4 @@ router.delete('/social-profiles/:id', (req: Request, res: Response) => {
   })();
 });
 
-export default router; 
+export default router;

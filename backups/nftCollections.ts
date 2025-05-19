@@ -246,39 +246,17 @@ export async function loadHolderSnapshot(): Promise<CollectionSnapshot | null> {
 }
 
 // Get holders with optional search filter
-export async function getHolders(searchTerm?: string, limit?: number): Promise<NFTHolder[]> {
+export async function getHolders(searchTerm?: string): Promise<NFTHolder[]> {
   try {
-    // Load the latest snapshot
     const snapshot = await loadHolderSnapshot();
-    
-    if (!snapshot || !snapshot.holders) {
-      console.log('No holder snapshot found');
+    if (!snapshot) {
       return [];
     }
-    
-    // Load social profiles to ensure they're included
-    const socialProfiles = await loadSocialProfiles();
-    
-    // Filter holders if search term is provided
-    let holders = snapshot.holders;
-    
-    // Make sure all holders have the latest social profile data
-    holders = holders.map(holder => {
-      if (socialProfiles[holder.address]) {
-        return {
-          ...holder,
-          twitter: socialProfiles[holder.address].twitter || holder.twitter,
-          discord: socialProfiles[holder.address].discord || holder.discord, 
-          comment: socialProfiles[holder.address].comment || holder.comment,
-          id: socialProfiles[holder.address].id,
-        };
-      }
-      return holder;
-    });
-    
+
+    // Apply search filter if provided
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
-      holders = holders.filter(
+      return snapshot.holders.filter(
         holder =>
           holder.address.toLowerCase().includes(searchLower) ||
           holder.twitter?.toLowerCase().includes(searchLower) ||
@@ -286,13 +264,8 @@ export async function getHolders(searchTerm?: string, limit?: number): Promise<N
           holder.comment?.toLowerCase().includes(searchLower)
       );
     }
-    
-    // Apply limit if provided
-    if (limit && limit > 0) {
-      holders = holders.slice(0, limit);
-    }
-    
-    return holders;
+
+    return snapshot.holders;
   } catch (error) {
     console.error('Error getting holders:', error);
     return [];

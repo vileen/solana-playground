@@ -11,6 +11,7 @@ export interface NFTHolder {
   twitter?: string; // Social profile data
   discord?: string;
   comment?: string;
+  id?: string;
 }
 
 export interface TokenHolder {
@@ -21,6 +22,7 @@ export interface TokenHolder {
   twitter?: string; // Social profile data
   discord?: string;
   comment?: string;
+  id?: string; // Social profile ID
 }
 
 export interface TokenSnapshot {
@@ -41,4 +43,4 @@ export interface TokenDistribution {
   amount: number;
   status: 'pending' | 'sent' | 'failed';
   transactionId?: string;
-} 
+}

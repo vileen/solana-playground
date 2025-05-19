@@ -2,11 +2,13 @@ import { RpcInterface } from '@metaplex-foundation/umi';
 
 declare module '@metaplex-foundation/umi' {
   interface RpcInterface {
-    getAssetsByCreator(params: Array<{
-      creator: any;
-      onlyVerified?: boolean;
-      limit?: number;
-    }>): Promise<{
+    getAssetsByCreator(
+      params: Array<{
+        creator: any;
+        onlyVerified?: boolean;
+        limit?: number;
+      }>
+    ): Promise<{
       items: Array<{
         content: {
           metadata: {
@@ -18,11 +20,7 @@ declare module '@metaplex-foundation/umi' {
         };
       }>;
     }>;
-    getAssetsByGroup(params: {
-      groupKey: string;
-      groupValue: string;
-      limit?: number;
-    }): Promise<{
+    getAssetsByGroup(params: { groupKey: string; groupValue: string; limit?: number }): Promise<{
       items: Array<{
         content: {
           metadata: {
@@ -52,7 +50,10 @@ declare module '@metaplex-foundation/umi' {
         };
       }>;
     }>;
-    call(method: string, params: any): Promise<{
+    call(
+      method: string,
+      params: any
+    ): Promise<{
       result: {
         items: Array<{
           content: {
@@ -90,4 +91,4 @@ declare module '@metaplex-foundation/umi' {
       }>;
     };
   }
-} 
+}

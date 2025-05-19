@@ -15,7 +15,7 @@ export const fetchNftHolders = async (searchTerm?: string): Promise<NFTHolder[]>
   try {
     const baseUrl = getApiUrl();
     let url;
-    
+
     // Handle relative URLs properly
     if (baseUrl.startsWith('/')) {
       // For relative URLs, append to current origin
@@ -24,21 +24,23 @@ export const fetchNftHolders = async (searchTerm?: string): Promise<NFTHolder[]>
       // For absolute URLs, use as is
       url = `${baseUrl}/holders`;
     }
-    
+
     // Add search parameter if needed
     const finalUrl = new URL(url);
     if (searchTerm) {
       finalUrl.searchParams.append('search', searchTerm);
     }
-    
+
     console.log('Fetching holders from:', finalUrl.toString());
     const response = await fetch(finalUrl.toString());
-    
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(`Failed to fetch holders: ${response.status} ${response.statusText} ${errorData.message || ''}`);
+      throw new Error(
+        `Failed to fetch holders: ${response.status} ${response.statusText} ${errorData.message || ''}`
+      );
     }
-    
+
     return await response.json();
   } catch (error: any) {
     console.error('Error fetching holders:', error);
@@ -51,7 +53,7 @@ export const fetchTokenHolders = async (searchTerm?: string): Promise<TokenHolde
   try {
     const baseUrl = getApiUrl();
     let url;
-    
+
     // Handle relative URLs properly
     if (baseUrl.startsWith('/')) {
       // For relative URLs, append to current origin
@@ -60,21 +62,23 @@ export const fetchTokenHolders = async (searchTerm?: string): Promise<TokenHolde
       // For absolute URLs, use as is
       url = `${baseUrl}/token-holders`;
     }
-    
+
     // Add search parameter if needed
     const finalUrl = new URL(url);
     if (searchTerm) {
       finalUrl.searchParams.append('search', searchTerm);
     }
-    
+
     console.log('Fetching token holders from:', finalUrl.toString());
     const response = await fetch(finalUrl.toString());
-    
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(`Failed to fetch token holders: ${response.status} ${response.statusText} ${errorData.message || ''}`);
+      throw new Error(
+        `Failed to fetch token holders: ${response.status} ${response.statusText} ${errorData.message || ''}`
+      );
     }
-    
+
     return await response.json();
   } catch (error: any) {
     console.error('Error fetching token holders:', error);
@@ -87,7 +91,7 @@ export const fetchSocialProfiles = async (): Promise<any[]> => {
   try {
     const baseUrl = getApiUrl();
     let url;
-    
+
     // Handle relative URLs properly
     if (baseUrl.startsWith('/')) {
       // For relative URLs, append to current origin
@@ -96,15 +100,17 @@ export const fetchSocialProfiles = async (): Promise<any[]> => {
       // For absolute URLs, use as is
       url = `${baseUrl}/social-profiles`;
     }
-    
+
     console.log('Fetching social profiles from:', url);
     const response = await fetch(url);
-    
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(`Failed to fetch social profiles: ${response.status} ${response.statusText} ${errorData.message || ''}`);
+      throw new Error(
+        `Failed to fetch social profiles: ${response.status} ${response.statusText} ${errorData.message || ''}`
+      );
     }
-    
+
     return await response.json();
   } catch (error: any) {
     console.error('Error fetching social profiles:', error);
@@ -113,11 +119,15 @@ export const fetchSocialProfiles = async (): Promise<any[]> => {
 };
 
 // Take NFT snapshot
-export const takeNftSnapshot = async (): Promise<{ holders: NFTHolder[], total: number, timestamp: string }> => {
+export const takeNftSnapshot = async (): Promise<{
+  holders: NFTHolder[];
+  total: number;
+  timestamp: string;
+}> => {
   try {
     const baseUrl = getApiUrl();
     let url;
-    
+
     // Handle relative URLs properly
     if (baseUrl.startsWith('/')) {
       // For relative URLs, append to current origin
@@ -126,15 +136,17 @@ export const takeNftSnapshot = async (): Promise<{ holders: NFTHolder[], total: 
       // For absolute URLs, use as is
       url = `${baseUrl}/snapshot`;
     }
-    
+
     console.log('Taking snapshot from:', url);
     const response = await fetch(url);
-    
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(`Failed to take snapshot: ${response.status} ${response.statusText} ${errorData.message || ''}`);
+      throw new Error(
+        `Failed to take snapshot: ${response.status} ${response.statusText} ${errorData.message || ''}`
+      );
     }
-    
+
     return await response.json();
   } catch (error: any) {
     console.error('Error taking snapshot:', error);
@@ -143,11 +155,15 @@ export const takeNftSnapshot = async (): Promise<{ holders: NFTHolder[], total: 
 };
 
 // Take token snapshot
-export const takeTokenSnapshot = async (): Promise<{ holders: TokenHolder[], totalSupply: number, timestamp: string }> => {
+export const takeTokenSnapshot = async (): Promise<{
+  holders: TokenHolder[];
+  totalSupply: number;
+  timestamp: string;
+}> => {
   try {
     const baseUrl = getApiUrl();
     let url;
-    
+
     // Handle relative URLs properly
     if (baseUrl.startsWith('/')) {
       // For relative URLs, append to current origin
@@ -156,15 +172,17 @@ export const takeTokenSnapshot = async (): Promise<{ holders: TokenHolder[], tot
       // For absolute URLs, use as is
       url = `${baseUrl}/token-snapshot`;
     }
-    
+
     console.log('Taking token snapshot from:', url);
     const response = await fetch(url);
-    
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(`Failed to take token snapshot: ${response.status} ${response.statusText} ${errorData.message || ''}`);
+      throw new Error(
+        `Failed to take token snapshot: ${response.status} ${response.statusText} ${errorData.message || ''}`
+      );
     }
-    
+
     return await response.json();
   } catch (error: any) {
     console.error('Error taking token snapshot:', error);
@@ -177,7 +195,7 @@ export const saveSocialProfile = async (profileData: any): Promise<any> => {
   try {
     const baseUrl = getApiUrl();
     let url;
-    
+
     // Handle relative URLs properly
     if (baseUrl.startsWith('/')) {
       // For relative URLs, append to current origin
@@ -186,21 +204,23 @@ export const saveSocialProfile = async (profileData: any): Promise<any> => {
       // For absolute URLs, use as is
       url = `${baseUrl}/social-profiles`;
     }
-    
+
     console.log(`Saving social profile to:`, url);
     const response = await fetch(url, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify(profileData)
+      body: JSON.stringify(profileData),
     });
-    
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(`Failed to save social profile: ${response.status} ${response.statusText} ${errorData.message || ''}`);
+      throw new Error(
+        `Failed to save social profile: ${response.status} ${response.statusText} ${errorData.message || ''}`
+      );
     }
-    
+
     return await response.json();
   } catch (error: any) {
     console.error('Error saving social profile:', error);
@@ -213,7 +233,7 @@ export const deleteSocialProfile = async (profileId: string): Promise<any> => {
   try {
     const baseUrl = getApiUrl();
     let url;
-    
+
     // Handle relative URLs properly
     if (baseUrl.startsWith('/')) {
       // For relative URLs, append to current origin
@@ -222,23 +242,25 @@ export const deleteSocialProfile = async (profileId: string): Promise<any> => {
       // For absolute URLs, use as is
       url = `${baseUrl}/social-profiles/${profileId}`;
     }
-    
+
     console.log(`Deleting social profile:`, url);
     const response = await fetch(url, {
       method: 'DELETE',
       headers: {
-        'Content-Type': 'application/json'
-      }
+        'Content-Type': 'application/json',
+      },
     });
-    
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(`Failed to delete social profile: ${response.status} ${response.statusText} ${errorData.message || ''}`);
+      throw new Error(
+        `Failed to delete social profile: ${response.status} ${response.statusText} ${errorData.message || ''}`
+      );
     }
-    
+
     return await response.json();
   } catch (error: any) {
     console.error('Error deleting social profile:', error);
     throw error;
   }
-}; 
+};

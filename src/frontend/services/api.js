@@ -1,16 +1,17 @@
 // Helper to get the base API URL based on environment
-const API_BASE_URL = process.env.NODE_ENV === 'production' || window.location.hostname !== 'localhost'
-  ? '/api'
-  : 'http://localhost:3001/api';
+const API_BASE_URL =
+  process.env.NODE_ENV === 'production' || window.location.hostname !== 'localhost'
+    ? '/api'
+    : 'http://localhost:3001/api';
 
 // Fetch NFT holders
-export const fetchNftHolders = async (searchTerm) => {
+export const fetchNftHolders = async searchTerm => {
   try {
     let url = `${API_BASE_URL}/holders`;
     if (searchTerm) {
       url += `?search=${encodeURIComponent(searchTerm)}`;
     }
-    
+
     const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -23,13 +24,13 @@ export const fetchNftHolders = async (searchTerm) => {
 };
 
 // Fetch token holders
-export const fetchTokenHolders = async (searchTerm) => {
+export const fetchTokenHolders = async searchTerm => {
   try {
     let url = `${API_BASE_URL}/token-holders`;
     if (searchTerm) {
       url += `?search=${encodeURIComponent(searchTerm)}`;
     }
-    
+
     const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -95,14 +96,14 @@ export const saveSocialProfileLegacy = async (walletAddress, twitter, discord, c
         walletAddress,
         twitter,
         discord,
-        comment
+        comment,
       }),
     });
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error('Error saving social profile:', error);
@@ -111,7 +112,7 @@ export const saveSocialProfileLegacy = async (walletAddress, twitter, discord, c
 };
 
 // Save social profile (new format with multiple wallets)
-export const saveSocialProfile = async (profileData) => {
+export const saveSocialProfile = async profileData => {
   try {
     const response = await fetch(`${API_BASE_URL}/social-profiles`, {
       method: 'POST',
@@ -120,11 +121,11 @@ export const saveSocialProfile = async (profileData) => {
       },
       body: JSON.stringify(profileData),
     });
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error('Error saving social profile:', error);
@@ -133,33 +134,33 @@ export const saveSocialProfile = async (profileData) => {
 };
 
 // Delete social profile
-export const deleteSocialProfile = async (profileId) => {
+export const deleteSocialProfile = async profileId => {
   try {
     if (!profileId) {
       console.error('Cannot delete profile: No profile ID provided');
       throw new Error('No profile ID provided');
     }
-    
+
     console.log(`Attempting to delete profile with ID: ${profileId}`);
     const url = `${API_BASE_URL}/social-profiles/${encodeURIComponent(profileId)}`;
-    
+
     console.log(`Deleting social profile at URL:`, url);
     const response = await fetch(url, {
       method: 'DELETE',
       headers: {
-        'Content-Type': 'application/json'
-      }
+        'Content-Type': 'application/json',
+      },
     });
-    
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       console.error(`Delete profile failed with status ${response.status}:`, errorData);
       throw new Error(`Failed to delete social profile: ${response.status} ${response.statusText}`);
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error('Error deleting social profile:', error);
     throw error;
   }
-}; 
+};
