@@ -48,6 +48,12 @@ body {
 .header-actions {
   display: flex;
   gap: 8px;
+  align-items: center;
+}
+
+.header-search {
+  margin-right: 10px;
+  min-width: 250px;
 }
 
 .search-container {

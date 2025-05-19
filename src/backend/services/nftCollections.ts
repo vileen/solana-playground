@@ -125,7 +125,7 @@ export async function createHolderSnapshot(): Promise<CollectionSnapshot> {
   const holders: NFTHolder[] = Array.from(holderMap.entries()).map(([address, data]) => {
     return {
       address,
-      count: data.count,
+      nftCount: data.count,
       gen1Count: data.gen1Count,
       infantCount: data.infantCount,
       nfts: data.nfts,
@@ -136,7 +136,7 @@ export async function createHolderSnapshot(): Promise<CollectionSnapshot> {
         comment: socialProfiles[address].comment
       } : {})
     };
-  }).sort((a, b) => b.count - a.count);
+  }).sort((a, b) => b.nftCount - a.nftCount);
   
   // Create and save snapshot
   const snapshot: CollectionSnapshot = {

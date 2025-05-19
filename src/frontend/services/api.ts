@@ -173,7 +173,7 @@ export const takeTokenSnapshot = async (): Promise<{ holders: TokenHolder[], tot
 };
 
 // Save social profile
-export const saveSocialProfile = async (walletAddress: string, twitter: string, discord: string, comment: string): Promise<boolean> => {
+export const saveSocialProfile = async (profileData: any): Promise<any> => {
   try {
     const baseUrl = getApiUrl();
     let url;
@@ -181,24 +181,19 @@ export const saveSocialProfile = async (walletAddress: string, twitter: string, 
     // Handle relative URLs properly
     if (baseUrl.startsWith('/')) {
       // For relative URLs, append to current origin
-      url = `${window.location.origin}${baseUrl}/social-profile`;
+      url = `${window.location.origin}${baseUrl}/social-profiles`;
     } else {
       // For absolute URLs, use as is
-      url = `${baseUrl}/social-profile`;
+      url = `${baseUrl}/social-profiles`;
     }
     
-    console.log(`Saving social profile for ${walletAddress} to:`, url);
+    console.log(`Saving social profile to:`, url);
     const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        walletAddress,
-        twitter,
-        discord,
-        comment
-      })
+      body: JSON.stringify(profileData)
     });
     
     if (!response.ok) {
@@ -206,10 +201,9 @@ export const saveSocialProfile = async (walletAddress: string, twitter: string, 
       throw new Error(`Failed to save social profile: ${response.status} ${response.statusText} ${errorData.message || ''}`);
     }
     
-    const result = await response.json();
-    return result.success === true;
+    return await response.json();
   } catch (error: any) {
     console.error('Error saving social profile:', error);
-    return false;
+    throw error;
   }
 }; 

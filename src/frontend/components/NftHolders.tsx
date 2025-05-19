@@ -10,17 +10,22 @@ interface NftHoldersProps {
   onError: (message: string) => void;
   onSuccess: (message: string) => void;
   onShowSocialDialog: (holder: NFTHolder) => void;
+  searchTerm: string;
+  onSearchChange: (value: string) => void;
 }
 
 const NftHolders: React.FC<NftHoldersProps> = ({ 
   onError, 
   onSuccess, 
-  onShowSocialDialog 
+  onShowSocialDialog,
+  searchTerm,
+  onSearchChange
 }) => {
   const [holders, setHolders] = useState<NFTHolder[]>([]);
   const [loading, setLoading] = useState(false);
   const [expandedRows, setExpandedRows] = useState<any>(null);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [sortField, setSortField] = useState('nftCount');
+  const [sortOrder, setSortOrder] = useState<1 | -1>(-1);
 
   useEffect(() => {
     fetchHolders();
@@ -119,8 +124,8 @@ const NftHolders: React.FC<NftHoldersProps> = ({
 
   const getRowClassName = (rowData: NFTHolder) => {
     return {
-      'highlight-row': rowData.count >= 5,
-      'whale-row': rowData.count >= 10,
+      'highlight-row': rowData.nftCount >= 5,
+      'whale-row': rowData.nftCount >= 10,
       'has-social-profile': rowData.twitter || rowData.discord || rowData.comment
     };
   };
@@ -150,7 +155,7 @@ const NftHolders: React.FC<NftHoldersProps> = ({
         <div className="flex gap-2 items-center">
           <SearchBar 
             searchTerm={searchTerm} 
-            onSearchChange={setSearchTerm} 
+            onSearchChange={onSearchChange} 
             placeholder="Search NFT holders..."
           />
           <Button 
@@ -175,6 +180,12 @@ const NftHolders: React.FC<NftHoldersProps> = ({
         emptyMessage="No holders found"
         className="p-datatable-sm"
         footer={footerTemplate}
+        sortField={sortField}
+        sortOrder={sortOrder}
+        onSort={(e) => {
+          setSortField(e.sortField);
+          setSortOrder(e.sortOrder === 1 ? 1 : -1);
+        }}
       >
         <Column expander style={{ width: '3rem' }} />
         <Column field="address" header="Wallet" body={addressTemplate} sortable />

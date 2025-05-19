@@ -10,16 +10,21 @@ interface TokenHoldersProps {
   onError: (message: string) => void;
   onSuccess: (message: string) => void;
   onShowSocialDialog: (holder: TokenHolder) => void;
+  searchTerm: string;
+  onSearchChange: (value: string) => void;
 }
 
 const TokenHolders: React.FC<TokenHoldersProps> = ({ 
   onError, 
   onSuccess, 
-  onShowSocialDialog 
+  onShowSocialDialog,
+  searchTerm,
+  onSearchChange 
 }) => {
   const [holders, setHolders] = useState<TokenHolder[]>([]);
   const [loading, setLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [sortField, setSortField] = useState('balance');
+  const [sortOrder, setSortOrder] = useState<1 | -1>(-1);
 
   useEffect(() => {
     fetchHolders();
@@ -138,7 +143,7 @@ const TokenHolders: React.FC<TokenHoldersProps> = ({
         <div className="flex gap-2 items-center">
           <SearchBar 
             searchTerm={searchTerm} 
-            onSearchChange={setSearchTerm} 
+            onSearchChange={onSearchChange} 
             placeholder="Search token holders..."
           />
           <Button 
@@ -165,6 +170,12 @@ const TokenHolders: React.FC<TokenHoldersProps> = ({
         emptyMessage="No token holders found"
         className="p-datatable-sm"
         footer={footerTemplate}
+        sortField={sortField}
+        sortOrder={sortOrder}
+        onSort={(e) => {
+          setSortField(e.sortField);
+          setSortOrder(e.sortOrder === 1 ? 1 : -1);
+        }}
       >
         <Column field="address" header="Wallet" body={addressTemplate} sortable />
         <Column field="balance" header="Balance" body={tokenBalanceTemplate} sortable />
