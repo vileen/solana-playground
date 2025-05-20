@@ -1,4 +1,4 @@
-import React, { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
 
 import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
@@ -236,9 +236,11 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
             header="Wallet Address"
             body={(wallet: WalletData) => (
               <a
-                href={`https://solscan.io/account/${wallet.address}`}
-                target="_blank"
-                rel="noopener noreferrer"
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  openEditProfileDialogWithWallet(data, wallet.address);
+                }}
                 className="wallet-link"
               >
                 {wallet.address.substring(0, 8)}...
@@ -270,6 +272,15 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
         </DataTable>
       </div>
     );
+
+    // Open profile dialog with specific wallet highlighted
+    const openEditProfileDialogWithWallet = (profile: GroupedSocialProfile, walletAddress: string) => {
+      setSelectedProfile({
+        ...profile,
+        selectedWalletAddress: walletAddress
+      });
+      setProfileDialogVisible(true);
+    };
 
     // Main table templates
     const primaryIdentifierTemplate = (rowData: GroupedSocialProfile) => {

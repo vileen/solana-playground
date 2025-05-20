@@ -3,9 +3,10 @@ import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
 import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
+import { Dropdown } from 'primereact/dropdown';
 
 import { NFTHolder } from '../../types/index.js';
-import { fetchNftHolders, takeNftSnapshot } from '../services/api.js';
+import * as API from '../services/api.js';
 
 import SearchBar from './SearchBar.js';
 
@@ -25,6 +26,8 @@ const NftHolders = forwardRef<{ fetchHolders: () => Promise<void> }, NftHoldersP
     const [expandedRows, setExpandedRows] = useState<any>(null);
     const [sortField, setSortField] = useState('nftCount');
     const [sortOrder, setSortOrder] = useState<1 | -1>(-1);
+    const [snapshots, setSnapshots] = useState<any[]>([]);
+    const [selectedSnapshotId, setSelectedSnapshotId] = useState<number | null>(null);
 
     // Expose methods via ref
     useImperativeHandle(ref, () => ({
@@ -32,13 +35,26 @@ const NftHolders = forwardRef<{ fetchHolders: () => Promise<void> }, NftHoldersP
     }));
 
     useEffect(() => {
+      fetchSnapshots();
       fetchHolders();
-    }, [searchTerm]);
+    }, [searchTerm, selectedSnapshotId]);
+
+    const fetchSnapshots = async () => {
+      try {
+        // @ts-ignore - fetchNftSnapshots exists at runtime but TypeScript doesn't recognize it
+        const data = await API.fetchNftSnapshots();
+        setSnapshots(data);
+      } catch (error: any) {
+        console.error('Error fetching snapshots:', error);
+        onError(`Failed to fetch snapshots: ${error.message || 'Unknown error'}`);
+      }
+    };
 
     const fetchHolders = async () => {
       try {
         setLoading(true);
-        const data = await fetchNftHolders(searchTerm);
+        // @ts-ignore - fetchNftHolders accepts a snapshotId parameter but TypeScript doesn't recognize it
+        const data = await API.fetchNftHolders(searchTerm, selectedSnapshotId);
         setHolders(data);
       } catch (error: any) {
         console.error('Error fetching holders:', error);
@@ -51,8 +67,12 @@ const NftHolders = forwardRef<{ fetchHolders: () => Promise<void> }, NftHoldersP
     const takeSnapshot = async () => {
       try {
         setLoading(true);
-        const data = await takeNftSnapshot();
+        const data = await API.takeNftSnapshot();
         setHolders(data.holders);
+        // Refresh snapshots after taking a new one
+        await fetchSnapshots();
+        // Select the most recent snapshot (latest)
+        setSelectedSnapshotId(null);
         onSuccess('NFT snapshot taken successfully');
       } catch (error: any) {
         console.error('Error taking snapshot:', error);
@@ -60,6 +80,36 @@ const NftHolders = forwardRef<{ fetchHolders: () => Promise<void> }, NftHoldersP
       } finally {
         setLoading(false);
       }
+    };
+
+    // Snapshot selector component
+    const snapshotSelector = () => {
+      if (snapshots.length === 0) return null;
+
+      const options = snapshots.map(snapshot => ({
+        label: `${new Date(snapshot.timestamp).toLocaleString()} (ID: ${snapshot.id})`,
+        value: snapshot.id
+      }));
+
+      // Add an option for the latest snapshot
+      options.unshift({
+        label: 'Latest Snapshot',
+        value: null
+      });
+
+      return (
+        <div className="flex align-items-center mr-3">
+          <span className="font-medium mr-2">Snapshot:</span>
+          <Dropdown
+            value={selectedSnapshotId}
+            options={options}
+            onChange={(e) => {
+              setSelectedSnapshotId(e.value);
+            }}
+            placeholder="Latest Snapshot"
+          />
+        </div>
+      );
     };
 
     // Table columns and templates
@@ -159,6 +209,7 @@ const NftHolders = forwardRef<{ fetchHolders: () => Promise<void> }, NftHoldersP
         <div className="flex justify-between items-center mb-3 table-header">
           <h3 className="m-0">NFT Holders: {holders.length}</h3>
           <div className="flex gap-2 items-center">
+            {snapshotSelector()}
             <SearchBar
               searchTerm={searchTerm}
               onSearchChange={onSearchChange}

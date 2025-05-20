@@ -108,8 +108,10 @@ CREATE TABLE IF NOT EXISTS token_events (
   amount DECIMAL(20, 9) NOT NULL,
   previous_balance DECIMAL(20, 9),
   new_balance DECIMAL(20, 9),
+  social_id VARCHAR(50),
   FOREIGN KEY (snapshot_id) REFERENCES token_snapshots(id) ON DELETE CASCADE,
-  FOREIGN KEY (event_type_id) REFERENCES event_types(id) ON DELETE CASCADE
+  FOREIGN KEY (event_type_id) REFERENCES event_types(id) ON DELETE CASCADE,
+  FOREIGN KEY (social_id) REFERENCES social_profiles(id) ON DELETE SET NULL
 );
 
 -- NFT Events Table
@@ -121,9 +123,11 @@ CREATE TABLE IF NOT EXISTS nft_events (
   mint VARCHAR(44) NOT NULL,
   source_address VARCHAR(44),
   destination_address VARCHAR(44),
+  social_id VARCHAR(50),
   FOREIGN KEY (snapshot_id) REFERENCES nft_snapshots(id) ON DELETE CASCADE,
   FOREIGN KEY (event_type_id) REFERENCES event_types(id) ON DELETE CASCADE,
-  FOREIGN KEY (mint) REFERENCES nfts(mint) ON DELETE CASCADE
+  FOREIGN KEY (mint) REFERENCES nfts(mint) ON DELETE CASCADE,
+  FOREIGN KEY (social_id) REFERENCES social_profiles(id) ON DELETE SET NULL
 );
 
 -- Indexes for performance

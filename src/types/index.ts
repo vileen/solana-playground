@@ -26,8 +26,9 @@ export interface TokenHolder {
 }
 
 export interface TokenSnapshot {
+  id?: number;         // Database ID of the snapshot
   tokenAddress: string;
-  timestamp: string; // ISO date string
+  timestamp: string;   // ISO date string
   holders: TokenHolder[];
   totalSupply: number; // Total token supply
 }
@@ -61,6 +62,10 @@ export interface TokenEvent {
   source_discord?: string;
   dest_twitter?: string;
   dest_discord?: string;
+  social_id?: string;
+  twitter?: string;
+  discord?: string;
+  comment?: string;
 }
 
 export interface NFTEvent {
@@ -74,6 +79,14 @@ export interface NFTEvent {
   destination_address?: string;
   snapshot_id: number;
   snapshot_timestamp: string;
+  social_id?: string;
+  twitter?: string;
+  discord?: string;
+  comment?: string;
+  source_twitter?: string;
+  source_discord?: string;
+  dest_twitter?: string;
+  dest_discord?: string;
 }
 
 // Interfaces for events API

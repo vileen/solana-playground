@@ -5,11 +5,21 @@ const API_BASE_URL =
     : 'http://localhost:3001/api';
 
 // Fetch NFT holders
-export const fetchNftHolders = async searchTerm => {
+export const fetchNftHolders = async (searchTerm, snapshotId) => {
   try {
     let url = `${API_BASE_URL}/holders`;
+    const params = new URLSearchParams();
+    
     if (searchTerm) {
-      url += `?search=${encodeURIComponent(searchTerm)}`;
+      params.append('search', searchTerm);
+    }
+    
+    if (snapshotId) {
+      params.append('snapshotId', snapshotId);
+    }
+    
+    if (params.toString()) {
+      url += `?${params.toString()}`;
     }
 
     const response = await fetch(url);
@@ -24,11 +34,21 @@ export const fetchNftHolders = async searchTerm => {
 };
 
 // Fetch token holders
-export const fetchTokenHolders = async searchTerm => {
+export const fetchTokenHolders = async (searchTerm, snapshotId) => {
   try {
     let url = `${API_BASE_URL}/token-holders`;
+    const params = new URLSearchParams();
+    
     if (searchTerm) {
-      url += `?search=${encodeURIComponent(searchTerm)}`;
+      params.append('search', searchTerm);
+    }
+    
+    if (snapshotId) {
+      params.append('snapshotId', snapshotId);
+    }
+    
+    if (params.toString()) {
+      url += `?${params.toString()}`;
     }
 
     const response = await fetch(url);
@@ -222,9 +242,9 @@ export const fetchNFTEventsForSnapshot = async (snapshotId) => {
 };
 
 // Fetch token snapshots with their events
-export const fetchTokenSnapshotsWithEvents = async (limit = 5) => {
+export const fetchTokenSnapshotsWithEvents = async (limit = 5, skip = 0) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/events/token/snapshots?limit=${limit}`);
+    const response = await fetch(`${API_BASE_URL}/events/token/snapshots?limit=${limit}&skip=${skip}`);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -236,15 +256,43 @@ export const fetchTokenSnapshotsWithEvents = async (limit = 5) => {
 };
 
 // Fetch NFT snapshots with their events
-export const fetchNFTSnapshotsWithEvents = async (limit = 5) => {
+export const fetchNFTSnapshotsWithEvents = async (limit = 5, skip = 0) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/events/nft/snapshots?limit=${limit}`);
+    const response = await fetch(`${API_BASE_URL}/events/nft/snapshots?limit=${limit}&skip=${skip}`);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     return await response.json();
   } catch (error) {
     console.error('Error fetching NFT snapshots with events:', error);
+    return [];
+  }
+};
+
+// Fetch NFT snapshots
+export const fetchNftSnapshots = async (limit = 10) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/nft/snapshots?limit=${limit}`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching NFT snapshots:', error);
+    return [];
+  }
+};
+
+// Fetch token snapshots
+export const fetchTokenSnapshots = async (limit = 10) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/token-snapshots?limit=${limit}`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching token snapshots:', error);
     return [];
   }
 };

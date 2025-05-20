@@ -36,15 +36,21 @@ type RequestHandler<P extends ParamsDictionary = ParamsDictionary, ResBody = any
 // Get NFT holders with optional search filter
 router.get('/holders', async (req: Request, res: Response) => {
   try {
-    const { search, limit } = req.query;
+    const { search, limit, snapshotId } = req.query;
     let limitNum: number | undefined = undefined;
+    let snapshotIdNum: number | undefined = undefined;
     
     // Convert limit to number if provided
     if (limit && !isNaN(Number(limit))) {
       limitNum = Number(limit);
     }
     
-    const holders = await getHolders(search as string, limitNum);
+    // Convert snapshotId to number if provided
+    if (snapshotId && !isNaN(Number(snapshotId))) {
+      snapshotIdNum = Number(snapshotId);
+    }
+    
+    const holders = await getHolders(search as string, limitNum, snapshotIdNum);
     res.json(holders);
   } catch (error: any) {
     console.error('Error in /holders endpoint:', error);
@@ -52,18 +58,24 @@ router.get('/holders', async (req: Request, res: Response) => {
   }
 });
 
-// Get token holders with optional search filter
+// Get token holders with optional search filter and snapshot selection
 router.get('/token-holders', async (req: Request, res: Response) => {
   try {
-    const { search, limit } = req.query;
+    const { search, limit, snapshotId } = req.query;
     let limitNum: number | undefined = undefined;
+    let snapshotIdNum: number | undefined = undefined;
     
     // Convert limit to number if provided
     if (limit && !isNaN(Number(limit))) {
       limitNum = Number(limit);
     }
     
-    const holders = await getFilteredTokenHolders(search as string, limitNum);
+    // Convert snapshotId to number if provided
+    if (snapshotId && !isNaN(Number(snapshotId))) {
+      snapshotIdNum = Number(snapshotId);
+    }
+    
+    const holders = await getFilteredTokenHolders(search as string, limitNum, snapshotIdNum);
     res.json(holders);
   } catch (error: any) {
     console.error('Error in /token-holders endpoint:', error);
@@ -362,27 +374,85 @@ router.get('/nft-snapshots/events', async (req: Request, res: Response) => {
   }
 });
 
-// Get token snapshots with their events
-router.get('/token/snapshots/events', async (req: Request, res: Response) => {
+// Get token snapshots with events
+router.get('/events/token/snapshots', async (req: Request, res: Response) => {
   try {
     const limit = req.query.limit ? parseInt(req.query.limit as string) : 5;
-    const snapshots = await getTokenSnapshotsWithEvents(limit);
+    const skip = req.query.skip ? parseInt(req.query.skip as string) : 0;
+    
+    const snapshots = await getTokenSnapshotsWithEvents(limit, skip);
     res.json(snapshots);
   } catch (error: any) {
-    console.error('Error fetching token snapshots with events:', error);
-    res.status(500).json({ error: error.message || 'Failed to fetch token snapshots with events' });
+    console.error('Error in /events/token/snapshots endpoint:', error);
+    res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
 
-// Get NFT snapshots with their events
-router.get('/nft/snapshots/events', async (req: Request, res: Response) => {
+// Get token snapshots without events (for snapshot selector)
+// @ts-ignore - TypeScript has issues with router.get types
+router.get('/token-snapshots', async (req: Request, res: Response) => {
   try {
-    const limit = req.query.limit ? parseInt(req.query.limit as string) : 5;
-    const snapshots = await getNFTSnapshotsWithEvents(limit);
+    // Get list of snapshots from database
+    const snapshotsResult = await query(`
+      SELECT id, timestamp, token_address, total_supply
+      FROM token_snapshots
+      ORDER BY timestamp DESC
+    `);
+    
+    if (snapshotsResult.rowCount === 0) {
+      return res.json([]);
+    }
+    
+    const snapshots = snapshotsResult.rows.map(row => ({
+      id: row.id,
+      timestamp: row.timestamp,
+      tokenAddress: row.token_address,
+      totalSupply: parseFloat(row.total_supply)
+    }));
+    
     res.json(snapshots);
   } catch (error: any) {
-    console.error('Error fetching NFT snapshots with events:', error);
-    res.status(500).json({ error: error.message || 'Failed to fetch NFT snapshots with events' });
+    console.error('Error in /token-snapshots endpoint:', error);
+    res.status(500).json({ error: error.message || 'Internal server error' });
+  }
+});
+
+// Get NFT snapshots with events
+router.get('/events/nft/snapshots', async (req: Request, res: Response) => {
+  try {
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : 5;
+    const skip = req.query.skip ? parseInt(req.query.skip as string) : 0;
+    
+    const snapshots = await getNFTSnapshotsWithEvents(limit, skip);
+    res.json(snapshots);
+  } catch (error: any) {
+    console.error('Error in /events/nft/snapshots endpoint:', error);
+    res.status(500).json({ error: error.message || 'Internal server error' });
+  }
+});
+
+// Get NFT snapshots
+router.get('/nft/snapshots', async (req: Request, res: Response) => {
+  try {
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+    
+    const result = await query(`
+      SELECT id, timestamp, total_count
+      FROM nft_snapshots
+      ORDER BY timestamp DESC
+      LIMIT $1
+    `, [limit]);
+    
+    const snapshots = result.rows.map(row => ({
+      id: row.id,
+      timestamp: row.timestamp,
+      totalCount: row.total_count
+    }));
+    
+    res.json(snapshots);
+  } catch (error: any) {
+    console.error('Error in /nft/snapshots endpoint:', error);
+    res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
 
