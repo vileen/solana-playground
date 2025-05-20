@@ -1,4 +1,5 @@
-import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 
 import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
@@ -6,6 +7,7 @@ import { DataTable } from 'primereact/datatable';
 import { Dropdown } from 'primereact/dropdown';
 
 import { TokenHolder } from '../../types/index.js';
+import { useAppNavigation } from '../hooks/useAppNavigation.js';
 import { fetchTokenHolders, fetchTokenSnapshots, takeTokenSnapshot } from '../services/api.js';
 
 import SearchBar from './SearchBar.js';
@@ -27,16 +29,84 @@ const TokenHolders = forwardRef<{ fetchHolders: () => Promise<void> }, TokenHold
     const [sortOrder, setSortOrder] = useState<1 | -1>(-1);
     const [snapshots, setSnapshots] = useState<any[]>([]);
     const [selectedSnapshotId, setSelectedSnapshotId] = useState<number | null>(null);
+    const location = useLocation();
+    const appNavigation = useAppNavigation();
+    const initialSearchTerm = appNavigation.getSearchParam();
+    const [localSearchTerm, setLocalSearchTerm] = useState<string>(initialSearchTerm || searchTerm);
+    
+    // Use refs to track current fetch requests and prevent duplicates
+    const currentFetchController = useRef<AbortController | null>(null);
+    const lastSearchTerm = useRef<string>(localSearchTerm);
+    const lastSnapshotId = useRef<number | null>(selectedSnapshotId);
+    const dataLoaded = useRef<boolean>(false);
 
     // Expose methods via ref
     useImperativeHandle(ref, () => ({
-      fetchHolders,
+      fetchHolders: () => fetchHolders(localSearchTerm),
     }));
 
+    // Initial data load on component mount
     useEffect(() => {
-      fetchSnapshots();
-      fetchHolders();
-    }, [searchTerm, selectedSnapshotId]);
+      // Only load once when the component first mounts
+      if (!dataLoaded.current) {
+        const loadInitialData = async () => {
+          try {
+            await fetchSnapshots();
+            await fetchHolders(localSearchTerm);
+            dataLoaded.current = true;
+          } catch (error) {
+            console.error('Error loading initial data:', error);
+          }
+        };
+        
+        loadInitialData();
+      }
+    }, []);
+
+    // Listen for URL changes - particularly for search param changes
+    useEffect(() => {
+      const searchParam = appNavigation.getSearchParam();
+      // Only update if different from current to avoid duplicate updates
+      if (searchParam !== localSearchTerm) {
+        setLocalSearchTerm(searchParam);
+        onSearchChange(searchParam);
+        
+        // Don't fetch if we've already fetched with these params
+        if (searchParam !== lastSearchTerm.current || selectedSnapshotId !== lastSnapshotId.current) {
+          lastSearchTerm.current = searchParam;
+          lastSnapshotId.current = selectedSnapshotId;
+          
+          // Fetch data here directly after state update
+          const fetchData = async () => {
+            try {
+              await fetchHolders(searchParam);
+            } catch (error) {
+              console.error('Error fetching data:', error);
+            }
+          };
+          
+          fetchData();
+        }
+      }
+    }, [location, appNavigation]);
+
+    // Update snapshot selection effect
+    useEffect(() => {
+      // Only fetch when snapshot changes and it's not the initial load
+      if (dataLoaded.current && selectedSnapshotId !== lastSnapshotId.current) {
+        lastSnapshotId.current = selectedSnapshotId;
+        
+        const fetchData = async () => {
+          try {
+            await fetchHolders(localSearchTerm);
+          } catch (error) {
+            console.error('Error fetching data on snapshot change:', error);
+          }
+        };
+        
+        fetchData();
+      }
+    }, [selectedSnapshotId]);
 
     const fetchSnapshots = async () => {
       try {
@@ -48,16 +118,32 @@ const TokenHolders = forwardRef<{ fetchHolders: () => Promise<void> }, TokenHold
       }
     };
 
-    const fetchHolders = async () => {
+    const fetchHolders = async (searchTermValue = localSearchTerm) => {
       try {
+        // Abort any in-flight request
+        if (currentFetchController.current) {
+          currentFetchController.current.abort();
+        }
+        
+        // Create new controller for this request
+        currentFetchController.current = new AbortController();
+        
         setLoading(true);
         // Convert null to undefined for the API call
         const snapshotIdParam = selectedSnapshotId === null ? undefined : selectedSnapshotId;
-        const data = await fetchTokenHolders(searchTerm, snapshotIdParam);
-        setHolders(data);
+        const data = await fetchTokenHolders(searchTermValue, snapshotIdParam);
+        
+        // Only update state if this is still the active request
+        if (currentFetchController.current) {
+          setHolders(data);
+          currentFetchController.current = null;
+        }
       } catch (error: any) {
-        console.error('Error fetching token holders:', error);
-        onError(`Failed to fetch token holders: ${error.message || 'Unknown error'}`);
+        // Ignore abort errors
+        if (error.name !== 'AbortError') {
+          console.error('Error fetching token holders:', error);
+          onError(`Failed to fetch token holders: ${error.message || 'Unknown error'}`);
+        }
       } finally {
         setLoading(false);
       }
@@ -200,6 +286,16 @@ const TokenHolders = forwardRef<{ fetchHolders: () => Promise<void> }, TokenHold
       </div>
     );
 
+    // Add a function to update the URL when the search term changes
+    const handleSearchChange = (value: string) => {
+      // Update local state immediately
+      setLocalSearchTerm(value);
+      
+      // Update URL and parent state
+      appNavigation.updateSearchParam(value);
+      onSearchChange(value);
+    };
+
     return (
       <div className="token-holders">
         <div className="flex justify-between items-center mb-3 table-header">
@@ -207,8 +303,8 @@ const TokenHolders = forwardRef<{ fetchHolders: () => Promise<void> }, TokenHold
           <div className="flex gap-2 items-center">
             {snapshotSelector()}
             <SearchBar
-              searchTerm={searchTerm}
-              onSearchChange={onSearchChange}
+              searchTerm={localSearchTerm}
+              onSearchChange={handleSearchChange}
               placeholder="Search token holders..."
             />
             <Button

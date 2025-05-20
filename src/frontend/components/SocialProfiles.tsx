@@ -4,6 +4,7 @@ import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
 
+import { useAppNavigation } from '../hooks/useAppNavigation.js';
 import {
   deleteSocialProfile as apiDeleteSocialProfile,
   saveSocialProfile as apiSaveSocialProfile,
@@ -51,6 +52,7 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
     const [expandedRows, setExpandedRows] = useState<any>(null);
     const [profileDialogVisible, setProfileDialogVisible] = useState(false);
     const [selectedProfile, setSelectedProfile] = useState<any>(null);
+    const appNavigation = useAppNavigation();
 
     // Expose methods via ref
     useImperativeHandle(ref, () => ({
@@ -235,17 +237,27 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
             field="address"
             header="Wallet Address"
             body={(wallet: WalletData) => (
-              <a
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  openEditProfileDialogWithWallet(data, wallet.address);
-                }}
-                className="wallet-link"
-              >
-                {wallet.address.substring(0, 8)}...
-                {wallet.address.substring(wallet.address.length - 8)}
-              </a>
+              <div className="flex align-items-center">
+                <a
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    openEditProfileDialogWithWallet(data, wallet.address);
+                  }}
+                  className="wallet-link"
+                >
+                  {wallet.address.substring(0, 8)}...
+                  {wallet.address.substring(wallet.address.length - 8)}
+                </a>
+                <a
+                  href={`https://solscan.io/account/${wallet.address}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ml-2"
+                >
+                  <i className="pi pi-external-link" />
+                </a>
+              </div>
             )}
           />
           <Column
@@ -259,9 +271,17 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
           <Column
             body={(wallet: WalletData) => (
               <a
-                href={`https://solscan.io/account/${wallet.address}`}
-                target="_blank"
-                rel="noopener noreferrer"
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (wallet.nftCount > 0) {
+                    // Navigate to NFT holder table and apply wallet to search
+                    appNavigation.navigateToNftHolders(wallet.address);
+                  } else if (wallet.tokenBalance > 0) {
+                    // Navigate to token holder table and apply wallet to search
+                    appNavigation.navigateToTokenHolders(wallet.address);
+                  }
+                }}
                 className="p-button p-button-text p-button-sm"
               >
                 <i className="pi pi-external-link" />
