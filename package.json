@@ -49,6 +49,7 @@
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",
     "@types/cors": "^2.8.18",
     "@types/express": "^5.0.2",
+    "@types/express-serve-static-core": "^5.0.6",
     "@types/node": "^20.11.16",
     "@types/pg": "^8.10.9",
     "@types/react": "^18.2.43",

@@ -1,5 +1,5 @@
 import { Request, Response, Router } from 'express';
-import { ParamsDictionary } from 'express-serve-static-core';
+import type { ParamsDictionary } from 'express-serve-static-core';
 import { ParsedQs } from 'qs';
 
 import { query } from '../db/index.js';
