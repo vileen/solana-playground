@@ -1,6 +1,4 @@
 import { Request, Response, Router } from 'express';
-import type { ParamsDictionary } from 'express-serve-static-core';
-import { ParsedQs } from 'qs';
 
 import { query } from '../db/index.js';
 import {
@@ -28,10 +26,6 @@ import {
 // Fallback to file-based versions when needed
 
 const router = Router();
-
-// Define a typed request handler to avoid TypeScript errors
-type RequestHandler<P extends ParamsDictionary = ParamsDictionary, ResBody = any, ReqBody = any> = 
-  (req: Request<P, ResBody, ReqBody, ParsedQs>, res: Response<ResBody>) => Promise<void | Response<ResBody>>;
 
 // Get NFT holders with optional search filter
 router.get('/holders', async (req: Request, res: Response) => {
