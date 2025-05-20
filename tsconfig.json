@@ -21,8 +21,7 @@
   "exclude": [
     "node_modules", 
     "dist", 
-    "src/backend/legacy/**/*.ts",
-    "src/backend/services/nftCollectionsDb.ts",
-    "src/backend/services/tokenServiceDb.ts"
+    "src/backend/**/*.ts",
+    "src/backend/**/*.js"
   ]
 } 
