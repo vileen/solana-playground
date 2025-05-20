@@ -621,8 +621,12 @@ export async function getTokenEventsForSnapshot(snapshotId: number) {
         e.amount, e.previous_balance, e.new_balance,
         s.id as snapshot_id, s.timestamp as snapshot_timestamp,
         s.total_supply, s.token_address,
-        sp_source.twitter as source_twitter, sp_source.discord as source_discord,
-        sp_dest.twitter as dest_twitter, sp_dest.discord as dest_discord,
+        sp_source.twitter as source_twitter, 
+        sp_source.discord as source_discord,
+        sp_source.comment as source_comment,
+        sp_dest.twitter as dest_twitter, 
+        sp_dest.discord as dest_discord,
+        sp_dest.comment as dest_comment,
         CASE
           WHEN sp_source.id = sp_dest.id AND sp_source.id IS NOT NULL THEN sp_source.twitter
           ELSE NULL
@@ -665,8 +669,12 @@ export async function getNFTEventsForSnapshot(snapshotId: number) {
         e.source_address, e.destination_address,
         s.id as snapshot_id, s.timestamp as snapshot_timestamp,
         s.total_count,
-        sp_source.twitter as source_twitter, sp_source.discord as source_discord,
-        sp_dest.twitter as dest_twitter, sp_dest.discord as dest_discord,
+        sp_source.twitter as source_twitter, 
+        sp_source.discord as source_discord,
+        sp_source.comment as source_comment,
+        sp_dest.twitter as dest_twitter, 
+        sp_dest.discord as dest_discord,
+        sp_dest.comment as dest_comment,
         CASE
           WHEN sp_source.id = sp_dest.id AND sp_source.id IS NOT NULL THEN sp_source.twitter
           ELSE NULL

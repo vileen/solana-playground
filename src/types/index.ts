@@ -60,8 +60,10 @@ export interface TokenEvent {
   snapshot_timestamp: string;
   source_twitter?: string;
   source_discord?: string;
+  source_comment?: string;
   dest_twitter?: string;
   dest_discord?: string;
+  dest_comment?: string;
   social_id?: string;
   twitter?: string;
   discord?: string;
@@ -85,8 +87,10 @@ export interface NFTEvent {
   comment?: string;
   source_twitter?: string;
   source_discord?: string;
+  source_comment?: string;
   dest_twitter?: string;
   dest_discord?: string;
+  dest_comment?: string;
 }
 
 // Interfaces for events API

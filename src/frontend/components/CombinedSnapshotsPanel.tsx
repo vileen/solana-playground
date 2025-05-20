@@ -57,8 +57,10 @@ interface CombinedEvent {
   comment?: string;
   source_twitter?: string;
   source_discord?: string;
+  source_comment?: string;
   dest_twitter?: string;
   dest_discord?: string;
+  dest_comment?: string;
   type: 'token' | 'nft';
 }
 
@@ -374,7 +376,7 @@ const CombinedSnapshotsPanel: React.FC = () => {
   };
 
   // Format wallet address with Twitter/Discord if available
-  const addressTemplate = (address?: string, twitter?: string, discord?: string) => {
+  const addressTemplate = (address?: string, twitter?: string, discord?: string, comment?: string) => {
     if (!address) return null;
     
     const solscanUrl = `https://solscan.io/account/${address}`;
@@ -387,7 +389,11 @@ const CombinedSnapshotsPanel: React.FC = () => {
           </a>
           <i className="pi pi-external-link ml-1 text-xs text-color-secondary"></i>
         </div>
-        {(twitter || discord) && (
+        {comment ? (
+          <Tag className="mt-1" severity="success" style={{ fontWeight: '500', padding: '0.3rem 0.6rem' }}>
+            {comment}
+          </Tag>
+        ) : (twitter || discord) && (
           <div className="flex mt-1 gap-2">
             {twitter && (
               <Tag severity="info" icon="pi pi-twitter">
@@ -407,12 +413,12 @@ const CombinedSnapshotsPanel: React.FC = () => {
   
   // Source address template
   const sourceAddressTemplate = (event: CombinedEvent) => {
-    return addressTemplate(event.source_address, event.source_twitter, event.source_discord);
+    return addressTemplate(event.source_address, event.source_twitter, event.source_discord, event.source_comment);
   };
 
   // Destination address template
   const destinationAddressTemplate = (event: CombinedEvent) => {
-    return addressTemplate(event.destination_address, event.dest_twitter, event.dest_discord);
+    return addressTemplate(event.destination_address, event.dest_twitter, event.dest_discord, event.dest_comment);
   };
   
   // Amount/NFT details template
@@ -444,8 +450,8 @@ const CombinedSnapshotsPanel: React.FC = () => {
 
     // If no profiles found
     if (!event.twitter && !event.discord && !event.comment && 
-        !event.source_twitter && !event.source_discord && 
-        !event.dest_twitter && !event.dest_discord) {
+        !event.source_twitter && !event.source_discord && !event.source_comment &&
+        !event.dest_twitter && !event.dest_discord && !event.dest_comment) {
       return <span>-</span>;
     }
     
@@ -453,28 +459,33 @@ const CombinedSnapshotsPanel: React.FC = () => {
       // For self transfers, show just the profile with a self-transfer tag
       return (
         <div className="flex flex-column">
-          {event.comment && <span className="font-medium mb-1">{event.comment}</span>}
-          <div className="flex gap-2 align-items-center">
-            {event.twitter && (
-              <Tag severity="info" icon="pi pi-twitter">
-                {event.twitter}
-              </Tag>
-            )}
-            {event.discord && (
-              <Tag severity="secondary" icon="pi pi-discord">
-                {event.discord}
-              </Tag>
-            )}
-            <Tag severity="info" icon="pi pi-arrows-h">Self Transfer</Tag>
-          </div>
+          {event.comment ? (
+            <Tag className="mb-1" severity="success" style={{ fontWeight: '500', padding: '0.3rem 0.6rem' }}>
+              {event.comment}
+            </Tag>
+          ) : (
+            <div className="flex gap-2 align-items-center mb-1">
+              {event.twitter && (
+                <Tag severity="info" icon="pi pi-twitter">
+                  {event.twitter}
+                </Tag>
+              )}
+              {event.discord && (
+                <Tag severity="secondary" icon="pi pi-discord">
+                  {event.discord}
+                </Tag>
+              )}
+            </div>
+          )}
+          <Tag severity="info" icon="pi pi-arrows-h">Self Transfer</Tag>
         </div>
       );
     } else if (event.event_type === 'transfer_between' || 
                event.event_type === 'transfer_in' || 
                event.event_type === 'transfer_out') {
       // For transfers between different profiles or unknown profiles
-      const hasSource = event.source_twitter || event.source_discord;
-      const hasDest = event.dest_twitter || event.dest_discord;
+      const hasSource = event.source_twitter || event.source_discord || event.source_comment;
+      const hasDest = event.dest_twitter || event.dest_discord || event.dest_comment;
       
       if (hasSource && hasDest) {
         // Both source and destination have profiles
@@ -483,22 +494,38 @@ const CombinedSnapshotsPanel: React.FC = () => {
             <div className="flex flex-column">
               <span className="text-sm text-color-secondary">From:</span>
               <div className="flex gap-1">
-                {event.source_twitter && (
-                  <Tag severity="info" icon="pi pi-twitter">{event.source_twitter}</Tag>
-                )}
-                {event.source_discord && (
-                  <Tag severity="secondary" icon="pi pi-discord">{event.source_discord}</Tag>
+                {event.source_comment ? (
+                  <Tag severity="success" style={{ fontWeight: '500', padding: '0.3rem 0.6rem' }}>
+                    {event.source_comment}
+                  </Tag>
+                ) : (
+                  <>
+                    {event.source_twitter && (
+                      <Tag severity="info" icon="pi pi-twitter">{event.source_twitter}</Tag>
+                    )}
+                    {event.source_discord && (
+                      <Tag severity="secondary" icon="pi pi-discord">{event.source_discord}</Tag>
+                    )}
+                  </>
                 )}
               </div>
             </div>
             <div className="flex flex-column">
               <span className="text-sm text-color-secondary">To:</span>
               <div className="flex gap-1">
-                {event.dest_twitter && (
-                  <Tag severity="info" icon="pi pi-twitter">{event.dest_twitter}</Tag>
-                )}
-                {event.dest_discord && (
-                  <Tag severity="secondary" icon="pi pi-discord">{event.dest_discord}</Tag>
+                {event.dest_comment ? (
+                  <Tag severity="success" style={{ fontWeight: '500', padding: '0.3rem 0.6rem' }}>
+                    {event.dest_comment}
+                  </Tag>
+                ) : (
+                  <>
+                    {event.dest_twitter && (
+                      <Tag severity="info" icon="pi pi-twitter">{event.dest_twitter}</Tag>
+                    )}
+                    {event.dest_discord && (
+                      <Tag severity="secondary" icon="pi pi-discord">{event.dest_discord}</Tag>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -510,11 +537,19 @@ const CombinedSnapshotsPanel: React.FC = () => {
           <div className="flex flex-column">
             <span className="text-sm text-color-secondary">From:</span>
             <div className="flex gap-1">
-              {event.source_twitter && (
-                <Tag severity="info" icon="pi pi-twitter">{event.source_twitter}</Tag>
-              )}
-              {event.source_discord && (
-                <Tag severity="secondary" icon="pi pi-discord">{event.source_discord}</Tag>
+              {event.source_comment ? (
+                <Tag severity="success" style={{ fontWeight: '500', padding: '0.3rem 0.6rem' }}>
+                  {event.source_comment}
+                </Tag>
+              ) : (
+                <>
+                  {event.source_twitter && (
+                    <Tag severity="info" icon="pi pi-twitter">{event.source_twitter}</Tag>
+                  )}
+                  {event.source_discord && (
+                    <Tag severity="secondary" icon="pi pi-discord">{event.source_discord}</Tag>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -525,11 +560,19 @@ const CombinedSnapshotsPanel: React.FC = () => {
           <div className="flex flex-column">
             <span className="text-sm text-color-secondary">To:</span>
             <div className="flex gap-1">
-              {event.dest_twitter && (
-                <Tag severity="info" icon="pi pi-twitter">{event.dest_twitter}</Tag>
-              )}
-              {event.dest_discord && (
-                <Tag severity="secondary" icon="pi pi-discord">{event.dest_discord}</Tag>
+              {event.dest_comment ? (
+                <Tag severity="success" style={{ fontWeight: '500', padding: '0.3rem 0.6rem' }}>
+                  {event.dest_comment}
+                </Tag>
+              ) : (
+                <>
+                  {event.dest_twitter && (
+                    <Tag severity="info" icon="pi pi-twitter">{event.dest_twitter}</Tag>
+                  )}
+                  {event.dest_discord && (
+                    <Tag severity="secondary" icon="pi pi-discord">{event.dest_discord}</Tag>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -540,17 +583,24 @@ const CombinedSnapshotsPanel: React.FC = () => {
     // For non-transfer events or fallback
     return (
       <div className="flex flex-column">
-        {event.comment && <span className="font-medium mb-1">{event.comment}</span>}
-        <div className="flex gap-2">
-          {event.twitter && (
-            <Tag severity="info" icon="pi pi-twitter">
-              {event.twitter}
+        <div className="flex gap-2 flex-wrap">
+          {event.comment ? (
+            <Tag severity="success" style={{ fontWeight: '500', padding: '0.3rem 0.6rem' }}>
+              {event.comment}
             </Tag>
-          )}
-          {event.discord && (
-            <Tag severity="secondary" icon="pi pi-discord">
-              {event.discord}
-            </Tag>
+          ) : (
+            <>
+              {event.twitter && (
+                <Tag severity="info" icon="pi pi-twitter">
+                  {event.twitter}
+                </Tag>
+              )}
+              {event.discord && (
+                <Tag severity="secondary" icon="pi pi-discord">
+                  {event.discord}
+                </Tag>
+              )}
+            </>
           )}
         </div>
       </div>
