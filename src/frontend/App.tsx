@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { BrowserRouter, useLocation } from 'react-router-dom';
 
 import { Button } from 'primereact/button';
 import { ConfirmDialog } from 'primereact/confirmdialog';
@@ -13,6 +14,7 @@ import NftHolders from './components/NftHolders.js';
 import ProfileDialog from './components/ProfileDialog.js';
 import SocialProfiles from './components/SocialProfiles.js';
 import TokenHolders from './components/TokenHolders.js';
+import { useAppNavigation } from './hooks/useAppNavigation.js';
 import {
   deleteSocialProfile as apiDeleteSocialProfile,
   saveSocialProfile as apiSaveSocialProfile,
@@ -20,12 +22,14 @@ import {
 } from './services/api.js';
 import { getSavedTheme, loadThemeCSS, toggleTheme } from './utils/theme.js';
 
-const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState(0);
+// Create a wrapper component that will handle route changes
+const AppContent: React.FC = () => {
+  const appNavigation = useAppNavigation();
+  const [activeTab, setActiveTab] = useState(() => appNavigation.getCurrentTabIndex());
   const [profileDialogVisible, setProfileDialogVisible] = useState(false);
   const [selectedHolder, setSelectedHolder] = useState<any>(null);
   const [selectedWalletAddress, setSelectedWalletAddress] = useState<string | undefined>(undefined);
-  const [sharedSearchTerm, setSharedSearchTerm] = useState('');
+  const [sharedSearchTerm, setSharedSearchTerm] = useState(appNavigation.getSearchParam());
   const [isDarkMode, setIsDarkMode] = useState(true);
 
   // References to child components for refreshing
@@ -34,6 +38,7 @@ const App: React.FC = () => {
   const socialProfilesRef = useRef<any>(null);
 
   const toast = useRef<Toast>(null);
+  const location = useLocation();
 
   useEffect(() => {
     // Load saved theme preference
@@ -42,8 +47,32 @@ const App: React.FC = () => {
     loadThemeCSS(savedIsDarkMode);
   }, []);
 
+  // Listen for URL changes to update the active tab
+  useEffect(() => {
+    // Get the tab index from the current URL
+    const tabIndex = appNavigation.getCurrentTabIndex();
+    setActiveTab(tabIndex);
+
+    // Extract search parameter and update shared search term
+    const searchParam = appNavigation.getSearchParam();
+    if (searchParam !== sharedSearchTerm) {
+      setSharedSearchTerm(searchParam);
+    }
+  }, [location, appNavigation]);
+
   const handleThemeToggle = () => {
     setIsDarkMode(toggleTheme(isDarkMode));
+  };
+
+  // Handle tab change
+  const handleTabChange = (e: { index: number }) => {
+    const newTabIndex = e.index;
+    
+    // Update URL to match the selected tab
+    appNavigation.navigateToTab(newTabIndex);
+    
+    // We don't need to update the active tab state here
+    // because the location change will trigger the useEffect above
   };
 
   const showSocialDialog = async (holder: any) => {
@@ -208,7 +237,7 @@ const App: React.FC = () => {
 
         <TabView
           activeIndex={activeTab}
-          onTabChange={e => setActiveTab(e.index)}
+          onTabChange={handleTabChange}
           className="tab-view"
         >
           <TabPanel header="NFT Holders">
@@ -262,6 +291,15 @@ const App: React.FC = () => {
         />
       </main>
     </div>
+  );
+};
+
+// Main App component that provides the Router context
+const App: React.FC = () => {
+  return (
+    <BrowserRouter>
+      <AppContent />
+    </BrowserRouter>
   );
 };
 
