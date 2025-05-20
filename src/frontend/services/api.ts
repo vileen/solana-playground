@@ -49,7 +49,7 @@ export const fetchNftHolders = async (searchTerm?: string): Promise<NFTHolder[]>
 };
 
 // Fetch token holders
-export const fetchTokenHolders = async (searchTerm?: string): Promise<TokenHolder[]> => {
+export const fetchTokenHolders = async (searchTerm?: string, snapshotId?: number): Promise<TokenHolder[]> => {
   try {
     const baseUrl = getApiUrl();
     let url;
@@ -63,10 +63,13 @@ export const fetchTokenHolders = async (searchTerm?: string): Promise<TokenHolde
       url = `${baseUrl}/token-holders`;
     }
 
-    // Add search parameter if needed
+    // Add parameters if needed
     const finalUrl = new URL(url);
     if (searchTerm) {
       finalUrl.searchParams.append('search', searchTerm);
+    }
+    if (snapshotId !== undefined && snapshotId !== null) {
+      finalUrl.searchParams.append('snapshotId', snapshotId.toString());
     }
 
     console.log('Fetching token holders from:', finalUrl.toString());
@@ -329,6 +332,25 @@ export async function fetchTokenSnapshotsWithEvents(limit = 5): Promise<EventTok
     return data;
   } catch (error) {
     console.error('Error fetching token snapshots with events:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetch token snapshots
+ */
+export async function fetchTokenSnapshots(): Promise<any[]> {
+  try {
+    const response = await fetch(`${API_BASE}/token-snapshots`);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch token snapshots: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching token snapshots:', error);
     return [];
   }
 }

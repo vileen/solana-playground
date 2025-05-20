@@ -96,6 +96,10 @@ export async function generateTokenEvents(
 
       // Check for new holders and increased balances
       for (const holder of currentHolders) {
+        // Skip wallets that don't have a social profile
+        const socialId = walletSocialProfiles.get(holder.address);
+        if (!socialId) continue;
+        
         const previousBalance = previousHolders.get(holder.address);
         
         if (previousBalance === undefined) {
@@ -117,6 +121,10 @@ export async function generateTokenEvents(
 
       // Check for decreased balances and wallets that no longer hold tokens
       for (const [address, previousBalance] of previousHolders.entries()) {
+        // Skip wallets that don't have a social profile
+        const socialId = walletSocialProfiles.get(address);
+        if (!socialId) continue;
+        
         const currentBalance = currentHoldersMap.get(address);
         
         if (currentBalance === undefined) {
@@ -400,8 +408,26 @@ async function createNewHolderTokenEvents(
   holders: TokenHolder[]
 ): Promise<void> {
   try {
+    // Get social profile mappings
+    const socialProfilesResult = await query(`
+      SELECT w.address, w.social_id 
+      FROM wallet_addresses w
+    `);
+    
+    // Create a map of wallet address to social profile ID
+    const walletSocialProfiles = new Map<string, string>();
+    socialProfilesResult.rows.forEach(row => {
+      if (row.social_id) {
+        walletSocialProfiles.set(row.address, row.social_id);
+      }
+    });
+    
     await withTransaction(async (client) => {
       for (const holder of holders) {
+        // Skip wallets without a social profile
+        const socialId = walletSocialProfiles.get(holder.address);
+        if (!socialId) continue;
+        
         await client.query(
           `INSERT INTO token_events 
            (snapshot_id, event_type_id, destination_address, amount, new_balance) 
@@ -411,7 +437,7 @@ async function createNewHolderTokenEvents(
       }
     });
     
-    console.log(`Created new holder events for ${holders.length} token holders in snapshot ${snapshotId}`);
+    console.log(`Created new holder events for token holders in snapshot ${snapshotId}`);
   } catch (error) {
     console.error('Error creating new holder token events:', error);
   }
@@ -431,6 +457,20 @@ export async function generateNFTEvents(
       await createNewHolderNFTEvents(snapshotId, currentHolders);
       return;
     }
+
+    // Get social profile mappings
+    const socialProfilesResult = await query(`
+      SELECT w.address, w.social_id 
+      FROM wallet_addresses w
+    `);
+    
+    // Create a map of wallet address to social profile ID
+    const walletSocialProfiles = new Map<string, string>();
+    socialProfilesResult.rows.forEach(row => {
+      if (row.social_id) {
+        walletSocialProfiles.set(row.address, row.social_id);
+      }
+    });
 
     // Get previous NFT ownership data
     const previousOwnershipResult = await query(
@@ -460,6 +500,10 @@ export async function generateNFTEvents(
     await withTransaction(async (client) => {
       // Check for NFT transfers
       for (const [mint, currentOwner] of currentOwnership.entries()) {
+        // Skip if current owner doesn't have a social profile
+        const currentOwnerSocialId = walletSocialProfiles.get(currentOwner);
+        if (!currentOwnerSocialId) continue;
+        
         const previousOwner = previousOwnership.get(mint);
         
         if (!previousOwner) {
@@ -471,19 +515,37 @@ export async function generateNFTEvents(
             [snapshotId, EventType.NEW_HOLDER, mint, currentOwner]
           );
         } else if (previousOwner !== currentOwner) {
-          // NFT changed hands
-          await client.query(
-            `INSERT INTO nft_events 
-             (snapshot_id, event_type_id, mint, source_address, destination_address) 
-             VALUES ($1, $2, $3, $4, $5)`,
-            [snapshotId, EventType.TRANSFER_BETWEEN, mint, previousOwner, currentOwner]
-          );
+          // Skip if previous owner didn't have a social profile
+          const previousOwnerSocialId = walletSocialProfiles.get(previousOwner);
+          if (!previousOwnerSocialId) continue;
+          
+          // NFT changed hands - if same social profile, it's a transfer between
+          if (previousOwnerSocialId === currentOwnerSocialId) {
+            await client.query(
+              `INSERT INTO nft_events 
+               (snapshot_id, event_type_id, mint, source_address, destination_address) 
+               VALUES ($1, $2, $3, $4, $5)`,
+              [snapshotId, EventType.TRANSFER_BETWEEN, mint, previousOwner, currentOwner]
+            );
+          } else {
+            // Different social profiles - it's a true transfer
+            await client.query(
+              `INSERT INTO nft_events 
+               (snapshot_id, event_type_id, mint, source_address, destination_address) 
+               VALUES ($1, $2, $3, $4, $5)`,
+              [snapshotId, EventType.TRANSFER_BETWEEN, mint, previousOwner, currentOwner]
+            );
+          }
         }
       }
 
       // Check for NFTs that are no longer in the current snapshot
       for (const [mint, previousOwner] of previousOwnership.entries()) {
         if (!currentOwnership.has(mint)) {
+          // Skip if previous owner didn't have a social profile
+          const previousOwnerSocialId = walletSocialProfiles.get(previousOwner);
+          if (!previousOwnerSocialId) continue;
+          
           // NFT is no longer in the snapshot
           await client.query(
             `INSERT INTO nft_events 
@@ -509,8 +571,26 @@ async function createNewHolderNFTEvents(
   holders: NFTHolder[]
 ): Promise<void> {
   try {
+    // Get social profile mappings
+    const socialProfilesResult = await query(`
+      SELECT w.address, w.social_id 
+      FROM wallet_addresses w
+    `);
+    
+    // Create a map of wallet address to social profile ID
+    const walletSocialProfiles = new Map<string, string>();
+    socialProfilesResult.rows.forEach(row => {
+      if (row.social_id) {
+        walletSocialProfiles.set(row.address, row.social_id);
+      }
+    });
+    
     await withTransaction(async (client) => {
       for (const holder of holders) {
+        // Skip holders without a social profile
+        const socialId = walletSocialProfiles.get(holder.address);
+        if (!socialId) continue;
+        
         // For each NFT owned by this holder
         for (const nft of holder.nfts) {
           await client.query(
@@ -535,14 +615,33 @@ async function createNewHolderNFTEvents(
 export async function getTokenEventsForSnapshot(snapshotId: number) {
   try {
     const result = await query(`
-      SELECT e.id, e.timestamp as event_timestamp, t.name as event_type, 
-             e.source_address, e.destination_address, 
-             e.amount, e.previous_balance, e.new_balance,
-             s.id as snapshot_id, s.timestamp as snapshot_timestamp,
-             s.total_supply, s.token_address
+      SELECT 
+        e.id, e.timestamp as event_timestamp, t.name as event_type, 
+        e.source_address, e.destination_address,
+        e.amount, e.previous_balance, e.new_balance,
+        s.id as snapshot_id, s.timestamp as snapshot_timestamp,
+        s.total_supply, s.token_address,
+        sp_source.twitter as source_twitter, sp_source.discord as source_discord,
+        sp_dest.twitter as dest_twitter, sp_dest.discord as dest_discord,
+        CASE
+          WHEN sp_source.id = sp_dest.id AND sp_source.id IS NOT NULL THEN sp_source.twitter
+          ELSE NULL
+        END as twitter,
+        CASE
+          WHEN sp_source.id = sp_dest.id AND sp_source.id IS NOT NULL THEN sp_source.discord
+          ELSE NULL
+        END as discord,
+        CASE
+          WHEN sp_source.id = sp_dest.id AND sp_source.id IS NOT NULL THEN sp_source.comment
+          ELSE NULL
+        END as comment
       FROM token_events e
       JOIN event_types t ON e.event_type_id = t.id
       JOIN token_snapshots s ON e.snapshot_id = s.id
+      LEFT JOIN wallet_addresses wa_source ON e.source_address = wa_source.address
+      LEFT JOIN social_profiles sp_source ON wa_source.social_id = sp_source.id
+      LEFT JOIN wallet_addresses wa_dest ON e.destination_address = wa_dest.address
+      LEFT JOIN social_profiles sp_dest ON wa_dest.social_id = sp_dest.id
       WHERE e.snapshot_id = $1
       ORDER BY e.timestamp DESC
     `, [snapshotId]);
@@ -560,15 +659,34 @@ export async function getTokenEventsForSnapshot(snapshotId: number) {
 export async function getNFTEventsForSnapshot(snapshotId: number) {
   try {
     const result = await query(`
-      SELECT e.id, e.timestamp as event_timestamp, t.name as event_type, 
-             e.mint, n.name as nft_name, n.type as nft_type,
-             e.source_address, e.destination_address,
-             s.id as snapshot_id, s.timestamp as snapshot_timestamp,
-             s.total_count
+      SELECT 
+        e.id, e.timestamp as event_timestamp, t.name as event_type, 
+        e.mint, n.name as nft_name, n.type as nft_type,
+        e.source_address, e.destination_address,
+        s.id as snapshot_id, s.timestamp as snapshot_timestamp,
+        s.total_count,
+        sp_source.twitter as source_twitter, sp_source.discord as source_discord,
+        sp_dest.twitter as dest_twitter, sp_dest.discord as dest_discord,
+        CASE
+          WHEN sp_source.id = sp_dest.id AND sp_source.id IS NOT NULL THEN sp_source.twitter
+          ELSE NULL
+        END as twitter,
+        CASE
+          WHEN sp_source.id = sp_dest.id AND sp_source.id IS NOT NULL THEN sp_source.discord
+          ELSE NULL
+        END as discord,
+        CASE
+          WHEN sp_source.id = sp_dest.id AND sp_source.id IS NOT NULL THEN sp_source.comment
+          ELSE NULL
+        END as comment
       FROM nft_events e
       JOIN event_types t ON e.event_type_id = t.id
       JOIN nfts n ON e.mint = n.mint
       JOIN nft_snapshots s ON e.snapshot_id = s.id
+      LEFT JOIN wallet_addresses wa_source ON e.source_address = wa_source.address
+      LEFT JOIN social_profiles sp_source ON wa_source.social_id = sp_source.id
+      LEFT JOIN wallet_addresses wa_dest ON e.destination_address = wa_dest.address
+      LEFT JOIN social_profiles sp_dest ON wa_dest.social_id = sp_dest.id
       WHERE e.snapshot_id = $1
       ORDER BY e.timestamp DESC
     `, [snapshotId]);
@@ -584,15 +702,15 @@ export async function getNFTEventsForSnapshot(snapshotId: number) {
  * Get latest token snapshots with their events
  * Returns a list of snapshots with associated events
  */
-export async function getTokenSnapshotsWithEvents(limit: number = 5) {
+export async function getTokenSnapshotsWithEvents(limit: number = 5, skip: number = 0) {
   try {
-    // First get the most recent snapshots
+    // First get the most recent snapshots with pagination
     const snapshotsResult = await query(`
       SELECT id, timestamp, token_address, total_supply
       FROM token_snapshots
       ORDER BY timestamp DESC
-      LIMIT $1
-    `, [limit]);
+      LIMIT $1 OFFSET $2
+    `, [limit, skip]);
     
     if (snapshotsResult.rowCount === 0) {
       return [];
@@ -620,15 +738,15 @@ export async function getTokenSnapshotsWithEvents(limit: number = 5) {
  * Get latest NFT snapshots with their events
  * Returns a list of snapshots with associated events
  */
-export async function getNFTSnapshotsWithEvents(limit: number = 5) {
+export async function getNFTSnapshotsWithEvents(limit: number = 5, skip: number = 0) {
   try {
-    // First get the most recent snapshots
+    // First get the most recent snapshots with pagination
     const snapshotsResult = await query(`
       SELECT id, timestamp, total_count
       FROM nft_snapshots
       ORDER BY timestamp DESC
-      LIMIT $1
-    `, [limit]);
+      LIMIT $1 OFFSET $2
+    `, [limit, skip]);
     
     if (snapshotsResult.rowCount === 0) {
       return [];

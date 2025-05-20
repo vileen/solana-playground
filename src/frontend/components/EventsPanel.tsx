@@ -1,16 +1,20 @@
 import React, { useEffect, useState } from 'react';
 
+import { Button } from 'primereact/button';
 import { Card } from 'primereact/card';
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
 import { Dropdown } from 'primereact/dropdown';
 import { TabPanel, TabView } from 'primereact/tabview';
 import { Tag } from 'primereact/tag';
+import { Toast } from 'primereact/toast';
 
 import { EventNFTSnapshot, EventTokenSnapshot, NFTEvent, TokenEvent } from '../../types/index.js';
 import {
   fetchNFTSnapshotsWithEvents,
-  fetchTokenSnapshotsWithEvents
+  fetchTokenSnapshotsWithEvents,
+  takeNftSnapshot,
+  takeTokenSnapshot
 } from '../services/api.js';
 import { truncateAddress } from '../utils/addressUtils.js';
 import { formatDate, formatNumber, formatRelativeTime } from '../utils/formatting.js';
@@ -21,7 +25,10 @@ const EventsPanel: React.FC = () => {
   const [selectedTokenSnapshot, setSelectedTokenSnapshot] = useState<EventTokenSnapshot | null>(null);
   const [selectedNftSnapshot, setSelectedNftSnapshot] = useState<EventNFTSnapshot | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [tokenSnapshotLoading, setTokenSnapshotLoading] = useState<boolean>(false);
+  const [nftSnapshotLoading, setNftSnapshotLoading] = useState<boolean>(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  const toastRef = React.useRef<Toast>(null);
 
   useEffect(() => {
     loadSnapshots();
@@ -53,6 +60,60 @@ const EventsPanel: React.FC = () => {
       console.error('Error loading snapshots with events:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Take token snapshot handler
+  const handleTakeTokenSnapshot = async () => {
+    setTokenSnapshotLoading(true);
+    try {
+      const result = await takeTokenSnapshot();
+      console.log('Token snapshot taken:', result);
+      toastRef.current?.show({ 
+        severity: 'success', 
+        summary: 'Token Snapshot Taken', 
+        detail: 'New token snapshot captured successfully',
+        life: 3000
+      });
+      // Reload data after taking snapshot
+      loadSnapshots();
+    } catch (error) {
+      console.error('Error taking token snapshot:', error);
+      toastRef.current?.show({ 
+        severity: 'error', 
+        summary: 'Error', 
+        detail: 'Failed to take token snapshot',
+        life: 3000
+      });
+    } finally {
+      setTokenSnapshotLoading(false);
+    }
+  };
+
+  // Take NFT snapshot handler
+  const handleTakeNftSnapshot = async () => {
+    setNftSnapshotLoading(true);
+    try {
+      const result = await takeNftSnapshot();
+      console.log('NFT snapshot taken:', result);
+      toastRef.current?.show({ 
+        severity: 'success', 
+        summary: 'NFT Snapshot Taken', 
+        detail: 'New NFT snapshot captured successfully',
+        life: 3000
+      });
+      // Reload data after taking snapshot
+      loadSnapshots();
+    } catch (error) {
+      console.error('Error taking NFT snapshot:', error);
+      toastRef.current?.show({ 
+        severity: 'error', 
+        summary: 'Error', 
+        detail: 'Failed to take NFT snapshot',
+        life: 3000
+      });
+    } finally {
+      setNftSnapshotLoading(false);
     }
   };
 
@@ -131,9 +192,16 @@ const EventsPanel: React.FC = () => {
   const addressTemplate = (address?: string, twitter?: string, discord?: string) => {
     if (!address) return null;
     
+    const solscanUrl = `https://solscan.io/account/${address}`;
+    
     return (
       <div className="flex flex-column">
-        <span className="font-medium">{truncateAddress(address)}</span>
+        <div className="flex align-items-center">
+          <a href={solscanUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+            {truncateAddress(address)}
+          </a>
+          <i className="pi pi-external-link ml-1 text-xs text-color-secondary"></i>
+        </div>
         {(twitter || discord) && (
           <div className="flex mt-1 gap-2">
             {twitter && (
@@ -148,6 +216,129 @@ const EventsPanel: React.FC = () => {
             )}
           </div>
         )}
+      </div>
+    );
+  };
+
+  // Social profile template
+  const socialProfileTemplate = (rowData: TokenEvent | NFTEvent) => {
+    // Determine if it's a self-transfer within the same profile
+    const isSelfTransfer = 
+      rowData.event_type === 'transfer_between' && 
+      rowData.twitter && rowData.source_twitter && rowData.dest_twitter &&
+      rowData.twitter === rowData.source_twitter && rowData.twitter === rowData.dest_twitter;
+
+    // If no profiles found
+    if (!rowData.twitter && !rowData.discord && !rowData.comment && 
+        !rowData.source_twitter && !rowData.source_discord && 
+        !rowData.dest_twitter && !rowData.dest_discord) {
+      return <span>-</span>;
+    }
+    
+    if (isSelfTransfer) {
+      // For self transfers, show just the profile with a self-transfer tag
+      return (
+        <div className="flex flex-column">
+          {rowData.comment && <span className="font-medium mb-1">{rowData.comment}</span>}
+          <div className="flex gap-2 align-items-center">
+            {rowData.twitter && (
+              <Tag severity="info" icon="pi pi-twitter">
+                {rowData.twitter}
+              </Tag>
+            )}
+            {rowData.discord && (
+              <Tag severity="secondary" icon="pi pi-discord">
+                {rowData.discord}
+              </Tag>
+            )}
+            <Tag severity="info" icon="pi pi-arrows-h">Self Transfer</Tag>
+          </div>
+        </div>
+      );
+    } else if (rowData.event_type === 'transfer_between' || 
+               rowData.event_type === 'transfer_in' || 
+               rowData.event_type === 'transfer_out') {
+      // For transfers between different profiles or unknown profiles
+      const hasSource = rowData.source_twitter || rowData.source_discord;
+      const hasDest = rowData.dest_twitter || rowData.dest_discord;
+      
+      if (hasSource && hasDest) {
+        // Both source and destination have profiles
+        return (
+          <div className="flex flex-column gap-2">
+            <div className="flex flex-column">
+              <span className="text-sm text-color-secondary">From:</span>
+              <div className="flex gap-1">
+                {rowData.source_twitter && (
+                  <Tag severity="info" icon="pi pi-twitter">{rowData.source_twitter}</Tag>
+                )}
+                {rowData.source_discord && (
+                  <Tag severity="secondary" icon="pi pi-discord">{rowData.source_discord}</Tag>
+                )}
+              </div>
+            </div>
+            <div className="flex flex-column">
+              <span className="text-sm text-color-secondary">To:</span>
+              <div className="flex gap-1">
+                {rowData.dest_twitter && (
+                  <Tag severity="info" icon="pi pi-twitter">{rowData.dest_twitter}</Tag>
+                )}
+                {rowData.dest_discord && (
+                  <Tag severity="secondary" icon="pi pi-discord">{rowData.dest_discord}</Tag>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      } else if (hasSource) {
+        // Only source has a profile
+        return (
+          <div className="flex flex-column">
+            <span className="text-sm text-color-secondary">From:</span>
+            <div className="flex gap-1">
+              {rowData.source_twitter && (
+                <Tag severity="info" icon="pi pi-twitter">{rowData.source_twitter}</Tag>
+              )}
+              {rowData.source_discord && (
+                <Tag severity="secondary" icon="pi pi-discord">{rowData.source_discord}</Tag>
+              )}
+            </div>
+          </div>
+        );
+      } else if (hasDest) {
+        // Only destination has a profile
+        return (
+          <div className="flex flex-column">
+            <span className="text-sm text-color-secondary">To:</span>
+            <div className="flex gap-1">
+              {rowData.dest_twitter && (
+                <Tag severity="info" icon="pi pi-twitter">{rowData.dest_twitter}</Tag>
+              )}
+              {rowData.dest_discord && (
+                <Tag severity="secondary" icon="pi pi-discord">{rowData.dest_discord}</Tag>
+              )}
+            </div>
+          </div>
+        );
+      }
+    }
+    
+    // For non-transfer events or fallback
+    return (
+      <div className="flex flex-column">
+        {rowData.comment && <span className="font-medium mb-1">{rowData.comment}</span>}
+        <div className="flex gap-2">
+          {rowData.twitter && (
+            <Tag severity="info" icon="pi pi-twitter">
+              {rowData.twitter}
+            </Tag>
+          )}
+          {rowData.discord && (
+            <Tag severity="secondary" icon="pi pi-discord">
+              {rowData.discord}
+            </Tag>
+          )}
+        </div>
       </div>
     );
   };
@@ -228,21 +419,39 @@ const EventsPanel: React.FC = () => {
     }));
 
     return (
-      <div className="flex align-items-center mb-3">
-        <span className="font-medium mr-2">Snapshot:</span>
-        <Dropdown
-          value={selectedTokenSnapshot?.id}
-          options={options}
-          onChange={(e) => {
-            if (e.value) {
-              const selected = tokenSnapshots.find(s => s.id === e.value);
-              if (selected) {
-                setSelectedTokenSnapshot(selected);
+      <div className="flex justify-between align-items-center mb-3">
+        <div className="flex align-items-center">
+          <span className="font-medium mr-2">Snapshot:</span>
+          <Dropdown
+            value={selectedTokenSnapshot?.id}
+            options={options}
+            onChange={(e) => {
+              if (e.value) {
+                const selected = tokenSnapshots.find(s => s.id === e.value);
+                if (selected) {
+                  setSelectedTokenSnapshot(selected);
+                }
               }
-            }
-          }}
-          placeholder="Select a snapshot"
-        />
+            }}
+            placeholder="Select a snapshot"
+          />
+        </div>
+        
+        <div className="flex gap-2">
+          <Button
+            label="Take Token Snapshot"
+            icon="pi pi-camera"
+            onClick={handleTakeTokenSnapshot}
+            loading={tokenSnapshotLoading}
+            className="p-button-success p-button-sm"
+          />
+          <Button
+            icon="pi pi-refresh"
+            onClick={loadSnapshots}
+            tooltip="Refresh Data"
+            className="p-button-outlined p-button-sm"
+          />
+        </div>
       </div>
     );
   };
@@ -257,21 +466,39 @@ const EventsPanel: React.FC = () => {
     }));
 
     return (
-      <div className="flex align-items-center mb-3">
-        <span className="font-medium mr-2">Snapshot:</span>
-        <Dropdown
-          value={selectedNftSnapshot?.id}
-          options={options}
-          onChange={(e) => {
-            if (e.value) {
-              const selected = nftSnapshots.find(s => s.id === e.value);
-              if (selected) {
-                setSelectedNftSnapshot(selected);
+      <div className="flex justify-between align-items-center mb-3">
+        <div className="flex align-items-center">
+          <span className="font-medium mr-2">Snapshot:</span>
+          <Dropdown
+            value={selectedNftSnapshot?.id}
+            options={options}
+            onChange={(e) => {
+              if (e.value) {
+                const selected = nftSnapshots.find(s => s.id === e.value);
+                if (selected) {
+                  setSelectedNftSnapshot(selected);
+                }
               }
-            }
-          }}
-          placeholder="Select a snapshot"
-        />
+            }}
+            placeholder="Select a snapshot"
+          />
+        </div>
+        
+        <div className="flex gap-2">
+          <Button
+            label="Take NFT Snapshot"
+            icon="pi pi-camera"
+            onClick={handleTakeNftSnapshot}
+            loading={nftSnapshotLoading}
+            className="p-button-info p-button-sm"
+          />
+          <Button
+            icon="pi pi-refresh"
+            onClick={loadSnapshots}
+            tooltip="Refresh Data"
+            className="p-button-outlined p-button-sm"
+          />
+        </div>
       </div>
     );
   };
@@ -284,6 +511,7 @@ const EventsPanel: React.FC = () => {
 
   return (
     <Card className="mb-5" title="Activity by Snapshot" subTitle="View changes between snapshots">
+      <Toast ref={toastRef} />
       <TabView activeIndex={activeIndex} onTabChange={(e) => setActiveIndex(e.index)}>
         <TabPanel header="Token Events" leftIcon="pi pi-dollar mr-2">
           {tokenSnapshotSelector()}
@@ -305,6 +533,7 @@ const EventsPanel: React.FC = () => {
             <Column field="destination_address" header="To" body={destinationAddressTemplate} />
             <Column field="amount" header="Amount" body={amountTemplate} sortable style={{ width: '120px' }} />
             <Column field="balance_change" header="Balance Change" body={balanceChangeTemplate} style={{ width: '180px' }} />
+            <Column field="social" header="Social Profile" body={socialProfileTemplate} style={{ width: '180px' }} />
           </DataTable>
         </TabPanel>
         
@@ -327,6 +556,7 @@ const EventsPanel: React.FC = () => {
             <Column field="nft_details" header="NFT" body={nftDetailsTemplate} style={{ width: '200px' }} />
             <Column field="source_address" header="From" body={nftSourceTemplate} />
             <Column field="destination_address" header="To" body={nftDestinationTemplate} />
+            <Column field="social" header="Social Profile" body={socialProfileTemplate} style={{ width: '180px' }} />
           </DataTable>
         </TabPanel>
       </TabView>

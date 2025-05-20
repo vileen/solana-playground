@@ -376,17 +376,26 @@ export async function createTokenSnapshot(): Promise<TokenSnapshot> {
 }
 
 /**
- * Get the latest token snapshot from database
+ * Get a token snapshot from database by ID or the latest if no ID provided
  */
-export async function loadTokenSnapshot(): Promise<TokenSnapshot | null> {
+export async function loadTokenSnapshot(snapshotId?: number): Promise<TokenSnapshot | null> {
   try {
-    // Get the latest snapshot
-    const snapshotResult = await query(`
+    // Get the specified snapshot or the latest
+    let snapshotQuery = `
       SELECT id, timestamp, token_address, total_supply
       FROM token_snapshots
-      ORDER BY timestamp DESC
-      LIMIT 1
-    `);
+    `;
+    
+    let queryParams: any[] = [];
+    
+    if (snapshotId) {
+      snapshotQuery += ` WHERE id = $1`;
+      queryParams.push(snapshotId);
+    } else {
+      snapshotQuery += ` ORDER BY timestamp DESC LIMIT 1`;
+    }
+    
+    const snapshotResult = await query(snapshotQuery, queryParams);
     
     if (snapshotResult.rowCount === 0) {
       console.error('No token snapshot found in database');
@@ -394,7 +403,7 @@ export async function loadTokenSnapshot(): Promise<TokenSnapshot | null> {
     }
     
     const snapshot = snapshotResult.rows[0];
-    const snapshotId = snapshot.id;
+    const retrievedSnapshotId = snapshot.id;
     
     // Get holders for this snapshot
     const holdersResult = await query(`
@@ -406,7 +415,7 @@ export async function loadTokenSnapshot(): Promise<TokenSnapshot | null> {
       LEFT JOIN social_profiles sp ON wa.social_id = sp.id
       WHERE th.snapshot_id = $1
       ORDER BY th.balance DESC
-    `, [snapshotId]);
+    `, [retrievedSnapshotId]);
     
     const holders = holdersResult.rows.map(row => ({
       address: row.address,
@@ -420,6 +429,7 @@ export async function loadTokenSnapshot(): Promise<TokenSnapshot | null> {
     }));
     
     return {
+      id: retrievedSnapshotId,
       tokenAddress: snapshot.token_address,
       timestamp: snapshot.timestamp,
       totalSupply: parseFloat(snapshot.total_supply),
@@ -432,11 +442,16 @@ export async function loadTokenSnapshot(): Promise<TokenSnapshot | null> {
 }
 
 /**
- * Get filtered token holders with optional search
+ * Get filtered token holders with optional search and snapshot selection
  */
-export async function getFilteredTokenHolders(searchTerm?: string, limit?: number): Promise<TokenHolder[]> {
+export async function getFilteredTokenHolders(
+  searchTerm?: string, 
+  limit?: number, 
+  snapshotId?: number
+): Promise<TokenHolder[]> {
   try {
-    const snapshot = await loadTokenSnapshot();
+    // Load the specified snapshot or the latest
+    const snapshot = await loadTokenSnapshot(snapshotId);
     if (!snapshot || !snapshot.holders) {
       console.log('No token holder snapshot found');
       return [];

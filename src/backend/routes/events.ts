@@ -13,7 +13,12 @@ const router = Router();
 router.get('/token/snapshots', async (req: Request, res: Response) => {
   try {
     const limit = req.query.limit ? parseInt(req.query.limit as string) : 5;
-    const snapshots = await getTokenSnapshotsWithEvents(limit);
+    const skip = req.query.skip ? parseInt(req.query.skip as string) : 0;
+    
+    console.log(`GET /token/snapshots with limit=${limit}, skip=${skip}`);
+    const snapshots = await getTokenSnapshotsWithEvents(limit, skip);
+    console.log(`Found ${snapshots.length} token snapshots`);
+    
     res.json(snapshots);
   } catch (error: any) {
     console.error('Error fetching token snapshots with events:', error);
@@ -28,7 +33,12 @@ router.get('/token/snapshots', async (req: Request, res: Response) => {
 router.get('/nft/snapshots', async (req: Request, res: Response) => {
   try {
     const limit = req.query.limit ? parseInt(req.query.limit as string) : 5;
-    const snapshots = await getNFTSnapshotsWithEvents(limit);
+    const skip = req.query.skip ? parseInt(req.query.skip as string) : 0;
+    
+    console.log(`GET /nft/snapshots with limit=${limit}, skip=${skip}`);
+    const snapshots = await getNFTSnapshotsWithEvents(limit, skip);
+    console.log(`Found ${snapshots.length} NFT snapshots`);
+    
     res.json(snapshots);
   } catch (error: any) {
     console.error('Error fetching NFT snapshots with events:', error);

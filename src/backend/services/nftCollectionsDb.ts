@@ -2,6 +2,7 @@ import { CollectionSnapshot, NFTHolder } from '../../types/index.js';
 import { FULL_RPC_URL } from '../config/config.js';
 import { query, withTransaction } from '../db/index.js';
 
+import { generateNFTEvents } from './eventsService.js';
 import { loadSocialProfiles } from './socialProfilesDb.js';
 
 // Get all NFTs from collections
@@ -62,33 +63,39 @@ export async function getCollectionNFTs() {
   console.time('getCollectionNFTs:processing');
   
   // Process and structure the NFT data
-  const processedItems = allItems.map(item => {
-    try {
-      // Determine collection type (Gen1 or Infant)
-      let collectionType = 'Gen1';
-      
-      if (item.content?.metadata?.name?.includes('Infant')) {
-        collectionType = 'Infant';
-      }
-      
-      return {
-        id: item.id, // The mint address
-        ownership: {
-          owner: item.ownership?.owner || null,
-          delegate: item.ownership?.delegate || null,
-        },
-        content: {
-          metadata: {
-            name: item.content?.metadata?.name || 'Unknown',
+  const processedItems = allItems
+    .filter(item => {
+      // Filter to only include NFTs with names matching patterns
+      const name = item.content?.metadata?.name || '';
+      return (
+        (name.startsWith('TYR-') && /^TYR-\d+/.test(name)) ||
+        (name.startsWith('TYR-Infant-') && /^TYR-Infant-\d+/.test(name))
+      );
+    })
+    .map(item => {
+      try {
+        // Determine collection type (Gen1 or Infant)
+        const name = item.content?.metadata?.name || '';
+        const collectionType = name.startsWith('TYR-Infant-') ? 'Infant' : 'Gen1';
+        
+        return {
+          id: item.id, // The mint address
+          ownership: {
+            owner: item.ownership?.owner || null,
+            delegate: item.ownership?.delegate || null,
           },
-        },
-        collectionType,
-      };
-    } catch (error) {
-      console.error('[NFT Collection] Error processing NFT item:', error);
-      return null;
-    }
-  }).filter(Boolean) as any[];
+          content: {
+            metadata: {
+              name: name,
+            },
+          },
+          collectionType,
+        };
+      } catch (error) {
+        console.error('[NFT Collection] Error processing NFT item:', error);
+        return null;
+      }
+    }).filter(Boolean) as any[];
   
   console.timeEnd('getCollectionNFTs:processing');
   console.log(`[NFT Collection] Processed ${processedItems.length} NFTs in total`);
@@ -221,6 +228,18 @@ export async function createHolderSnapshot(): Promise<CollectionSnapshot> {
     console.timeEnd('createHolderSnapshot:saveToDatabase');
     console.log('[NFT Snapshot] Successfully saved snapshot to database');
     
+    // Generate NFT events
+    console.time('createHolderSnapshot:generateEvents');
+    console.log('[NFT Snapshot] Generating NFT events for this snapshot...');
+    try {
+      await generateNFTEvents(result.snapshotId, result.holders, result.previousSnapshotId);
+      console.log('[NFT Snapshot] Successfully generated NFT events');
+    } catch (error) {
+      console.error('[NFT Snapshot] Error generating NFT events:', error);
+      // Continue even if event generation fails
+    }
+    console.timeEnd('createHolderSnapshot:generateEvents');
+    
     console.timeEnd('createHolderSnapshot:total');
     return result;
   } catch (error) {
@@ -231,12 +250,21 @@ export async function createHolderSnapshot(): Promise<CollectionSnapshot> {
 }
 
 // Save snapshot to database
-export async function saveHolderSnapshot(snapshot: CollectionSnapshot): Promise<CollectionSnapshot> {
+export async function saveHolderSnapshot(snapshot: CollectionSnapshot): Promise<CollectionSnapshot & { snapshotId: number, previousSnapshotId?: number }> {
   console.time('saveHolderSnapshot:total');
   console.log('[NFT DB] Starting database save of NFT snapshot with', snapshot.holders.length, 'holders');
   
   return await withTransaction(async (client) => {
     try {
+      // Get previous snapshot ID (if any)
+      const previousSnapshotResult = await client.query(
+        `SELECT id FROM nft_snapshots ORDER BY timestamp DESC LIMIT 1`
+      );
+      
+      const previousSnapshotId = previousSnapshotResult.rowCount > 0 
+        ? previousSnapshotResult.rows[0].id 
+        : undefined;
+      
       // Insert snapshot
       console.time('saveHolderSnapshot:insertSnapshot');
       console.log('[NFT DB] Inserting snapshot record...');
@@ -421,6 +449,8 @@ export async function saveHolderSnapshot(snapshot: CollectionSnapshot): Promise<
       return {
         ...snapshot,
         timestamp: timestamp.toISOString(),
+        snapshotId,
+        previousSnapshotId
       };
     } catch (error) {
       console.error('[NFT DB] Error saving holder snapshot to database:', error);
@@ -431,15 +461,24 @@ export async function saveHolderSnapshot(snapshot: CollectionSnapshot): Promise<
 }
 
 // Load snapshot from database
-export async function loadHolderSnapshot(): Promise<CollectionSnapshot | null> {
+export async function loadHolderSnapshot(snapshotId?: number): Promise<CollectionSnapshot | null> {
   try {
-    // Get the latest snapshot
-    const snapshotResult = await query(`
+    // Get the specified snapshot or the latest
+    let snapshotQuery = `
       SELECT id, timestamp, total_count
       FROM nft_snapshots
-      ORDER BY timestamp DESC
-      LIMIT 1
-    `);
+    `;
+    
+    let queryParams: any[] = [];
+    
+    if (snapshotId) {
+      snapshotQuery += ` WHERE id = $1`;
+      queryParams.push(snapshotId);
+    } else {
+      snapshotQuery += ` ORDER BY timestamp DESC LIMIT 1`;
+    }
+    
+    const snapshotResult = await query(snapshotQuery, queryParams);
     
     if (snapshotResult.rowCount === 0) {
       console.error('No NFT snapshot found in database');
@@ -447,7 +486,7 @@ export async function loadHolderSnapshot(): Promise<CollectionSnapshot | null> {
     }
     
     const snapshot = snapshotResult.rows[0];
-    const snapshotId = snapshot.id;
+    const retrievedSnapshotId = snapshot.id;
     
     // Get holders for this snapshot
     const holdersResult = await query(`
@@ -459,7 +498,7 @@ export async function loadHolderSnapshot(): Promise<CollectionSnapshot | null> {
       LEFT JOIN social_profiles sp ON wa.social_id = sp.id
       WHERE nh.snapshot_id = $1
       ORDER BY nh.nft_count DESC
-    `, [snapshotId]);
+    `, [retrievedSnapshotId]);
     
     // Get NFTs and their ownership for this snapshot
     const nftsResult = await query(`
@@ -467,7 +506,7 @@ export async function loadHolderSnapshot(): Promise<CollectionSnapshot | null> {
       FROM nft_ownership no
       JOIN nfts n ON no.mint = n.mint
       WHERE no.snapshot_id = $1
-    `, [snapshotId]);
+    `, [retrievedSnapshotId]);
     
     // Organize NFTs by owner
     const nftsByOwner: Record<string, any[]> = {};
@@ -518,10 +557,10 @@ export async function loadHolderSnapshot(): Promise<CollectionSnapshot | null> {
 }
 
 // Get holders with optional search filter
-export async function getHolders(searchTerm?: string, limit?: number): Promise<NFTHolder[]> {
+export async function getHolders(searchTerm?: string, limit?: number, snapshotId?: number): Promise<NFTHolder[]> {
   try {
-    // Load the latest snapshot
-    const snapshot = await loadHolderSnapshot();
+    // Load the specified snapshot or the latest
+    const snapshot = await loadHolderSnapshot(snapshotId);
     
     if (!snapshot || !snapshot.holders) {
       console.log('No holder snapshot found');

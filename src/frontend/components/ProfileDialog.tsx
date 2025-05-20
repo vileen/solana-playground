@@ -24,6 +24,7 @@ interface ProfileDialogProps {
   onSave: (profile: any) => void;
   onDelete?: (profileId: string) => void;
   profile?: any;
+  selectedWalletAddress?: string;
 }
 
 const ProfileDialog: React.FC<ProfileDialogProps> = ({
@@ -32,6 +33,7 @@ const ProfileDialog: React.FC<ProfileDialogProps> = ({
   onSave,
   onDelete,
   profile,
+  selectedWalletAddress: propSelectedWallet,
 }) => {
   const [twitter, setTwitter] = useState('');
   const [discord, setDiscord] = useState('');
@@ -39,6 +41,7 @@ const ProfileDialog: React.FC<ProfileDialogProps> = ({
   const [newWallet, setNewWallet] = useState('');
   const [wallets, setWallets] = useState<string[]>([]);
   const [isEditing, setIsEditing] = useState(false);
+  const [selectedWalletAddress, setSelectedWalletAddress] = useState<string | undefined>(undefined);
 
   // For profile search
   const [searchTerm, setSearchTerm] = useState<SocialProfileSuggestion | undefined>(undefined);
@@ -64,14 +67,27 @@ const ProfileDialog: React.FC<ProfileDialogProps> = ({
       setComment(profile.comment || '');
       setWallets(profile.wallets?.map((w: any) => w.address || w) || []);
       setIsEditing(true);
+      
+      // Check for selected wallet from direct prop or from profile object
+      if (propSelectedWallet) {
+        setSelectedWalletAddress(propSelectedWallet);
+      } else if (profile.selectedWalletAddress) {
+        setSelectedWalletAddress(profile.selectedWalletAddress);
+      } else if (profile.wallets?.length === 1) {
+        // If there's only one wallet, select it
+        setSelectedWalletAddress(profile.wallets[0].address || profile.wallets[0]);
+      } else {
+        setSelectedWalletAddress(undefined);
+      }
     } else {
       setTwitter('');
       setDiscord('');
       setComment('');
       setWallets([]);
       setIsEditing(false);
+      setSelectedWalletAddress(undefined);
     }
-  }, [profile, visible]);
+  }, [profile, visible, propSelectedWallet]);
 
   const loadAllProfiles = async () => {
     try {
@@ -482,17 +498,22 @@ const ProfileDialog: React.FC<ProfileDialogProps> = ({
           <div className="wallet-list mt-3">
             {wallets.length > 0 ? (
               <div className="flex flex-wrap gap-2">
-                {wallets.map((wallet, index) => (
-                  <Chip
-                    key={index}
-                    label={`${wallet.substring(0, 6)}...${wallet.substring(wallet.length - 4)}`}
-                    removable
-                    onRemove={() => {
-                      removeWallet(wallet);
-                      return true;
-                    }}
-                  />
-                ))}
+                {wallets.map((wallet, index) => {
+                  const isSelected = wallet === selectedWalletAddress;
+                  return (
+                    <Chip
+                      key={index}
+                      label={`${wallet.substring(0, 6)}...${wallet.substring(wallet.length - 4)}`}
+                      removable
+                      onRemove={() => {
+                        removeWallet(wallet);
+                        return true;
+                      }}
+                      className={isSelected ? 'highlighted-wallet' : ''}
+                      style={isSelected ? { background: '#2196F3', color: 'white' } : undefined}
+                    />
+                  );
+                })}
               </div>
             ) : (
               <div className="text-muted">No wallets added yet</div>

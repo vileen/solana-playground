@@ -1,11 +1,12 @@
-import React, { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
 
 import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
+import { Dropdown } from 'primereact/dropdown';
 
 import { TokenHolder } from '../../types/index.js';
-import { fetchTokenHolders, takeTokenSnapshot } from '../services/api.js';
+import { fetchTokenHolders, fetchTokenSnapshots, takeTokenSnapshot } from '../services/api.js';
 
 import SearchBar from './SearchBar.js';
 
@@ -24,6 +25,8 @@ const TokenHolders = forwardRef<{ fetchHolders: () => Promise<void> }, TokenHold
     const [loading, setLoading] = useState(false);
     const [sortField, setSortField] = useState('balance');
     const [sortOrder, setSortOrder] = useState<1 | -1>(-1);
+    const [snapshots, setSnapshots] = useState<any[]>([]);
+    const [selectedSnapshotId, setSelectedSnapshotId] = useState<number | null>(null);
 
     // Expose methods via ref
     useImperativeHandle(ref, () => ({
@@ -31,13 +34,26 @@ const TokenHolders = forwardRef<{ fetchHolders: () => Promise<void> }, TokenHold
     }));
 
     useEffect(() => {
+      fetchSnapshots();
       fetchHolders();
-    }, [searchTerm]);
+    }, [searchTerm, selectedSnapshotId]);
+
+    const fetchSnapshots = async () => {
+      try {
+        const data = await fetchTokenSnapshots();
+        setSnapshots(data);
+      } catch (error: any) {
+        console.error('Error fetching snapshots:', error);
+        onError(`Failed to fetch snapshots: ${error.message || 'Unknown error'}`);
+      }
+    };
 
     const fetchHolders = async () => {
       try {
         setLoading(true);
-        const data = await fetchTokenHolders(searchTerm);
+        // Convert null to undefined for the API call
+        const snapshotIdParam = selectedSnapshotId === null ? undefined : selectedSnapshotId;
+        const data = await fetchTokenHolders(searchTerm, snapshotIdParam);
         setHolders(data);
       } catch (error: any) {
         console.error('Error fetching token holders:', error);
@@ -52,6 +68,10 @@ const TokenHolders = forwardRef<{ fetchHolders: () => Promise<void> }, TokenHold
         setLoading(true);
         const data = await takeTokenSnapshot();
         setHolders(data.holders);
+        // Refresh snapshots after taking a new one
+        await fetchSnapshots();
+        // Select the most recent snapshot (latest)
+        setSelectedSnapshotId(null);
         onSuccess('Token snapshot taken successfully');
       } catch (error: any) {
         console.error('Error taking token snapshot:', error);
@@ -59,6 +79,36 @@ const TokenHolders = forwardRef<{ fetchHolders: () => Promise<void> }, TokenHold
       } finally {
         setLoading(false);
       }
+    };
+
+    // Snapshot selector component
+    const snapshotSelector = () => {
+      if (snapshots.length === 0) return null;
+
+      const options = snapshots.map(snapshot => ({
+        label: `${new Date(snapshot.timestamp).toLocaleString()} (ID: ${snapshot.id})`,
+        value: snapshot.id
+      }));
+
+      // Add an option for the latest snapshot
+      options.unshift({
+        label: 'Latest Snapshot',
+        value: null
+      });
+
+      return (
+        <div className="flex align-items-center mr-3">
+          <span className="font-medium mr-2">Snapshot:</span>
+          <Dropdown
+            value={selectedSnapshotId}
+            options={options}
+            onChange={(e) => {
+              setSelectedSnapshotId(e.value);
+            }}
+            placeholder="Latest Snapshot"
+          />
+        </div>
+      );
     };
 
     // Table columns and templates
@@ -155,20 +205,15 @@ const TokenHolders = forwardRef<{ fetchHolders: () => Promise<void> }, TokenHold
         <div className="flex justify-between items-center mb-3 table-header">
           <h3 className="m-0">Token Holders: {holders.length}</h3>
           <div className="flex gap-2 items-center">
+            {snapshotSelector()}
             <SearchBar
               searchTerm={searchTerm}
               onSearchChange={onSearchChange}
               placeholder="Search token holders..."
             />
             <Button
-              label="Refresh Data"
-              icon="pi pi-refresh"
-              onClick={fetchHolders}
-              loading={loading}
-            />
-            <Button
               label="Take New Snapshot"
-              icon="pi pi-refresh"
+              icon="pi pi-camera"
               onClick={takeSnapshot}
               loading={loading}
             />

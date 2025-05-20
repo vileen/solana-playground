@@ -18,5 +18,11 @@
     "lib": ["DOM", "DOM.Iterable", "ES2022"]
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.js", "src/**/*.jsx"],
-  "exclude": ["node_modules", "dist"]
+  "exclude": [
+    "node_modules", 
+    "dist", 
+    "src/backend/legacy/**/*.ts",
+    "src/backend/services/nftCollectionsDb.ts",
+    "src/backend/services/tokenServiceDb.ts"
+  ]
 } 
