@@ -2143,7 +2143,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/express-serve-static-core@npm:^5.0.0":
+"@types/express-serve-static-core@npm:^5.0.0, @types/express-serve-static-core@npm:^5.0.6":
   version: 5.0.6
   resolution: "@types/express-serve-static-core@npm:5.0.6"
   dependencies:
@@ -6114,6 +6114,7 @@ __metadata:
     "@trivago/prettier-plugin-sort-imports": ^5.2.2
     "@types/cors": ^2.8.18
     "@types/express": ^5.0.2
+    "@types/express-serve-static-core": ^5.0.6
     "@types/node": ^20.11.16
     "@types/pg": ^8.10.9
     "@types/react": ^18.2.43

@@ -292,13 +292,22 @@ export async function createTokenSnapshot(): Promise<TokenSnapshot> {
         const batchSize = 100;
         let holdersProcessed = 0;
         
+        // Define interface for token holder batch processing
+        interface TokenHolderBatch {
+          snapshotId: number;
+          address: string;
+          balance: number;
+          isLpPool: boolean;
+          isTreasury: boolean;
+        }
+        
         for (let i = 0; i < holders.length; i += batchSize) {
           const batchHolders = holders.slice(i, i + batchSize);
           console.log(`[Token DB] Processing holder batch ${i/batchSize + 1}/${Math.ceil(holders.length/batchSize)}`);
           
           // Build batch values
-          const holderValues = [];
-          const holderParams = [];
+          const holderValues: string[] = [];
+          const holderParams: (number | string | boolean)[] = [];
           let paramIndex = 1;
           
           for (const holder of batchHolders) {

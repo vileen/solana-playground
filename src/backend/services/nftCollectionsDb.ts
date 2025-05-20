@@ -5,6 +5,13 @@ import { query, withTransaction } from '../db/index.js';
 import { generateNFTEvents } from './eventsService.js';
 import { loadSocialProfiles } from './socialProfilesDb.js';
 
+// Define ownership type to fix type issues
+interface NFTOwnership {
+  snapshotId: number;
+  mint: string;
+  owner: string;
+}
+
 // Get all NFTs from collections
 export async function getCollectionNFTs() {
   console.time('getCollectionNFTs:total');
@@ -296,9 +303,9 @@ export async function saveHolderSnapshot(snapshot: CollectionSnapshot): Promise<
         const batchHolders = snapshot.holders.slice(i, i + batchSize);
         console.log(`[NFT DB] Processing holder batch ${i/batchSize + 1}/${Math.ceil(snapshot.holders.length/batchSize)}`);
         
-        // Build batch values
-        const holderValues = [];
-        const holderParams = [];
+        // Build batch values for holders
+        const holderValues: string[] = [];
+        const holderParams: (string | number)[] = [];
         let paramIndex = 1;
         
         for (const holder of batchHolders) {
@@ -346,7 +353,7 @@ export async function saveHolderSnapshot(snapshot: CollectionSnapshot): Promise<
       
       // First, build a unique list of all NFTs
       console.log('[NFT DB] Building unique NFT list...');
-      const uniqueNFTs = new Map();
+      const uniqueNFTs = new Map<string, { name: string, type: string }>();
       for (const holder of snapshot.holders) {
         if (holder.nfts && Array.isArray(holder.nfts)) {
           for (const nft of holder.nfts) {
@@ -366,8 +373,8 @@ export async function saveHolderSnapshot(snapshot: CollectionSnapshot): Promise<
         console.log(`[NFT DB] Processing NFT batch ${i/nftBatchSize + 1}/${Math.ceil(uniqueNFTsList.length/nftBatchSize)}`);
         
         // Build batch values
-        const nftValues = [];
-        const nftParams = [];
+        const nftValues: string[] = [];
+        const nftParams: (string | null)[] = [];
         let paramIndex = 1;
         
         for (const [mint, data] of batchNFTs) {
@@ -396,7 +403,7 @@ export async function saveHolderSnapshot(snapshot: CollectionSnapshot): Promise<
       let processedOwnerships = 0;
       
       // Build list of all ownerships
-      const ownerships = [];
+      const ownerships: NFTOwnership[] = [];
       for (const holder of snapshot.holders) {
         if (holder.nfts && Array.isArray(holder.nfts)) {
           for (const nft of holder.nfts) {
@@ -415,8 +422,8 @@ export async function saveHolderSnapshot(snapshot: CollectionSnapshot): Promise<
         console.log(`[NFT DB] Processing ownership batch ${i/ownershipBatchSize + 1}/${Math.ceil(ownerships.length/ownershipBatchSize)}`);
         
         // Build batch values
-        const ownershipValues = [];
-        const ownershipParams = [];
+        const ownershipValues: string[] = [];
+        const ownershipParams: (string | number)[] = [];
         let paramIndex = 1;
         
         for (const ownership of batchOwnerships) {
