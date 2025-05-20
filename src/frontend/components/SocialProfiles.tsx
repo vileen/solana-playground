@@ -53,6 +53,9 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
     const [profileDialogVisible, setProfileDialogVisible] = useState(false);
     const [selectedProfile, setSelectedProfile] = useState<any>(null);
     const appNavigation = useAppNavigation();
+    // Add state for sorting
+    const [sortField, setSortField] = useState<string>('totalTokenBalance');
+    const [sortOrder, setSortOrder] = useState<1 | -1>(-1); // -1 for descending
 
     // Expose methods via ref
     useImperativeHandle(ref, () => ({
@@ -167,6 +170,16 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
               profile.wallets.some(wallet => wallet.address.toLowerCase().includes(searchLower))
           );
         }
+
+        // Apply default sorting
+        filteredProfiles.sort((a, b) => {
+          // First sort by totalTokenBalance
+          if (a.totalTokenBalance !== b.totalTokenBalance) {
+            return b.totalTokenBalance - a.totalTokenBalance; // Descending order
+          }
+          // Then sort by totalNftCount
+          return b.totalNftCount - a.totalNftCount; // Descending order
+        });
 
         setSocialProfiles(filteredProfiles);
       } catch (error: any) {
@@ -396,6 +409,16 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
       </div>
     );
 
+    // Handle sorting
+    const handleSort = (e: any) => {
+      if (e.sortField) {
+        setSortField(e.sortField);
+      }
+      if (e.sortOrder !== undefined && e.sortOrder !== null) {
+        setSortOrder(e.sortOrder as 1 | -1);
+      }
+    };
+
     return (
       <div className="social-profiles">
         <div className="flex justify-between items-center mb-3 table-header">
@@ -432,6 +455,10 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
           className="p-datatable-sm"
           rowClassName={getRowClassName}
           footer={footerTemplate}
+          sortField={sortField}
+          sortOrder={sortOrder}
+          onSort={handleSort}
+          removableSort={false}
         >
           <Column expander style={{ width: '3rem' }} />
           <Column field="displayName" header="Identity" body={primaryIdentifierTemplate} sortable />
