@@ -15,6 +15,7 @@ import {
 
 import ProfileDialog from './ProfileDialog.js';
 import SearchBar from './SearchBar.js';
+import XIcon from './XIcon';
 
 interface SocialProfilesProps {
   onError: (message: string) => void;
@@ -252,24 +253,23 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
             body={(wallet: WalletData) => (
               <div className="flex align-items-center">
                 <a
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    openEditProfileDialogWithWallet(data, wallet.address);
-                  }}
-                  className="wallet-link"
-                >
-                  {wallet.address.substring(0, 8)}...
-                  {wallet.address.substring(wallet.address.length - 8)}
-                </a>
-                <a
                   href={`https://solscan.io/account/${wallet.address}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="ml-2"
+                  className="wallet-link"
+                  title="View on Solscan"
                 >
-                  <i className="pi pi-external-link" />
+                  {wallet.address.substring(0, 8)}...
+                  {wallet.address.substring(wallet.address.length - 8)}
+                  <img src="/solscan_logo.png" alt="Solscan" width="16" height="16" className="ml-1" style={{ opacity: 0.7, verticalAlign: 'middle' }} />
                 </a>
+                <Button
+                  icon="pi pi-pencil"
+                  className="p-button-text p-button-rounded ml-2"
+                  onClick={() => openEditProfileDialogWithWallet(data, wallet.address)}
+                  tooltip="Edit profile"
+                  style={{ padding: '0.25rem' }}
+                />
               </div>
             )}
           />
@@ -325,11 +325,12 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
       if (rowData.twitter) {
         return (
           <a
-            href={`https://twitter.com/${rowData.twitter.replace('@', '')}`}
+            href={`https://x.com/${rowData.twitter.replace('@', '')}`}
             target="_blank"
             rel="noopener noreferrer"
             className="social-link twitter-link"
           >
+            <XIcon width={16} height={16} style={{ marginRight: 6 }} />
             {rowData.twitter}
           </a>
         );
@@ -346,11 +347,12 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
       if (!rowData.twitter) return <span>-</span>;
       return (
         <a
-          href={`https://twitter.com/${rowData.twitter.replace('@', '')}`}
+          href={`https://x.com/${rowData.twitter.replace('@', '')}`}
           target="_blank"
           rel="noopener noreferrer"
           className="social-link"
         >
+          <XIcon width={16} height={16} style={{ marginRight: 6 }} />
           {rowData.twitter}
         </a>
       );
@@ -462,7 +464,7 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
         >
           <Column expander style={{ width: '3rem' }} />
           <Column field="displayName" header="Identity" body={primaryIdentifierTemplate} sortable />
-          <Column field="twitter" header="Twitter" body={twitterTemplate} sortable />
+          <Column field="twitter" header="X" body={twitterTemplate} sortable />
           <Column field="discord" header="Discord" body={discordTemplate} sortable />
           <Column field="wallets" header="Wallets" body={walletsCountTemplate} sortable />
           <Column

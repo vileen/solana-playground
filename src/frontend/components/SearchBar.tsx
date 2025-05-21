@@ -13,7 +13,7 @@ interface SearchBarProps {
 const SearchBar: React.FC<SearchBarProps> = ({
   searchTerm,
   onSearchChange,
-  placeholder = 'Search by wallet, Twitter, Discord...',
+  placeholder = 'Search by wallet, X, Discord...',
   debounceTime = 300, // Default debounce time of 300ms
 }) => {
   const appNavigation = useAppNavigation();
