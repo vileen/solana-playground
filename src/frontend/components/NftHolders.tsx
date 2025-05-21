@@ -11,7 +11,7 @@ import { useAppNavigation } from '../hooks/useAppNavigation.js';
 import * as API from '../services/api.js';
 
 import SearchBar from './SearchBar.js';
-import XIcon from './XIcon';
+import XIcon from './XIcon.js';
 
 interface NftHoldersProps {
   onError: (message: string) => void;

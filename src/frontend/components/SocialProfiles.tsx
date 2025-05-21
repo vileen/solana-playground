@@ -15,7 +15,7 @@ import {
 
 import ProfileDialog from './ProfileDialog.js';
 import SearchBar from './SearchBar.js';
-import XIcon from './XIcon';
+import XIcon from './XIcon.js';
 
 interface SocialProfilesProps {
   onError: (message: string) => void;

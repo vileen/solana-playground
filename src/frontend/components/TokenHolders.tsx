@@ -11,7 +11,7 @@ import { useAppNavigation } from '../hooks/useAppNavigation.js';
 import { fetchTokenHolders, fetchTokenSnapshots, takeTokenSnapshot } from '../services/api.js';
 
 import SearchBar from './SearchBar.js';
-import XIcon from './XIcon';
+import XIcon from './XIcon.js';
 
 interface TokenHoldersProps {
   onError: (message: string) => void;
