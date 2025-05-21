@@ -14,6 +14,9 @@ import { EventNFTSnapshot, EventTokenSnapshot } from '../../types/index.js';
 import * as api from '../services/api.js';
 import { truncateAddress } from '../utils/addressUtils.js';
 import { formatNumber, formatRelativeTime } from '../utils/formatting.js';
+import SocialPillComment from './SocialPillComment.js';
+import SocialPillDiscord from './SocialPillDiscord.js';
+import SocialPillX from './SocialPillX.js';
 
 
 // Creating strongly-typed wrappers for our API functions
@@ -375,36 +378,24 @@ const CombinedSnapshotsPanel: React.FC = () => {
     );
   };
 
-  // Format wallet address with Twitter/Discord if available
+  // Format wallet address with X/Discord if available
   const addressTemplate = (address?: string, twitter?: string, discord?: string, comment?: string) => {
     if (!address) return null;
-    
     const solscanUrl = `https://solscan.io/account/${address}`;
-    
     return (
       <div className="flex flex-column">
         <div className="flex align-items-center">
-          <a href={solscanUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+          <a href={solscanUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex align-items-center">
             {truncateAddress(address)}
+            <img src="/solscan_logo.png" alt="Solscan" width="14" height="14" className="ml-1" style={{ opacity: 0.7, verticalAlign: 'middle' }} />
           </a>
-          <i className="pi pi-external-link ml-1 text-xs text-color-secondary"></i>
         </div>
         {comment ? (
-          <Tag className="mt-1" severity="success" style={{ fontWeight: '500', padding: '0.3rem 0.6rem' }}>
-            {comment}
-          </Tag>
+          <SocialPillComment text={comment} className="mt-1" style={{ fontWeight: 500 }} />
         ) : (twitter || discord) && (
           <div className="flex mt-1 gap-2">
-            {twitter && (
-              <Tag severity="info" icon="pi pi-twitter">
-                {twitter}
-              </Tag>
-            )}
-            {discord && (
-              <Tag severity="secondary" icon="pi pi-discord">
-                {discord}
-              </Tag>
-            )}
+            {twitter && <SocialPillX handle={twitter} />}
+            {discord && <SocialPillDiscord handle={discord} />}
           </div>
         )}
       </div>
@@ -460,21 +451,11 @@ const CombinedSnapshotsPanel: React.FC = () => {
       return (
         <div className="flex flex-column">
           {event.comment ? (
-            <Tag className="mb-1" severity="success" style={{ fontWeight: '500', padding: '0.3rem 0.6rem' }}>
-              {event.comment}
-            </Tag>
+            <SocialPillComment text={event.comment} className="mb-1" style={{ fontWeight: 500 }} />
           ) : (
             <div className="flex gap-2 align-items-center mb-1">
-              {event.twitter && (
-                <Tag severity="info" icon="pi pi-twitter">
-                  {event.twitter}
-                </Tag>
-              )}
-              {event.discord && (
-                <Tag severity="secondary" icon="pi pi-discord">
-                  {event.discord}
-                </Tag>
-              )}
+              {event.twitter && <SocialPillX handle={event.twitter} />}
+              {event.discord && <SocialPillDiscord handle={event.discord} />}
             </div>
           )}
           <Tag severity="info" icon="pi pi-arrows-h">Self Transfer</Tag>
@@ -495,17 +476,11 @@ const CombinedSnapshotsPanel: React.FC = () => {
               <span className="text-sm text-color-secondary">From:</span>
               <div className="flex gap-1">
                 {event.source_comment ? (
-                  <Tag severity="success" style={{ fontWeight: '500', padding: '0.3rem 0.6rem' }}>
-                    {event.source_comment}
-                  </Tag>
+                  <SocialPillComment text={event.source_comment} style={{ fontWeight: 500 }} />
                 ) : (
                   <>
-                    {event.source_twitter && (
-                      <Tag severity="info" icon="pi pi-twitter">{event.source_twitter}</Tag>
-                    )}
-                    {event.source_discord && (
-                      <Tag severity="secondary" icon="pi pi-discord">{event.source_discord}</Tag>
-                    )}
+                    {event.source_twitter && <SocialPillX handle={event.source_twitter} />}
+                    {event.source_discord && <SocialPillDiscord handle={event.source_discord} />}
                   </>
                 )}
               </div>
@@ -514,17 +489,11 @@ const CombinedSnapshotsPanel: React.FC = () => {
               <span className="text-sm text-color-secondary">To:</span>
               <div className="flex gap-1">
                 {event.dest_comment ? (
-                  <Tag severity="success" style={{ fontWeight: '500', padding: '0.3rem 0.6rem' }}>
-                    {event.dest_comment}
-                  </Tag>
+                  <SocialPillComment text={event.dest_comment} style={{ fontWeight: 500 }} />
                 ) : (
                   <>
-                    {event.dest_twitter && (
-                      <Tag severity="info" icon="pi pi-twitter">{event.dest_twitter}</Tag>
-                    )}
-                    {event.dest_discord && (
-                      <Tag severity="secondary" icon="pi pi-discord">{event.dest_discord}</Tag>
-                    )}
+                    {event.dest_twitter && <SocialPillX handle={event.dest_twitter} />}
+                    {event.dest_discord && <SocialPillDiscord handle={event.dest_discord} />}
                   </>
                 )}
               </div>
@@ -538,17 +507,11 @@ const CombinedSnapshotsPanel: React.FC = () => {
             <span className="text-sm text-color-secondary">From:</span>
             <div className="flex gap-1">
               {event.source_comment ? (
-                <Tag severity="success" style={{ fontWeight: '500', padding: '0.3rem 0.6rem' }}>
-                  {event.source_comment}
-                </Tag>
+                <SocialPillComment text={event.source_comment} style={{ fontWeight: 500 }} />
               ) : (
                 <>
-                  {event.source_twitter && (
-                    <Tag severity="info" icon="pi pi-twitter">{event.source_twitter}</Tag>
-                  )}
-                  {event.source_discord && (
-                    <Tag severity="secondary" icon="pi pi-discord">{event.source_discord}</Tag>
-                  )}
+                  {event.source_twitter && <SocialPillX handle={event.source_twitter} />}
+                  {event.source_discord && <SocialPillDiscord handle={event.source_discord} />}
                 </>
               )}
             </div>
@@ -561,17 +524,11 @@ const CombinedSnapshotsPanel: React.FC = () => {
             <span className="text-sm text-color-secondary">To:</span>
             <div className="flex gap-1">
               {event.dest_comment ? (
-                <Tag severity="success" style={{ fontWeight: '500', padding: '0.3rem 0.6rem' }}>
-                  {event.dest_comment}
-                </Tag>
+                <SocialPillComment text={event.dest_comment} style={{ fontWeight: 500 }} />
               ) : (
                 <>
-                  {event.dest_twitter && (
-                    <Tag severity="info" icon="pi pi-twitter">{event.dest_twitter}</Tag>
-                  )}
-                  {event.dest_discord && (
-                    <Tag severity="secondary" icon="pi pi-discord">{event.dest_discord}</Tag>
-                  )}
+                  {event.dest_twitter && <SocialPillX handle={event.dest_twitter} />}
+                  {event.dest_discord && <SocialPillDiscord handle={event.dest_discord} />}
                 </>
               )}
             </div>
@@ -585,21 +542,11 @@ const CombinedSnapshotsPanel: React.FC = () => {
       <div className="flex flex-column">
         <div className="flex gap-2 flex-wrap">
           {event.comment ? (
-            <Tag severity="success" style={{ fontWeight: '500', padding: '0.3rem 0.6rem' }}>
-              {event.comment}
-            </Tag>
+            <SocialPillComment text={event.comment} style={{ fontWeight: 500 }} />
           ) : (
             <>
-              {event.twitter && (
-                <Tag severity="info" icon="pi pi-twitter">
-                  {event.twitter}
-                </Tag>
-              )}
-              {event.discord && (
-                <Tag severity="secondary" icon="pi pi-discord">
-                  {event.discord}
-                </Tag>
-              )}
+              {event.twitter && <SocialPillX handle={event.twitter} />}
+              {event.discord && <SocialPillDiscord handle={event.discord} />}
             </>
           )}
         </div>

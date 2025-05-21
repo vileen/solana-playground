@@ -18,6 +18,9 @@ import {
 } from '../services/api.js';
 import { truncateAddress } from '../utils/addressUtils.js';
 import { formatDate, formatNumber, formatRelativeTime } from '../utils/formatting.js';
+import SocialPillComment from './SocialPillComment.js';
+import SocialPillDiscord from './SocialPillDiscord.js';
+import SocialPillX from './SocialPillX.js';
 
 const EventsPanel: React.FC = () => {
   const [tokenSnapshots, setTokenSnapshots] = useState<EventTokenSnapshot[]>([]);
@@ -188,32 +191,24 @@ const EventsPanel: React.FC = () => {
     );
   };
 
-  // Format wallet address with Twitter/Discord if available
-  const addressTemplate = (address?: string, twitter?: string, discord?: string) => {
+  // Format wallet address with X/Discord if available
+  const addressTemplate = (address?: string, twitter?: string, discord?: string, comment?: string) => {
     if (!address) return null;
-    
     const solscanUrl = `https://solscan.io/account/${address}`;
-    
     return (
       <div className="flex flex-column">
         <div className="flex align-items-center">
-          <a href={solscanUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+          <a href={solscanUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex align-items-center">
             {truncateAddress(address)}
+            <img src="/solscan_logo.png" alt="Solscan" width="14" height="14" className="ml-1" style={{ opacity: 0.7, verticalAlign: 'middle' }} />
           </a>
-          <i className="pi pi-external-link ml-1 text-xs text-color-secondary"></i>
         </div>
-        {(twitter || discord) && (
+        {comment ? (
+          <SocialPillComment text={comment} className="mt-1" style={{ fontWeight: 500 }} />
+        ) : (twitter || discord) && (
           <div className="flex mt-1 gap-2">
-            {twitter && (
-              <Tag severity="info" icon="pi pi-twitter">
-                {twitter}
-              </Tag>
-            )}
-            {discord && (
-              <Tag severity="secondary" icon="pi pi-discord">
-                {discord}
-              </Tag>
-            )}
+            {twitter && <SocialPillX handle={twitter} />}
+            {discord && <SocialPillDiscord handle={discord} />}
           </div>
         )}
       </div>
@@ -239,28 +234,23 @@ const EventsPanel: React.FC = () => {
       // For self transfers, show just the profile with a self-transfer tag
       return (
         <div className="flex flex-column">
-          {rowData.comment && <span className="font-medium mb-1">{rowData.comment}</span>}
-          <div className="flex gap-2 align-items-center">
-            {rowData.twitter && (
-              <Tag severity="info" icon="pi pi-twitter">
-                {rowData.twitter}
-              </Tag>
-            )}
-            {rowData.discord && (
-              <Tag severity="secondary" icon="pi pi-discord">
-                {rowData.discord}
-              </Tag>
-            )}
-            <Tag severity="info" icon="pi pi-arrows-h">Self Transfer</Tag>
-          </div>
+          {rowData.comment ? (
+            <SocialPillComment text={rowData.comment} className="mb-1" style={{ fontWeight: 500 }} />
+          ) : (
+            <div className="flex gap-2 align-items-center mb-1">
+              {rowData.twitter && <SocialPillX handle={rowData.twitter} />}
+              {rowData.discord && <SocialPillDiscord handle={rowData.discord} />}
+            </div>
+          )}
+          <Tag severity="info" icon="pi pi-arrows-h">Self Transfer</Tag>
         </div>
       );
     } else if (rowData.event_type === 'transfer_between' || 
                rowData.event_type === 'transfer_in' || 
                rowData.event_type === 'transfer_out') {
       // For transfers between different profiles or unknown profiles
-      const hasSource = rowData.source_twitter || rowData.source_discord;
-      const hasDest = rowData.dest_twitter || rowData.dest_discord;
+      const hasSource = rowData.source_twitter || rowData.source_discord || rowData.source_comment;
+      const hasDest = rowData.dest_twitter || rowData.dest_discord || rowData.dest_comment;
       
       if (hasSource && hasDest) {
         // Both source and destination have profiles
@@ -269,22 +259,26 @@ const EventsPanel: React.FC = () => {
             <div className="flex flex-column">
               <span className="text-sm text-color-secondary">From:</span>
               <div className="flex gap-1">
-                {rowData.source_twitter && (
-                  <Tag severity="info" icon="pi pi-twitter">{rowData.source_twitter}</Tag>
-                )}
-                {rowData.source_discord && (
-                  <Tag severity="secondary" icon="pi pi-discord">{rowData.source_discord}</Tag>
+                {rowData.source_comment ? (
+                  <SocialPillComment text={rowData.source_comment} style={{ fontWeight: 500 }} />
+                ) : (
+                  <>
+                    {rowData.source_twitter && <SocialPillX handle={rowData.source_twitter} />}
+                    {rowData.source_discord && <SocialPillDiscord handle={rowData.source_discord} />}
+                  </>
                 )}
               </div>
             </div>
             <div className="flex flex-column">
               <span className="text-sm text-color-secondary">To:</span>
               <div className="flex gap-1">
-                {rowData.dest_twitter && (
-                  <Tag severity="info" icon="pi pi-twitter">{rowData.dest_twitter}</Tag>
-                )}
-                {rowData.dest_discord && (
-                  <Tag severity="secondary" icon="pi pi-discord">{rowData.dest_discord}</Tag>
+                {rowData.dest_comment ? (
+                  <SocialPillComment text={rowData.dest_comment} style={{ fontWeight: 500 }} />
+                ) : (
+                  <>
+                    {rowData.dest_twitter && <SocialPillX handle={rowData.dest_twitter} />}
+                    {rowData.dest_discord && <SocialPillDiscord handle={rowData.dest_discord} />}
+                  </>
                 )}
               </div>
             </div>
@@ -296,11 +290,13 @@ const EventsPanel: React.FC = () => {
           <div className="flex flex-column">
             <span className="text-sm text-color-secondary">From:</span>
             <div className="flex gap-1">
-              {rowData.source_twitter && (
-                <Tag severity="info" icon="pi pi-twitter">{rowData.source_twitter}</Tag>
-              )}
-              {rowData.source_discord && (
-                <Tag severity="secondary" icon="pi pi-discord">{rowData.source_discord}</Tag>
+              {rowData.source_comment ? (
+                <SocialPillComment text={rowData.source_comment} style={{ fontWeight: 500 }} />
+              ) : (
+                <>
+                  {rowData.source_twitter && <SocialPillX handle={rowData.source_twitter} />}
+                  {rowData.source_discord && <SocialPillDiscord handle={rowData.source_discord} />}
+                </>
               )}
             </div>
           </div>
@@ -311,11 +307,13 @@ const EventsPanel: React.FC = () => {
           <div className="flex flex-column">
             <span className="text-sm text-color-secondary">To:</span>
             <div className="flex gap-1">
-              {rowData.dest_twitter && (
-                <Tag severity="info" icon="pi pi-twitter">{rowData.dest_twitter}</Tag>
-              )}
-              {rowData.dest_discord && (
-                <Tag severity="secondary" icon="pi pi-discord">{rowData.dest_discord}</Tag>
+              {rowData.dest_comment ? (
+                <SocialPillComment text={rowData.dest_comment} style={{ fontWeight: 500 }} />
+              ) : (
+                <>
+                  {rowData.dest_twitter && <SocialPillX handle={rowData.dest_twitter} />}
+                  {rowData.dest_discord && <SocialPillDiscord handle={rowData.dest_discord} />}
+                </>
               )}
             </div>
           </div>
@@ -326,17 +324,14 @@ const EventsPanel: React.FC = () => {
     // For non-transfer events or fallback
     return (
       <div className="flex flex-column">
-        {rowData.comment && <span className="font-medium mb-1">{rowData.comment}</span>}
-        <div className="flex gap-2">
-          {rowData.twitter && (
-            <Tag severity="info" icon="pi pi-twitter">
-              {rowData.twitter}
-            </Tag>
-          )}
-          {rowData.discord && (
-            <Tag severity="secondary" icon="pi pi-discord">
-              {rowData.discord}
-            </Tag>
+        <div className="flex gap-2 flex-wrap">
+          {rowData.comment ? (
+            <SocialPillComment text={rowData.comment} style={{ fontWeight: 500 }} />
+          ) : (
+            <>
+              {rowData.twitter && <SocialPillX handle={rowData.twitter} />}
+              {rowData.discord && <SocialPillDiscord handle={rowData.discord} />}
+            </>
           )}
         </div>
       </div>
@@ -354,21 +349,21 @@ const EventsPanel: React.FC = () => {
 
   // Token source address template
   const sourceAddressTemplate = (rowData: TokenEvent) => {
-    return addressTemplate(rowData.source_address, rowData.source_twitter, rowData.source_discord);
+    return addressTemplate(rowData.source_address, rowData.source_twitter, rowData.source_discord, rowData.source_comment);
   };
 
   // Token destination address template
   const destinationAddressTemplate = (rowData: TokenEvent) => {
-    return addressTemplate(rowData.destination_address, rowData.dest_twitter, rowData.dest_discord);
+    return addressTemplate(rowData.destination_address, rowData.dest_twitter, rowData.dest_discord, rowData.dest_comment);
   };
 
   // NFT address templates
   const nftSourceTemplate = (rowData: NFTEvent) => {
-    return addressTemplate(rowData.source_address);
+    return addressTemplate(rowData.source_address, rowData.source_twitter, rowData.source_discord, rowData.source_comment);
   };
 
   const nftDestinationTemplate = (rowData: NFTEvent) => {
-    return addressTemplate(rowData.destination_address);
+    return addressTemplate(rowData.destination_address, rowData.dest_twitter, rowData.dest_discord, rowData.dest_comment);
   };
 
   // NFT details template

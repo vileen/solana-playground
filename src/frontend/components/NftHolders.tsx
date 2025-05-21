@@ -11,6 +11,7 @@ import { useAppNavigation } from '../hooks/useAppNavigation.js';
 import * as API from '../services/api.js';
 
 import SearchBar from './SearchBar.js';
+import XIcon from './XIcon';
 
 interface NftHoldersProps {
   onError: (message: string) => void;
@@ -207,6 +208,7 @@ const NftHolders = forwardRef<{ fetchHolders: () => Promise<void> }, NftHoldersP
         className="wallet-link"
       >
         {rowData.address}
+        <img src="/solscan_logo.png" alt="Solscan" width="16" height="16" className="ml-1" style={{ opacity: 0.7, verticalAlign: 'middle' }} />
       </a>
     );
 
@@ -247,11 +249,12 @@ const NftHolders = forwardRef<{ fetchHolders: () => Promise<void> }, NftHoldersP
       if (rowData.twitter) {
         return (
           <a
-            href={`https://twitter.com/${rowData.twitter.replace('@', '')}`}
+            href={`https://x.com/${rowData.twitter.replace('@', '')}`}
             target="_blank"
             rel="noopener noreferrer"
             className="social-link"
           >
+            <XIcon width={16} height={16} style={{ marginRight: 6 }} />
             {rowData.twitter}
           </a>
         );

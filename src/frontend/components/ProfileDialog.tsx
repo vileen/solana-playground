@@ -49,7 +49,7 @@ const ProfileDialog: React.FC<ProfileDialogProps> = ({
   const [allProfiles, setAllProfiles] = useState<SocialProfileSuggestion[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // For Twitter, Discord, Comment autocomplete
+  // For X, Discord, Comment autocomplete
   const [twitterSuggestions, setTwitterSuggestions] = useState<string[]>([]);
   const [discordSuggestions, setDiscordSuggestions] = useState<string[]>([]);
   const [commentSuggestions, setCommentSuggestions] = useState<string[]>([]);
@@ -164,7 +164,7 @@ const ProfileDialog: React.FC<ProfileDialogProps> = ({
     setSuggestions(filteredProfiles);
   };
 
-  // Search for Twitter handles
+  // Search for X handles
   const searchTwitterHandles = (event: { query: string }) => {
     const query = event.query.toLowerCase();
     
@@ -215,7 +215,7 @@ const ProfileDialog: React.FC<ProfileDialogProps> = ({
     setCommentSuggestions(filteredComments);
   };
 
-  // When a user selects a Twitter handle, find the associated profile
+  // When a user selects an X handle, find the associated profile
   const onTwitterSelect = (value: string) => {
     const matchingProfile = allProfiles.find(profile => profile.twitter === value);
     if (matchingProfile) {
@@ -439,7 +439,7 @@ const ProfileDialog: React.FC<ProfileDialogProps> = ({
         )}
 
         <div className="field">
-          <label htmlFor="twitter">Twitter</label>
+          <label htmlFor="twitter">X</label>
           <AutoComplete
             id="twitter"
             value={twitter}
@@ -449,7 +449,7 @@ const ProfileDialog: React.FC<ProfileDialogProps> = ({
             onSelect={e => onTwitterSelect(e.value)}
             placeholder="@username"
             className="w-full"
-            aria-label="Twitter"
+            aria-label="X"
           />
         </div>
 
