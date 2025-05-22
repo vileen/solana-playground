@@ -29,7 +29,8 @@
     "debug:wallets": "tsx src/backend/scripts/debugWalletSnapshot.ts",
     "compare:wallets": "tsx src/backend/scripts/compareWalletBalances.ts",
     "audit:staking": "tsx src/backend/scripts/auditStakingCalculations.ts",
-    "verify:wallets": "tsx src/backend/scripts/verifySpecificWallets.ts"
+    "verify:wallets": "tsx src/backend/scripts/verifySpecificWallets.ts",
+    "verify:nft-events": "tsx src/backend/scripts/verifyNftEvents.ts"
   },
   "dependencies": {
     "@metaplex-foundation/digital-asset-standard-api": "latest",
