@@ -7,7 +7,7 @@ enum EventType {
   TRANSFER_IN = 2,
   TRANSFER_OUT = 3,
   TRANSFER_BETWEEN = 4,
-  WALLET_EMPTY = 5
+  WALLET_EMPTY = 5,
 }
 
 // Map to track wallet balance changes for detecting transfers between wallets
@@ -49,13 +49,13 @@ export async function generateTokenEvents(
     currentHolders.forEach(holder => {
       currentHoldersMap.set(holder.address, holder.balance);
     });
-    
+
     // Get social profile mappings to check if wallets belong to the same profile
     const socialProfilesResult = await query(`
       SELECT w.address, w.social_id 
       FROM wallet_addresses w
     `);
-    
+
     // Create a map of wallet address to social profile ID
     const walletSocialProfiles = new Map<string, string>();
     socialProfilesResult.rows.forEach(row => {
@@ -63,31 +63,35 @@ export async function generateTokenEvents(
         walletSocialProfiles.set(row.address, row.social_id);
       }
     });
-    
-    console.log(`[Token Events] Found ${socialProfilesResult.rowCount} wallet addresses with social profiles`);
-    
+
+    console.log(
+      `[Token Events] Found ${socialProfilesResult.rowCount} wallet addresses with social profiles`
+    );
+
     // Track wallets with same profile IDs for debugging
     const profileWallets = new Map<string, string[]>();
     socialProfilesResult.rows.forEach(row => {
       if (!row.social_id) return;
-      
+
       if (!profileWallets.has(row.social_id)) {
         profileWallets.set(row.social_id, []);
       }
       profileWallets.get(row.social_id)?.push(row.address);
     });
-    
+
     // Log profiles with multiple wallets for debugging
     profileWallets.forEach((wallets, profileId) => {
       if (wallets.length > 1) {
-        console.log(`[Token Events] Profile ${profileId} has ${wallets.length} wallets: ${wallets.join(', ')}`);
+        console.log(
+          `[Token Events] Profile ${profileId} has ${wallets.length} wallets: ${wallets.join(', ')}`
+        );
       }
     });
 
     // Begin transaction for all events
-    await withTransaction(async (client) => {
+    await withTransaction(async client => {
       // First pass: identify and record all balance changes
-      
+
       // Create tracking lists for different event types
       const newHolders: TokenHolder[] = [];
       const emptyWallets: BalanceChange[] = [];
@@ -99,21 +103,22 @@ export async function generateTokenEvents(
         // Skip wallets that don't have a social profile
         const socialId = walletSocialProfiles.get(holder.address);
         if (!socialId) continue;
-        
+
         const previousBalance = previousHolders.get(holder.address);
-        
+
         if (previousBalance === undefined) {
           // New holder - we'll process these after checking for potential transfers
           newHolders.push(holder);
         } else if (holder.balance > previousBalance) {
           // Increased balance - track for potential transfers between accounts
           const difference = holder.balance - previousBalance;
-          if (difference > 0.000001) { // Ignore tiny rounding differences
+          if (difference > 0.000001) {
+            // Ignore tiny rounding differences
             increases.push({
               address: holder.address,
               previousBalance,
               currentBalance: holder.balance,
-              difference
+              difference,
             });
           }
         }
@@ -124,121 +129,137 @@ export async function generateTokenEvents(
         // Skip wallets that don't have a social profile
         const socialId = walletSocialProfiles.get(address);
         if (!socialId) continue;
-        
+
         const currentBalance = currentHoldersMap.get(address);
-        
+
         if (currentBalance === undefined) {
           // Wallet no longer holds tokens - track for potential transfers
-          if (previousBalance > 0.000001) { // Ignore tiny rounding differences
+          if (previousBalance > 0.000001) {
+            // Ignore tiny rounding differences
             emptyWallets.push({
               address,
               previousBalance,
               currentBalance: 0,
-              difference: previousBalance
+              difference: previousBalance,
             });
           }
         } else if (currentBalance < previousBalance) {
           // Decreased balance - track for potential transfers between accounts
           const difference = previousBalance - currentBalance;
-          if (difference > 0.000001) { // Ignore tiny rounding differences
+          if (difference > 0.000001) {
+            // Ignore tiny rounding differences
             decreases.push({
               address,
               previousBalance,
               currentBalance,
-              difference
+              difference,
             });
           }
         }
       }
-      
+
       // Log statistics for debugging
-      console.log(`[Token Events] Found ${newHolders.length} new holders, ${emptyWallets.length} empty wallets, ${decreases.length} decreases, ${increases.length} increases`);
-      
+      console.log(
+        `[Token Events] Found ${newHolders.length} new holders, ${emptyWallets.length} empty wallets, ${decreases.length} decreases, ${increases.length} increases`
+      );
+
       // Second pass: try to match transfers between wallets of the same social profile
       // Sort by difference amount to try to match exact transfers first
-      const allDecreases = [...decreases, ...emptyWallets].sort((a, b) => b.difference - a.difference);
+      const allDecreases = [...decreases, ...emptyWallets].sort(
+        (a, b) => b.difference - a.difference
+      );
       increases.sort((a, b) => b.difference - a.difference);
-      
+
       const processedDecreases = new Set<string>();
       const processedIncreases = new Set<string>();
       const processedNewHolders = new Set<string>();
-      
+
       // First check: Find transfers between new holders and empty wallets with the same social profile
       for (const emptyWallet of emptyWallets) {
         if (processedDecreases.has(emptyWallet.address)) continue;
-        
+
         const emptyProfileId = walletSocialProfiles.get(emptyWallet.address);
         if (!emptyProfileId) continue;
-        
+
         // First check new holders - they might be the destination of emptied wallets
         let foundMatch = false;
         for (const newHolder of newHolders) {
           if (processedNewHolders.has(newHolder.address)) continue;
-          
+
           const newHolderProfileId = walletSocialProfiles.get(newHolder.address);
-          
+
           // If both wallets belong to the same social profile and have similar amounts (within 1% tolerance)
-          if (newHolderProfileId && 
-              emptyProfileId === newHolderProfileId &&
-              Math.abs(emptyWallet.difference - newHolder.balance) < 0.01 * emptyWallet.difference) {
-            
-            console.log(`[Token Events] Found transfer between same-profile wallets: ${emptyWallet.address} (empty) -> ${newHolder.address} (new)`);
-            console.log(`[Token Events] Amounts: ${emptyWallet.difference} -> ${newHolder.balance}`);
-            
+          if (
+            newHolderProfileId &&
+            emptyProfileId === newHolderProfileId &&
+            Math.abs(emptyWallet.difference - newHolder.balance) < 0.01 * emptyWallet.difference
+          ) {
+            console.log(
+              `[Token Events] Found transfer between same-profile wallets: ${emptyWallet.address} (empty) -> ${newHolder.address} (new)`
+            );
+            console.log(
+              `[Token Events] Amounts: ${emptyWallet.difference} -> ${newHolder.balance}`
+            );
+
             // Create a TRANSFER_BETWEEN event
             await client.query(
               `INSERT INTO token_events 
                (snapshot_id, event_type_id, source_address, destination_address, amount, previous_balance, new_balance) 
                VALUES ($1, $2, $3, $4, $5, $6, $7)`,
               [
-                snapshotId, 
-                EventType.TRANSFER_BETWEEN, 
-                emptyWallet.address, 
-                newHolder.address, 
-                emptyWallet.difference, 
+                snapshotId,
+                EventType.TRANSFER_BETWEEN,
+                emptyWallet.address,
+                newHolder.address,
+                emptyWallet.difference,
                 emptyWallet.previousBalance,
-                0
+                0,
               ]
             );
-            
+
             processedDecreases.add(emptyWallet.address);
             processedNewHolders.add(newHolder.address);
             foundMatch = true;
             break;
           }
         }
-        
+
         // If not found in new holders, check for increases
         if (!foundMatch) {
           for (const increase of increases) {
             if (processedIncreases.has(increase.address)) continue;
-            
+
             const increaseProfileId = walletSocialProfiles.get(increase.address);
-            
+
             // If both wallets belong to the same social profile and have similar amounts (within 1% tolerance)
-            if (increaseProfileId && 
-                emptyProfileId === increaseProfileId &&
-                Math.abs(emptyWallet.difference - increase.difference) < 0.01 * emptyWallet.difference) {
-              
-              console.log(`[Token Events] Found transfer between same-profile wallets: ${emptyWallet.address} (empty) -> ${increase.address}`);
-              console.log(`[Token Events] Amounts: ${emptyWallet.difference} -> ${increase.difference}`);
-              
+            if (
+              increaseProfileId &&
+              emptyProfileId === increaseProfileId &&
+              Math.abs(emptyWallet.difference - increase.difference) < 0.01 * emptyWallet.difference
+            ) {
+              console.log(
+                `[Token Events] Found transfer between same-profile wallets: ${emptyWallet.address} (empty) -> ${increase.address}`
+              );
+              console.log(
+                `[Token Events] Amounts: ${emptyWallet.difference} -> ${increase.difference}`
+              );
+
               // Create a TRANSFER_BETWEEN event
               await client.query(
                 `INSERT INTO token_events 
                 (snapshot_id, event_type_id, source_address, destination_address, amount, previous_balance, new_balance) 
                 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
                 [
-                  snapshotId, 
-                  EventType.TRANSFER_BETWEEN, 
-                  emptyWallet.address, 
-                  increase.address, 
-                  emptyWallet.difference, 
+                  snapshotId,
+                  EventType.TRANSFER_BETWEEN,
+                  emptyWallet.address,
+                  increase.address,
+                  emptyWallet.difference,
                   emptyWallet.previousBalance,
-                  0
+                  0,
                 ]
               );
-              
+
               processedDecreases.add(emptyWallet.address);
               processedIncreases.add(increase.address);
               break;
@@ -246,83 +267,91 @@ export async function generateTokenEvents(
           }
         }
       }
-      
+
       // Next, match decreases with new holders of the same social profile
       for (const decrease of decreases) {
         if (processedDecreases.has(decrease.address)) continue;
-        
+
         const decreaseProfileId = walletSocialProfiles.get(decrease.address);
         if (!decreaseProfileId) continue;
-        
+
         // First check new holders for the destination
         let foundMatch = false;
         for (const newHolder of newHolders) {
           if (processedNewHolders.has(newHolder.address)) continue;
-          
+
           const newHolderProfileId = walletSocialProfiles.get(newHolder.address);
-          
+
           // If both wallets belong to the same social profile and have similar amounts (within 1% tolerance)
-          if (newHolderProfileId && 
-              decreaseProfileId === newHolderProfileId &&
-              Math.abs(decrease.difference - newHolder.balance) < 0.01 * decrease.difference) {
-            
-            console.log(`[Token Events] Found transfer between same-profile wallets: ${decrease.address} -> ${newHolder.address} (new)`);
+          if (
+            newHolderProfileId &&
+            decreaseProfileId === newHolderProfileId &&
+            Math.abs(decrease.difference - newHolder.balance) < 0.01 * decrease.difference
+          ) {
+            console.log(
+              `[Token Events] Found transfer between same-profile wallets: ${decrease.address} -> ${newHolder.address} (new)`
+            );
             console.log(`[Token Events] Amounts: ${decrease.difference} -> ${newHolder.balance}`);
-            
+
             // Create a TRANSFER_BETWEEN event
             await client.query(
               `INSERT INTO token_events 
                (snapshot_id, event_type_id, source_address, destination_address, amount, previous_balance, new_balance) 
                VALUES ($1, $2, $3, $4, $5, $6, $7)`,
               [
-                snapshotId, 
-                EventType.TRANSFER_BETWEEN, 
-                decrease.address, 
-                newHolder.address, 
-                decrease.difference, 
+                snapshotId,
+                EventType.TRANSFER_BETWEEN,
+                decrease.address,
+                newHolder.address,
+                decrease.difference,
                 decrease.previousBalance,
-                decrease.currentBalance
+                decrease.currentBalance,
               ]
             );
-            
+
             processedDecreases.add(decrease.address);
             processedNewHolders.add(newHolder.address);
             foundMatch = true;
             break;
           }
         }
-        
+
         // If not found in new holders, check for increases
         if (!foundMatch) {
           for (const increase of increases) {
             if (processedIncreases.has(increase.address)) continue;
-            
+
             const increaseProfileId = walletSocialProfiles.get(increase.address);
-            
+
             // If both wallets belong to the same social profile and have similar amounts (within 1% tolerance)
-            if (increaseProfileId && 
-                decreaseProfileId === increaseProfileId &&
-                Math.abs(decrease.difference - increase.difference) < 0.01 * decrease.difference) {
-              
-              console.log(`[Token Events] Found transfer between same-profile wallets: ${decrease.address} -> ${increase.address}`);
-              console.log(`[Token Events] Amounts: ${decrease.difference} -> ${increase.difference}`);
-              
+            if (
+              increaseProfileId &&
+              decreaseProfileId === increaseProfileId &&
+              Math.abs(decrease.difference - increase.difference) < 0.01 * decrease.difference
+            ) {
+              console.log(
+                `[Token Events] Found transfer between same-profile wallets: ${decrease.address} -> ${increase.address}`
+              );
+              console.log(
+                `[Token Events] Amounts: ${decrease.difference} -> ${increase.difference}`
+              );
+
               // Create a TRANSFER_BETWEEN event
               await client.query(
                 `INSERT INTO token_events 
                 (snapshot_id, event_type_id, source_address, destination_address, amount, previous_balance, new_balance) 
                 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
                 [
-                  snapshotId, 
-                  EventType.TRANSFER_BETWEEN, 
-                  decrease.address, 
-                  increase.address, 
-                  decrease.difference, 
+                  snapshotId,
+                  EventType.TRANSFER_BETWEEN,
+                  decrease.address,
+                  increase.address,
+                  decrease.difference,
                   decrease.previousBalance,
-                  decrease.currentBalance
+                  decrease.currentBalance,
                 ]
               );
-              
+
               processedDecreases.add(decrease.address);
               processedIncreases.add(increase.address);
               break;
@@ -330,7 +359,7 @@ export async function generateTokenEvents(
           }
         }
       }
-      
+
       // Process new holders (that weren't part of transfers)
       for (const holder of newHolders) {
         if (!processedNewHolders.has(holder.address)) {
@@ -342,7 +371,7 @@ export async function generateTokenEvents(
           );
         }
       }
-      
+
       // Process remaining unmatched empty wallets
       for (const emptyWallet of emptyWallets) {
         if (!processedDecreases.has(emptyWallet.address)) {
@@ -350,11 +379,18 @@ export async function generateTokenEvents(
             `INSERT INTO token_events 
              (snapshot_id, event_type_id, source_address, amount, previous_balance, new_balance) 
              VALUES ($1, $2, $3, $4, $5, $6)`,
-            [snapshotId, EventType.WALLET_EMPTY, emptyWallet.address, emptyWallet.previousBalance, emptyWallet.previousBalance, 0]
+            [
+              snapshotId,
+              EventType.WALLET_EMPTY,
+              emptyWallet.address,
+              emptyWallet.previousBalance,
+              emptyWallet.previousBalance,
+              0,
+            ]
           );
         }
       }
-      
+
       // Process remaining unmatched decreases
       for (const decrease of decreases) {
         if (!processedDecreases.has(decrease.address)) {
@@ -363,17 +399,17 @@ export async function generateTokenEvents(
              (snapshot_id, event_type_id, source_address, amount, previous_balance, new_balance) 
              VALUES ($1, $2, $3, $4, $5, $6)`,
             [
-              snapshotId, 
-              EventType.TRANSFER_OUT, 
-              decrease.address, 
-              decrease.difference, 
-              decrease.previousBalance, 
-              decrease.currentBalance
+              snapshotId,
+              EventType.TRANSFER_OUT,
+              decrease.address,
+              decrease.difference,
+              decrease.previousBalance,
+              decrease.currentBalance,
             ]
           );
         }
       }
-      
+
       // Process remaining unmatched increases
       for (const increase of increases) {
         if (!processedIncreases.has(increase.address)) {
@@ -382,12 +418,12 @@ export async function generateTokenEvents(
              (snapshot_id, event_type_id, destination_address, amount, previous_balance, new_balance) 
              VALUES ($1, $2, $3, $4, $5, $6)`,
             [
-              snapshotId, 
-              EventType.TRANSFER_IN, 
-              increase.address, 
-              increase.difference, 
-              increase.previousBalance, 
-              increase.currentBalance
+              snapshotId,
+              EventType.TRANSFER_IN,
+              increase.address,
+              increase.difference,
+              increase.previousBalance,
+              increase.currentBalance,
             ]
           );
         }
@@ -413,7 +449,7 @@ async function createNewHolderTokenEvents(
       SELECT w.address, w.social_id 
       FROM wallet_addresses w
     `);
-    
+
     // Create a map of wallet address to social profile ID
     const walletSocialProfiles = new Map<string, string>();
     socialProfilesResult.rows.forEach(row => {
@@ -421,13 +457,13 @@ async function createNewHolderTokenEvents(
         walletSocialProfiles.set(row.address, row.social_id);
       }
     });
-    
-    await withTransaction(async (client) => {
+
+    await withTransaction(async client => {
       for (const holder of holders) {
         // Skip wallets without a social profile
         const socialId = walletSocialProfiles.get(holder.address);
         if (!socialId) continue;
-        
+
         await client.query(
           `INSERT INTO token_events 
            (snapshot_id, event_type_id, destination_address, amount, new_balance) 
@@ -436,7 +472,7 @@ async function createNewHolderTokenEvents(
         );
       }
     });
-    
+
     console.log(`Created new holder events for token holders in snapshot ${snapshotId}`);
   } catch (error) {
     console.error('Error creating new holder token events:', error);
@@ -452,6 +488,10 @@ export async function generateNFTEvents(
   previousSnapshotId?: number
 ): Promise<void> {
   try {
+    console.log(
+      `[NFT Events] Starting generation for snapshot ${snapshotId}${previousSnapshotId ? ` with previous snapshot ${previousSnapshotId}` : ''}`
+    );
+
     // If no previous snapshot, all current holders are new
     if (!previousSnapshotId) {
       await createNewHolderNFTEvents(snapshotId, currentHolders);
@@ -463,7 +503,7 @@ export async function generateNFTEvents(
       SELECT w.address, w.social_id 
       FROM wallet_addresses w
     `);
-    
+
     // Create a map of wallet address to social profile ID
     const walletSocialProfiles = new Map<string, string>();
     socialProfilesResult.rows.forEach(row => {
@@ -472,10 +512,18 @@ export async function generateNFTEvents(
       }
     });
 
+    console.log(
+      `[NFT Events] Found ${socialProfilesResult.rowCount} wallet addresses with social profiles`
+    );
+
     // Get previous NFT ownership data
     const previousOwnershipResult = await query(
       'SELECT mint, owner_address FROM nft_ownership WHERE snapshot_id = $1',
       [previousSnapshotId]
+    );
+
+    console.log(
+      `[NFT Events] Found ${previousOwnershipResult.rowCount} NFT ownership records in previous snapshot`
     );
 
     // Map NFTs to their previous owners
@@ -490,22 +538,42 @@ export async function generateNFTEvents(
       [snapshotId]
     );
 
+    console.log(
+      `[NFT Events] Found ${currentOwnershipResult.rowCount} NFT ownership records in current snapshot`
+    );
+
     // Map NFTs to their current owners
     const currentOwnership = new Map<string, string>();
     currentOwnershipResult.rows.forEach(row => {
       currentOwnership.set(row.mint, row.owner_address);
     });
 
+    // Get NFT details for names and types
+    const nftDetailsResult = await query('SELECT mint, name, type FROM nfts');
+    const nftDetails = new Map<string, { name: string; type: string }>();
+    nftDetailsResult.rows.forEach(row => {
+      nftDetails.set(row.mint, { name: row.name, type: row.type });
+    });
+
+    console.log(`[NFT Events] Found details for ${nftDetails.size} unique NFTs`);
+
     // Begin transaction for all events
-    await withTransaction(async (client) => {
+    let newEventCount = 0;
+    let transferBetweenCount = 0;
+    let nftRemovedCount = 0;
+
+    await withTransaction(async client => {
       // Check for NFT transfers
       for (const [mint, currentOwner] of currentOwnership.entries()) {
-        // Skip if current owner doesn't have a social profile
-        const currentOwnerSocialId = walletSocialProfiles.get(currentOwner);
-        if (!currentOwnerSocialId) continue;
-        
         const previousOwner = previousOwnership.get(mint);
-        
+        const nftDetail = nftDetails.get(mint) || { name: 'Unknown', type: 'Gen1' };
+
+        // Get social IDs for logging/debugging
+        const currentOwnerSocialId = walletSocialProfiles.get(currentOwner);
+        const previousOwnerSocialId = previousOwner
+          ? walletSocialProfiles.get(previousOwner)
+          : null;
+
         if (!previousOwner) {
           // New NFT or new owner (first time tracked)
           await client.query(
@@ -514,38 +582,40 @@ export async function generateNFTEvents(
              VALUES ($1, $2, $3, $4)`,
             [snapshotId, EventType.NEW_HOLDER, mint, currentOwner]
           );
+          newEventCount++;
+
+          console.log(
+            `[NFT Events] NEW: ${nftDetail.name} (${mint.substring(0, 8)}...) -> ${currentOwner.substring(0, 8)}... (Social: ${currentOwnerSocialId || 'None'})`
+          );
         } else if (previousOwner !== currentOwner) {
-          // Skip if previous owner didn't have a social profile
-          const previousOwnerSocialId = walletSocialProfiles.get(previousOwner);
-          if (!previousOwnerSocialId) continue;
-          
-          // NFT changed hands - if same social profile, it's a transfer between
-          if (previousOwnerSocialId === currentOwnerSocialId) {
-            await client.query(
-              `INSERT INTO nft_events 
-               (snapshot_id, event_type_id, mint, source_address, destination_address) 
-               VALUES ($1, $2, $3, $4, $5)`,
-              [snapshotId, EventType.TRANSFER_BETWEEN, mint, previousOwner, currentOwner]
-            );
-          } else {
-            // Different social profiles - it's a true transfer
-            await client.query(
-              `INSERT INTO nft_events 
-               (snapshot_id, event_type_id, mint, source_address, destination_address) 
-               VALUES ($1, $2, $3, $4, $5)`,
-              [snapshotId, EventType.TRANSFER_BETWEEN, mint, previousOwner, currentOwner]
-            );
-          }
+          // NFT changed hands - Check if same social profile for logging
+          const sameSocialProfile =
+            previousOwnerSocialId &&
+            currentOwnerSocialId &&
+            previousOwnerSocialId === currentOwnerSocialId;
+
+          // Create transfer event
+          await client.query(
+            `INSERT INTO nft_events 
+             (snapshot_id, event_type_id, mint, source_address, destination_address) 
+             VALUES ($1, $2, $3, $4, $5)`,
+            [snapshotId, EventType.TRANSFER_BETWEEN, mint, previousOwner, currentOwner]
+          );
+          transferBetweenCount++;
+
+          console.log(
+            `[NFT Events] TRANSFER: ${nftDetail.name} (${mint.substring(0, 8)}...) from ${previousOwner.substring(0, 8)}... to ${currentOwner.substring(0, 8)}...` +
+              (sameSocialProfile ? ' (Same social profile)' : '')
+          );
         }
       }
 
       // Check for NFTs that are no longer in the current snapshot
       for (const [mint, previousOwner] of previousOwnership.entries()) {
         if (!currentOwnership.has(mint)) {
-          // Skip if previous owner didn't have a social profile
+          const nftDetail = nftDetails.get(mint) || { name: 'Unknown', type: 'Gen1' };
           const previousOwnerSocialId = walletSocialProfiles.get(previousOwner);
-          if (!previousOwnerSocialId) continue;
-          
+
           // NFT is no longer in the snapshot
           await client.query(
             `INSERT INTO nft_events 
@@ -553,30 +623,41 @@ export async function generateNFTEvents(
              VALUES ($1, $2, $3, $4)`,
             [snapshotId, EventType.WALLET_EMPTY, mint, previousOwner]
           );
+          nftRemovedCount++;
+
+          console.log(
+            `[NFT Events] REMOVED: ${nftDetail.name} (${mint.substring(0, 8)}...) from ${previousOwner.substring(0, 8)}... (Social: ${previousOwnerSocialId || 'None'})`
+          );
         }
       }
     });
 
-    console.log(`Generated NFT events for snapshot ${snapshotId}`);
+    console.log(
+      `[NFT Events] Generated ${newEventCount + transferBetweenCount + nftRemovedCount} events for snapshot ${snapshotId}:`
+    );
+    console.log(`  - ${newEventCount} new NFT events`);
+    console.log(`  - ${transferBetweenCount} transfer events`);
+    console.log(`  - ${nftRemovedCount} removed NFT events`);
   } catch (error) {
-    console.error('Error generating NFT events:', error);
+    console.error('[NFT Events] Error generating NFT events:', error);
   }
 }
 
 /**
  * Create new holder events for all NFT holders (when there's no previous snapshot)
  */
-async function createNewHolderNFTEvents(
-  snapshotId: number,
-  holders: NFTHolder[]
-): Promise<void> {
+async function createNewHolderNFTEvents(snapshotId: number, holders: NFTHolder[]): Promise<void> {
   try {
-    // Get social profile mappings
+    console.log(
+      `[NFT Events] Creating new holder events for ${holders.length} holders in snapshot ${snapshotId}`
+    );
+
+    // Get social profile mappings for debugging output only
     const socialProfilesResult = await query(`
       SELECT w.address, w.social_id 
       FROM wallet_addresses w
     `);
-    
+
     // Create a map of wallet address to social profile ID
     const walletSocialProfiles = new Map<string, string>();
     socialProfilesResult.rows.forEach(row => {
@@ -584,14 +665,31 @@ async function createNewHolderNFTEvents(
         walletSocialProfiles.set(row.address, row.social_id);
       }
     });
-    
-    await withTransaction(async (client) => {
+
+    // Count total NFTs for logging
+    let totalNFTs = 0;
+    holders.forEach(holder => {
+      if (holder.nfts && Array.isArray(holder.nfts)) {
+        totalNFTs += holder.nfts.length;
+      }
+    });
+
+    console.log(`[NFT Events] Processing ${totalNFTs} NFTs across ${holders.length} holders`);
+
+    let eventCount = 0;
+
+    await withTransaction(async client => {
       for (const holder of holders) {
-        // Skip holders without a social profile
-        const socialId = walletSocialProfiles.get(holder.address);
-        if (!socialId) continue;
-        
         // For each NFT owned by this holder
+        if (!holder.nfts || !Array.isArray(holder.nfts) || holder.nfts.length === 0) {
+          continue;
+        }
+
+        const socialId = walletSocialProfiles.get(holder.address);
+        console.log(
+          `[NFT Events] Processing ${holder.nfts.length} NFTs for ${holder.address.substring(0, 8)}... (Social: ${socialId || 'None'})`
+        );
+
         for (const nft of holder.nfts) {
           await client.query(
             `INSERT INTO nft_events 
@@ -599,13 +697,21 @@ async function createNewHolderNFTEvents(
              VALUES ($1, $2, $3, $4)`,
             [snapshotId, EventType.NEW_HOLDER, nft.mint, holder.address]
           );
+          eventCount++;
+
+          // Log every 100 events to avoid console spam
+          if (eventCount % 100 === 0) {
+            console.log(`[NFT Events] Created ${eventCount}/${totalNFTs} new holder events...`);
+          }
         }
       }
     });
-    
-    console.log(`Created new holder events for NFT holders in snapshot ${snapshotId}`);
+
+    console.log(
+      `[NFT Events] Created ${eventCount} new holder events for NFTs in snapshot ${snapshotId}`
+    );
   } catch (error) {
-    console.error('Error creating new holder NFT events:', error);
+    console.error('[NFT Events] Error creating new holder NFT events:', error);
   }
 }
 
@@ -614,7 +720,8 @@ async function createNewHolderNFTEvents(
  */
 export async function getTokenEventsForSnapshot(snapshotId: number) {
   try {
-    const result = await query(`
+    const result = await query(
+      `
       SELECT 
         e.id, e.timestamp as event_timestamp, t.name as event_type, 
         e.source_address, e.destination_address,
@@ -648,8 +755,10 @@ export async function getTokenEventsForSnapshot(snapshotId: number) {
       LEFT JOIN social_profiles sp_dest ON wa_dest.social_id = sp_dest.id
       WHERE e.snapshot_id = $1
       ORDER BY e.timestamp DESC
-    `, [snapshotId]);
-    
+    `,
+      [snapshotId]
+    );
+
     return result.rows;
   } catch (error) {
     console.error('Error fetching token events:', error);
@@ -662,7 +771,8 @@ export async function getTokenEventsForSnapshot(snapshotId: number) {
  */
 export async function getNFTEventsForSnapshot(snapshotId: number) {
   try {
-    const result = await query(`
+    const result = await query(
+      `
       SELECT 
         e.id, e.timestamp as event_timestamp, t.name as event_type, 
         e.mint, n.name as nft_name, n.type as nft_type,
@@ -697,8 +807,10 @@ export async function getNFTEventsForSnapshot(snapshotId: number) {
       LEFT JOIN social_profiles sp_dest ON wa_dest.social_id = sp_dest.id
       WHERE e.snapshot_id = $1
       ORDER BY e.timestamp DESC
-    `, [snapshotId]);
-    
+    `,
+      [snapshotId]
+    );
+
     return result.rows;
   } catch (error) {
     console.error('Error fetching NFT events:', error);
@@ -713,28 +825,31 @@ export async function getNFTEventsForSnapshot(snapshotId: number) {
 export async function getTokenSnapshotsWithEvents(limit: number = 5, skip: number = 0) {
   try {
     // First get the most recent snapshots with pagination
-    const snapshotsResult = await query(`
+    const snapshotsResult = await query(
+      `
       SELECT id, timestamp, token_address, total_supply
       FROM token_snapshots
       ORDER BY timestamp DESC
       LIMIT $1 OFFSET $2
-    `, [limit, skip]);
-    
+    `,
+      [limit, skip]
+    );
+
     if (snapshotsResult.rowCount === 0) {
       return [];
     }
-    
+
     // For each snapshot, get the events
     const snapshotsWithEvents = await Promise.all(
-      snapshotsResult.rows.map(async (snapshot) => {
+      snapshotsResult.rows.map(async snapshot => {
         const events = await getTokenEventsForSnapshot(snapshot.id);
         return {
           ...snapshot,
-          events
+          events,
         };
       })
     );
-    
+
     return snapshotsWithEvents;
   } catch (error) {
     console.error('Error fetching token snapshots with events:', error);
@@ -749,31 +864,34 @@ export async function getTokenSnapshotsWithEvents(limit: number = 5, skip: numbe
 export async function getNFTSnapshotsWithEvents(limit: number = 5, skip: number = 0) {
   try {
     // First get the most recent snapshots with pagination
-    const snapshotsResult = await query(`
+    const snapshotsResult = await query(
+      `
       SELECT id, timestamp, total_count
       FROM nft_snapshots
       ORDER BY timestamp DESC
       LIMIT $1 OFFSET $2
-    `, [limit, skip]);
-    
+    `,
+      [limit, skip]
+    );
+
     if (snapshotsResult.rowCount === 0) {
       return [];
     }
-    
+
     // For each snapshot, get the events
     const snapshotsWithEvents = await Promise.all(
-      snapshotsResult.rows.map(async (snapshot) => {
+      snapshotsResult.rows.map(async snapshot => {
         const events = await getNFTEventsForSnapshot(snapshot.id);
         return {
           ...snapshot,
-          events
+          events,
         };
       })
     );
-    
+
     return snapshotsWithEvents;
   } catch (error) {
     console.error('Error fetching NFT snapshots with events:', error);
     return [];
   }
-} 
+}
