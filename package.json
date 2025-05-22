@@ -18,7 +18,18 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css}\"",
     "lint": "yarn format:check",
     "db:migrate": "tsx src/backend/db/migrations/migrateToDatabase.ts",
-    "db:init": "tsx src/backend/db/initDb.ts"
+    "db:init": "tsx src/backend/db/initDb.ts",
+    "db:migrate:staking": "tsx src/backend/db/migrations/applyStakingMigration.ts",
+    "db:migrate:incremental": "tsx src/backend/db/migrations/applyIncrementalSnapshotMigration.ts",
+    "staking:take-snapshot": "tsx src/backend/scripts/takeStakingSnapshot.ts",
+    "staking:take-incremental": "tsx src/backend/scripts/takeIncrementalSnapshot.ts",
+    "verify:transactions": "tsx src/backend/scripts/verifyStakingTransactions.ts",
+    "find:transaction": "tsx src/backend/scripts/findSpecificTransaction.ts",
+    "verify:unlocked-tokens": "tsx src/backend/scripts/verifyUnlockedTokens.ts",
+    "debug:wallets": "tsx src/backend/scripts/debugWalletSnapshot.ts",
+    "compare:wallets": "tsx src/backend/scripts/compareWalletBalances.ts",
+    "audit:staking": "tsx src/backend/scripts/auditStakingCalculations.ts",
+    "verify:wallets": "tsx src/backend/scripts/verifySpecificWallets.ts"
   },
   "dependencies": {
     "@metaplex-foundation/digital-asset-standard-api": "latest",

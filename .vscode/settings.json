@@ -22,5 +22,6 @@
   },
   "[jsonc]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
-  }
+  },
+  "WhiteSource Advise.Diff.BaseBranch": "main"
 } 

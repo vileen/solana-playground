@@ -11,7 +11,8 @@ export const TAB_ROUTES = {
   TOKEN_HOLDERS: '/token-holders',
   EVENTS: '/events',
   TIMELINE: '/timeline',
-  SOCIAL_PROFILES: '/social-profiles'
+  SOCIAL_PROFILES: '/social-profiles',
+  STAKING: '/staking',
 };
 
 // Map tab indices to routes
@@ -20,7 +21,8 @@ export const TAB_INDEX_TO_ROUTE = [
   TAB_ROUTES.TOKEN_HOLDERS,
   TAB_ROUTES.EVENTS,
   TAB_ROUTES.TIMELINE,
-  TAB_ROUTES.SOCIAL_PROFILES
+  TAB_ROUTES.STAKING,
+  TAB_ROUTES.SOCIAL_PROFILES,
 ];
 
 // Map routes to tab indices
@@ -29,7 +31,8 @@ export const ROUTE_TO_TAB_INDEX: Record<string, number> = {
   [TAB_ROUTES.TOKEN_HOLDERS]: 1,
   [TAB_ROUTES.EVENTS]: 2,
   [TAB_ROUTES.TIMELINE]: 3,
-  [TAB_ROUTES.SOCIAL_PROFILES]: 4
+  [TAB_ROUTES.STAKING]: 4,
+  [TAB_ROUTES.SOCIAL_PROFILES]: 5,
 };
 
 /**
@@ -45,11 +48,11 @@ export function useAppNavigation() {
   const navigateTo = (path: string, searchTerm?: string, options: NavigationOptions = {}) => {
     // If preserveSearch is true, maintain the current search params
     let queryParams = new URLSearchParams();
-    
+
     if (options.preserveSearch) {
       queryParams = new URLSearchParams(location.search);
     }
-    
+
     if (searchTerm !== undefined) {
       if (searchTerm) {
         queryParams.set('search', searchTerm);
@@ -57,7 +60,7 @@ export function useAppNavigation() {
         queryParams.delete('search');
       }
     }
-    
+
     const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
     navigate(`${path}${queryString}`, { replace: options.replace });
   };
@@ -98,13 +101,13 @@ export function useAppNavigation() {
    */
   const updateSearchParam = (searchTerm: string, options: NavigationOptions = {}) => {
     const params = new URLSearchParams(location.search);
-    
+
     if (searchTerm) {
       params.set('search', searchTerm);
     } else {
       params.delete('search');
     }
-    
+
     navigate(`${location.pathname}?${params.toString()}`, { replace: options.replace ?? true });
   };
 
@@ -121,14 +124,14 @@ export function useAppNavigation() {
    */
   const getCurrentTabIndex = (): number => {
     const path = location.pathname;
-    
+
     // Check if the path starts with any of our tab routes
     for (const [route, index] of Object.entries(ROUTE_TO_TAB_INDEX)) {
       if (path === route || path.startsWith(route + '/')) {
         return index;
       }
     }
-    
+
     // Default to the first tab if no match
     return 0;
   };
@@ -144,4 +147,4 @@ export function useAppNavigation() {
     getCurrentTabIndex,
     currentPath: location.pathname,
   };
-} 
+}

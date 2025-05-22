@@ -35,7 +35,7 @@ const NftHolders = forwardRef<{ fetchHolders: () => Promise<void> }, NftHoldersP
     const appNavigation = useAppNavigation();
     const initialSearchTerm = appNavigation.getSearchParam();
     const [localSearchTerm, setLocalSearchTerm] = useState<string>(initialSearchTerm || searchTerm);
-    
+
     // Use refs to track current fetch requests and prevent duplicates
     const currentFetchController = useRef<AbortController | null>(null);
     const lastSearchTerm = useRef<string>(localSearchTerm);
@@ -60,7 +60,7 @@ const NftHolders = forwardRef<{ fetchHolders: () => Promise<void> }, NftHoldersP
             console.error('Error loading initial data:', error);
           }
         };
-        
+
         loadInitialData();
       }
     }, []);
@@ -72,12 +72,15 @@ const NftHolders = forwardRef<{ fetchHolders: () => Promise<void> }, NftHoldersP
       if (searchParam !== localSearchTerm) {
         setLocalSearchTerm(searchParam);
         onSearchChange(searchParam);
-        
+
         // Don't fetch if we've already fetched with these params
-        if (searchParam !== lastSearchTerm.current || selectedSnapshotId !== lastSnapshotId.current) {
+        if (
+          searchParam !== lastSearchTerm.current ||
+          selectedSnapshotId !== lastSnapshotId.current
+        ) {
           lastSearchTerm.current = searchParam;
           lastSnapshotId.current = selectedSnapshotId;
-          
+
           // Fetch data here directly after state update
           const fetchData = async () => {
             try {
@@ -86,7 +89,7 @@ const NftHolders = forwardRef<{ fetchHolders: () => Promise<void> }, NftHoldersP
               console.error('Error fetching data:', error);
             }
           };
-          
+
           fetchData();
         }
       }
@@ -97,7 +100,7 @@ const NftHolders = forwardRef<{ fetchHolders: () => Promise<void> }, NftHoldersP
       // Only fetch when snapshot changes and it's not the initial load
       if (dataLoaded.current && selectedSnapshotId !== lastSnapshotId.current) {
         lastSnapshotId.current = selectedSnapshotId;
-        
+
         const fetchData = async () => {
           try {
             await fetchHolders(localSearchTerm);
@@ -105,7 +108,7 @@ const NftHolders = forwardRef<{ fetchHolders: () => Promise<void> }, NftHoldersP
             console.error('Error fetching data on snapshot change:', error);
           }
         };
-        
+
         fetchData();
       }
     }, [selectedSnapshotId]);
@@ -127,14 +130,14 @@ const NftHolders = forwardRef<{ fetchHolders: () => Promise<void> }, NftHoldersP
         if (currentFetchController.current) {
           currentFetchController.current.abort();
         }
-        
+
         // Create new controller for this request
         currentFetchController.current = new AbortController();
-        
+
         setLoading(true);
         // @ts-ignore - fetchNftHolders accepts a snapshotId parameter but TypeScript doesn't recognize it
         const data = await API.fetchNftHolders(searchTermValue, selectedSnapshotId);
-        
+
         // Only update state if this is still the active request
         if (currentFetchController.current) {
           setHolders(data);
@@ -175,13 +178,13 @@ const NftHolders = forwardRef<{ fetchHolders: () => Promise<void> }, NftHoldersP
 
       const options = snapshots.map(snapshot => ({
         label: `${new Date(snapshot.timestamp).toLocaleString()} (ID: ${snapshot.id})`,
-        value: snapshot.id
+        value: snapshot.id,
       }));
 
       // Add an option for the latest snapshot
       options.unshift({
         label: 'Latest Snapshot',
-        value: null
+        value: null,
       });
 
       return (
@@ -190,7 +193,7 @@ const NftHolders = forwardRef<{ fetchHolders: () => Promise<void> }, NftHoldersP
           <Dropdown
             value={selectedSnapshotId}
             options={options}
-            onChange={(e) => {
+            onChange={e => {
               setSelectedSnapshotId(e.value);
             }}
             placeholder="Latest Snapshot"
@@ -208,7 +211,14 @@ const NftHolders = forwardRef<{ fetchHolders: () => Promise<void> }, NftHoldersP
         className="wallet-link"
       >
         {rowData.address}
-        <img src="/solscan_logo.png" alt="Solscan" width="16" height="16" className="ml-1" style={{ opacity: 0.7, verticalAlign: 'middle' }} />
+        <img
+          src="/solscan_logo.png"
+          alt="Solscan"
+          width="16"
+          height="16"
+          className="ml-1"
+          style={{ opacity: 0.7, verticalAlign: 'middle' }}
+        />
       </a>
     );
 
@@ -297,7 +307,7 @@ const NftHolders = forwardRef<{ fetchHolders: () => Promise<void> }, NftHoldersP
     const handleSearchChange = (value: string) => {
       // Update local state immediately
       setLocalSearchTerm(value);
-      
+
       // Update URL and parent state
       appNavigation.updateSearchParam(value);
       onSearchChange(value);
