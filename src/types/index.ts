@@ -25,10 +25,39 @@ export interface TokenHolder {
   id?: string; // Social profile ID
 }
 
+// Staking types
+export interface Stake {
+  amount: number;
+  stakeDate: string; // ISO date string
+  unlockDate: string; // ISO date string
+  isLocked: boolean;
+  mintAddress: string;
+}
+
+export interface StakeData {
+  walletAddress: string;
+  totalStaked: number;
+  totalLocked: number;
+  totalUnlocked: number;
+  stakes: Stake[];
+}
+
+export interface StakingSnapshot {
+  id?: number;
+  contractAddress: string;
+  timestamp: string; // ISO date string
+  totalStaked: number;
+  totalLocked: number;
+  totalUnlocked: number;
+  lastSignature?: string; // Last transaction signature processed
+  isIncremental?: boolean; // Whether this is an incremental snapshot
+  stakingData: StakeData[];
+}
+
 export interface TokenSnapshot {
-  id?: number;         // Database ID of the snapshot
+  id?: number; // Database ID of the snapshot
   tokenAddress: string;
-  timestamp: string;   // ISO date string
+  timestamp: string; // ISO date string
   holders: TokenHolder[];
   totalSupply: number; // Total token supply
 }

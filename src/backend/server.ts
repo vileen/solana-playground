@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url';
 import { DATA_DIR, PORT } from './config/config.js';
 import apiRoutes from './routes/api.js';
 import eventsRoutes from './routes/events.js';
+import stakingRoutes from './routes/stakingRoutes.js';
 
 // Get the directory name for the current module
 const __filename = fileURLToPath(import.meta.url);
@@ -45,6 +46,7 @@ mkdir(DATA_DIR, { recursive: true }).catch(console.error);
 // Set up API routes
 app.use('/api', apiRoutes);
 app.use('/api/events', eventsRoutes);
+app.use('/api', stakingRoutes);
 
 // Serve static files from 'dist' directory
 let distPath;

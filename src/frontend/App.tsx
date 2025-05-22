@@ -13,12 +13,13 @@ import EventsPanel from './components/EventsPanel.js';
 import NftHolders from './components/NftHolders.js';
 import ProfileDialog from './components/ProfileDialog.js';
 import SocialProfiles from './components/SocialProfiles.js';
+import StakingView from './components/StakingView.js';
 import TokenHolders from './components/TokenHolders.js';
 import { useAppNavigation } from './hooks/useAppNavigation.js';
 import {
   deleteSocialProfile as apiDeleteSocialProfile,
   saveSocialProfile as apiSaveSocialProfile,
-  fetchSocialProfiles
+  fetchSocialProfiles,
 } from './services/api.js';
 import { getSavedTheme, loadThemeCSS, toggleTheme } from './utils/theme.js';
 
@@ -67,10 +68,10 @@ const AppContent: React.FC = () => {
   // Handle tab change
   const handleTabChange = (e: { index: number }) => {
     const newTabIndex = e.index;
-    
+
     // Update URL to match the selected tab
     appNavigation.navigateToTab(newTabIndex);
-    
+
     // We don't need to update the active tab state here
     // because the location change will trigger the useEffect above
   };
@@ -80,29 +81,29 @@ const AppContent: React.FC = () => {
       // If holder has an ID, we need to fetch the complete profile with all wallets
       if (holder.id) {
         const allProfiles = await fetchSocialProfiles();
-        
+
         // Group profiles by ID to get all wallets for this profile
-        const wallets: {address: string}[] = [];
-        
+        const wallets: { address: string }[] = [];
+
         // Find all profile entries with this ID and collect wallets
         let profileTwitter = '';
         let profileDiscord = '';
         let profileComment = '';
-        
+
         allProfiles.forEach((profile: any) => {
           if (profile.id === holder.id) {
             // Collect social info (should be the same for all entries with this ID)
             if (profile.twitter) profileTwitter = profile.twitter;
             if (profile.discord) profileDiscord = profile.discord;
             if (profile.comment) profileComment = profile.comment;
-            
+
             // Add the wallet address if present
             if (profile.address) {
               wallets.push({ address: profile.address });
             }
           }
         });
-        
+
         if (wallets.length > 0) {
           // Format the holder data to fit ProfileDialog's expected format
           const profile = {
@@ -112,7 +113,7 @@ const AppContent: React.FC = () => {
             comment: profileComment,
             wallets: wallets,
           };
-          
+
           console.log('Opening social dialog with complete profile:', profile);
           setSelectedHolder(profile);
           setSelectedWalletAddress(holder.address);
@@ -120,7 +121,7 @@ const AppContent: React.FC = () => {
           return;
         }
       }
-      
+
       // Fallback to the original behavior if we couldn't fetch the complete profile
       const profile = {
         id: holder.id, // The backend-generated ID or undefined for new profiles
@@ -135,7 +136,9 @@ const AppContent: React.FC = () => {
       setSelectedWalletAddress(holder.address);
       setProfileDialogVisible(true);
     } catch (error) {
-      handleError(`Error loading profile: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      handleError(
+        `Error loading profile: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   };
 
@@ -145,26 +148,28 @@ const AppContent: React.FC = () => {
       const result = await apiSaveSocialProfile(profile);
       if (result.success) {
         setProfileDialogVisible(false);
-        
+
         // Refresh all components that display holder data
         if (nftHoldersRef.current) {
           nftHoldersRef.current.fetchHolders();
         }
-        
+
         if (tokenHoldersRef.current) {
           tokenHoldersRef.current.fetchHolders();
         }
-        
+
         if (socialProfilesRef.current) {
           socialProfilesRef.current.loadSocialProfiles();
         }
-        
+
         handleSuccess('Social profile saved successfully');
       } else {
         throw new Error(result.message || 'Failed to save profile');
       }
     } catch (error) {
-      handleError(`Error saving profile: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      handleError(
+        `Error saving profile: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   };
 
@@ -174,26 +179,28 @@ const AppContent: React.FC = () => {
       const result = await apiDeleteSocialProfile(profileId);
       if (result.success) {
         setProfileDialogVisible(false);
-        
+
         // Refresh all components that display holder data
         if (nftHoldersRef.current) {
           nftHoldersRef.current.fetchHolders();
         }
-        
+
         if (tokenHoldersRef.current) {
           tokenHoldersRef.current.fetchHolders();
         }
-        
+
         if (socialProfilesRef.current) {
           socialProfilesRef.current.fetchProfiles();
         }
-        
+
         handleSuccess('Social profile deleted successfully');
       } else {
         throw new Error(result.message || 'Failed to delete profile');
       }
     } catch (error) {
-      handleError(`Error deleting profile: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      handleError(
+        `Error deleting profile: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   };
 
@@ -235,11 +242,7 @@ const AppContent: React.FC = () => {
         <Toast ref={toast} />
         <ConfirmDialog />
 
-        <TabView
-          activeIndex={activeTab}
-          onTabChange={handleTabChange}
-          className="tab-view"
-        >
+        <TabView activeIndex={activeTab} onTabChange={handleTabChange} className="tab-view">
           <TabPanel header="NFT Holders">
             <NftHolders
               ref={nftHoldersRef}
@@ -268,6 +271,10 @@ const AppContent: React.FC = () => {
 
           <TabPanel header="Timeline View">
             <CombinedSnapshotsPanel />
+          </TabPanel>
+
+          <TabPanel header="Staking View">
+            <StakingView onError={handleError} onSuccess={handleSuccess} />
           </TabPanel>
 
           <TabPanel header="Social Profiles">

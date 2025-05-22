@@ -49,7 +49,10 @@ export const fetchNftHolders = async (searchTerm?: string): Promise<NFTHolder[]>
 };
 
 // Fetch token holders
-export const fetchTokenHolders = async (searchTerm?: string, snapshotId?: number): Promise<TokenHolder[]> => {
+export const fetchTokenHolders = async (
+  searchTerm?: string,
+  snapshotId?: number
+): Promise<TokenHolder[]> => {
   try {
     const baseUrl = getApiUrl();
     let url;
@@ -323,11 +326,11 @@ const API_BASE = '/api';
 export async function fetchTokenSnapshotsWithEvents(limit = 5): Promise<EventTokenSnapshot[]> {
   try {
     const response = await fetch(`${API_BASE}/events/token/snapshots?limit=${limit}`);
-    
+
     if (!response.ok) {
       throw new Error(`Failed to fetch token snapshots: ${response.statusText}`);
     }
-    
+
     const data = await response.json();
     return data;
   } catch (error) {
@@ -342,11 +345,11 @@ export async function fetchTokenSnapshotsWithEvents(limit = 5): Promise<EventTok
 export async function fetchTokenSnapshots(): Promise<any[]> {
   try {
     const response = await fetch(`${API_BASE}/token-snapshots`);
-    
+
     if (!response.ok) {
       throw new Error(`Failed to fetch token snapshots: ${response.statusText}`);
     }
-    
+
     const data = await response.json();
     return data;
   } catch (error) {
@@ -361,15 +364,180 @@ export async function fetchTokenSnapshots(): Promise<any[]> {
 export async function fetchNFTSnapshotsWithEvents(limit = 5): Promise<EventNFTSnapshot[]> {
   try {
     const response = await fetch(`${API_BASE}/events/nft/snapshots?limit=${limit}`);
-    
+
     if (!response.ok) {
       throw new Error(`Failed to fetch NFT snapshots: ${response.statusText}`);
     }
-    
+
     const data = await response.json();
     return data;
   } catch (error) {
     console.error('Error fetching NFT snapshots with events:', error);
     return [];
+  }
+}
+
+// Fetch staking data
+export function fetchStakingData(searchTerm?: string, snapshotId?: number): Promise<any[]> {
+  try {
+    const baseUrl = getApiUrl();
+    let url;
+
+    // Handle relative URLs properly
+    if (baseUrl.startsWith('/')) {
+      // For relative URLs, append to current origin
+      url = `${window.location.origin}${baseUrl}/staking`;
+    } else {
+      // For absolute URLs, use as is
+      url = `${baseUrl}/staking`;
+    }
+
+    // Add parameters if needed
+    const finalUrl = new URL(url);
+    if (searchTerm) {
+      finalUrl.searchParams.append('search', searchTerm);
+    }
+    if (snapshotId !== undefined && snapshotId !== null) {
+      finalUrl.searchParams.append('snapshotId', snapshotId.toString());
+    }
+
+    console.log('Fetching staking data from:', finalUrl.toString());
+    const response = fetch(finalUrl.toString());
+
+    return response.then(res => {
+      if (!res.ok) {
+        return res
+          .json()
+          .catch(() => ({}))
+          .then(errorData => {
+            throw new Error(
+              `Failed to fetch staking data: ${res.status} ${res.statusText} ${errorData.message || ''}`
+            );
+          });
+      }
+      return res.json();
+    });
+  } catch (error: any) {
+    console.error('Error fetching staking data:', error);
+    throw error;
+  }
+}
+
+// Take staking snapshot
+export function takeStakingSnapshot(): Promise<any> {
+  try {
+    const baseUrl = getApiUrl();
+    let url;
+
+    // Handle relative URLs properly
+    if (baseUrl.startsWith('/')) {
+      // For relative URLs, append to current origin
+      url = `${window.location.origin}${baseUrl}/staking-snapshot`;
+    } else {
+      // For absolute URLs, use as is
+      url = `${baseUrl}/staking-snapshot`;
+    }
+
+    console.log('Taking staking snapshot from:', url);
+    const response = fetch(url, {
+      method: 'POST',
+    });
+
+    return response.then(res => {
+      if (!res.ok) {
+        return res
+          .json()
+          .catch(() => ({}))
+          .then(errorData => {
+            throw new Error(
+              `Failed to take staking snapshot: ${res.status} ${res.statusText} ${errorData.message || ''}`
+            );
+          });
+      }
+      return res.json();
+    });
+  } catch (error: any) {
+    console.error('Error taking staking snapshot:', error);
+    throw error;
+  }
+}
+
+// Fetch staking snapshots
+export function fetchStakingSnapshots(): Promise<any[]> {
+  try {
+    const baseUrl = getApiUrl();
+    let url;
+
+    // Handle relative URLs properly
+    if (baseUrl.startsWith('/')) {
+      // For relative URLs, append to current origin
+      url = `${window.location.origin}${baseUrl}/staking-snapshots`;
+    } else {
+      // For absolute URLs, use as is
+      url = `${baseUrl}/staking-snapshots`;
+    }
+
+    console.log('Fetching staking snapshots from:', url);
+    const response = fetch(url);
+
+    return response.then(res => {
+      if (!res.ok) {
+        return res
+          .json()
+          .catch(() => ({}))
+          .then(errorData => {
+            throw new Error(
+              `Failed to fetch staking snapshots: ${res.status} ${res.statusText} ${errorData.message || ''}`
+            );
+          });
+      }
+      return res.json();
+    });
+  } catch (error: any) {
+    console.error('Error fetching staking snapshots:', error);
+    throw error;
+  }
+}
+
+// Fetch unlock summary
+export function fetchUnlockSummary(snapshotId?: number): Promise<any[]> {
+  try {
+    const baseUrl = getApiUrl();
+    let url;
+
+    // Handle relative URLs properly
+    if (baseUrl.startsWith('/')) {
+      // For relative URLs, append to current origin
+      url = `${window.location.origin}${baseUrl}/staking-unlock-summary`;
+    } else {
+      // For absolute URLs, use as is
+      url = `${baseUrl}/staking-unlock-summary`;
+    }
+
+    // Add parameters if needed
+    const finalUrl = new URL(url);
+    if (snapshotId !== undefined && snapshotId !== null) {
+      finalUrl.searchParams.append('snapshotId', snapshotId.toString());
+    }
+
+    console.log('Fetching unlock summary from:', finalUrl.toString());
+    const response = fetch(finalUrl.toString());
+
+    return response.then(res => {
+      if (!res.ok) {
+        return res
+          .json()
+          .catch(() => ({}))
+          .then(errorData => {
+            throw new Error(
+              `Failed to fetch unlock summary: ${res.status} ${res.statusText} ${errorData.message || ''}`
+            );
+          });
+      }
+      return res.json();
+    });
+  } catch (error: any) {
+    console.error('Error fetching unlock summary:', error);
+    throw error;
   }
 }
