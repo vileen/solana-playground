@@ -64,7 +64,7 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
     const [selectedProfile, setSelectedProfile] = useState<any>(null);
     const appNavigation = useAppNavigation();
     // Add state for sorting
-    const [sortField, setSortField] = useState<string>('totalStaked');
+    const [sortField, setSortField] = useState<string>('totalTokenBalance');
     const [sortOrder, setSortOrder] = useState<1 | -1>(-1); // -1 for descending
 
     // Expose methods via ref
@@ -203,15 +203,15 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
           );
         }
 
-        // Apply default sorting (prioritize staking totals, then tokens, then NFTs)
+        // Apply default sorting (prioritize tokens, then staking, then NFTs)
         filteredProfiles.sort((a, b) => {
-          // First sort by totalStaked
-          if (a.totalStaked !== b.totalStaked) {
-            return b.totalStaked - a.totalStaked; // Descending order
-          }
-          // Then sort by totalTokenBalance
+          // First sort by totalTokenBalance
           if (a.totalTokenBalance !== b.totalTokenBalance) {
             return b.totalTokenBalance - a.totalTokenBalance; // Descending order
+          }
+          // Then sort by totalStaked
+          if (a.totalStaked !== b.totalStaked) {
+            return b.totalStaked - a.totalStaked; // Descending order
           }
           // Then sort by totalNftCount
           return b.totalNftCount - a.totalNftCount; // Descending order
