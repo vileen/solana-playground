@@ -10,13 +10,13 @@
 }
 
 [data-theme='dark'] {
-  --surface-ground: #121212;
-  --surface-section: #1e1e1e;
-  --surface-card: #262626;
-  --surface-overlay: #2b2b2b;
-  --surface-border: #383838;
-  --text-color: #f8f9fa;
-  --text-color-secondary: #e0e0e0;
+  --surface-ground: #1a1b23;
+  --surface-section: #2d2e3f;
+  --surface-card: #383a4a;
+  --surface-overlay: #434556;
+  --surface-border: #5a5d6e;
+  --text-color: #f1f3f9;
+  --text-color-secondary: #c8cdd8;
 }
 
 body {
@@ -80,24 +80,45 @@ body {
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
   font-size: 0.875rem;
-  background-color: rgba(99, 102, 241, 0.1);
+  background-color: rgba(99, 102, 241, 0.15);
+  color: var(--text-color);
 }
 
 .nft-item.gen1 {
-  background-color: rgba(99, 102, 241, 0.2);
+  background-color: rgba(99, 102, 241, 0.25);
 }
 
 .nft-item.infant {
-  background-color: rgba(240, 180, 41, 0.2);
+  background-color: rgba(255, 193, 7, 0.25);
+}
+
+[data-theme='dark'] .nft-item {
+  background-color: rgba(99, 102, 241, 0.2);
+}
+
+[data-theme='dark'] .nft-item.gen1 {
+  background-color: rgba(99, 102, 241, 0.3);
+}
+
+[data-theme='dark'] .nft-item.infant {
+  background-color: rgba(255, 193, 7, 0.3);
 }
 
 .highlight-row {
-  background-color: rgba(99, 102, 241, 0.05) !important;
+  background-color: rgba(99, 102, 241, 0.08) !important;
+}
+
+[data-theme='dark'] .highlight-row {
+  background-color: rgba(99, 102, 241, 0.15) !important;
 }
 
 .whale-row {
-  background-color: rgba(99, 102, 241, 0.1) !important;
+  background-color: rgba(99, 102, 241, 0.12) !important;
   font-weight: 500;
+}
+
+[data-theme='dark'] .whale-row {
+  background-color: rgba(99, 102, 241, 0.2) !important;
 }
 
 /* Table header styles */
@@ -254,7 +275,11 @@ body {
 }
 
 .p-datatable .p-datatable-tbody > tr:hover {
-  background: rgba(0, 0, 0, 0.04) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme='dark'] .p-datatable .p-datatable-tbody > tr:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
 }
 
 /* Fix for row expansion */
@@ -269,8 +294,8 @@ body {
 
 /* Theme-related styles */
 .dark-theme {
-  background-color: #1e1e1e;
-  color: #e0e0e0;
+  background-color: var(--surface-ground);
+  color: var(--text-color);
 }
 
 .light-theme {
@@ -322,11 +347,11 @@ body {
 
 /* Highlight rows with social profiles - more direct approach */
 .p-datatable-tbody > tr.has-social-profile {
-  background-color: rgba(25, 118, 210, 0.15) !important;
+  background-color: rgba(99, 102, 241, 0.15) !important;
 }
 
-.dark-theme .p-datatable-tbody > tr.has-social-profile {
-  background-color: rgba(25, 118, 210, 0.2) !important;
+[data-theme='dark'] .p-datatable-tbody > tr.has-social-profile {
+  background-color: rgba(99, 102, 241, 0.25) !important;
 }
 
 .light-theme .p-datatable-tbody > tr.has-social-profile {
@@ -340,11 +365,11 @@ body {
 
 /* Super specific selector for highlighted rows */
 table tbody tr.has-social-profile {
-  background-color: rgba(25, 118, 210, 0.2) !important;
+  background-color: rgba(99, 102, 241, 0.2) !important;
 }
 
-.dark-theme table tbody tr.has-social-profile {
-  background-color: rgba(25, 118, 210, 0.25) !important;
+[data-theme='dark'] table tbody tr.has-social-profile {
+  background-color: rgba(99, 102, 241, 0.3) !important;
 }
 
 .light-theme table tbody tr.has-social-profile {
