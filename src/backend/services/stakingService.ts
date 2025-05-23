@@ -93,25 +93,25 @@ export async function fetchStakingData(
 
     // Fetch recent transactions involving the token account
     console.time('fetchStakingData:getTransactions');
-    console.log(
-      '[Staking Service] Fetching transactions for token account (limited to 100 pages)...'
-    );
+    console.log('[Staking Service] Fetching transactions for token account...');
 
-    // Get transactions using pagination (limited to 100 pages)
+    // Get transactions using pagination
     let allSignatures: Awaited<ReturnType<typeof connection.getSignaturesForAddress>> = [];
     let currentLastSignature: string | undefined = undefined;
     let hasMore = true;
     let page = 1;
-    const MAX_PAGES = 100; // Limit to 100 pages (10,000 transactions)
 
     // For incremental updates, we start after the last signature
     const initialOptions: any = { limit: 100 };
     if (isIncremental) {
-      initialOptions.until = lastSignature; // Get transactions after the last signature
+      // IMPORTANT FIX: For incremental updates, we need to use 'until' to get transactions AFTER the last signature
+      // not 'before' which would get transactions BEFORE the signature
+      initialOptions.until = lastSignature;
+      console.log(`[Staking Service] Using 'until=${lastSignature}' for incremental update`);
     }
 
-    while (hasMore && page <= MAX_PAGES) {
-      console.log(`[Staking Service] Fetching transaction signatures page ${page}/${MAX_PAGES}...`);
+    while (hasMore) {
+      console.log(`[Staking Service] Fetching transaction signatures page ${page}...`);
       const options: any = { ...initialOptions };
 
       if (currentLastSignature) {
@@ -126,6 +126,9 @@ export async function fetchStakingData(
         // If this is the first page, save the newest signature for incremental updates
         if (page === 1 && signatures.length > 0) {
           currentLastSignature = signatures[0].signature;
+          console.log(
+            `[Staking Service] Newest signature for incremental updates: ${currentLastSignature}`
+          );
         }
 
         // Add to our collection
@@ -155,19 +158,19 @@ export async function fetchStakingData(
           hasMore = false;
         }
       }
-
-      // If we've reached the max pages, log it
-      if (page > MAX_PAGES) {
-        console.log(
-          `[Staking Service] Reached maximum number of pages (${MAX_PAGES}), stopping pagination`
-        );
-      }
     }
 
     console.log(`[Staking Service] Total signatures found: ${allSignatures.length}`);
 
     // Store the newest signature for returning (for the next incremental update)
     const newestSignature = allSignatures.length > 0 ? allSignatures[0].signature : undefined;
+    if (newestSignature) {
+      console.log(
+        `[Staking Service] Newest signature for next incremental update: ${newestSignature}`
+      );
+    } else {
+      console.log('[Staking Service] No signatures found, no newest signature to return');
+    }
 
     // Get the transaction details - IMPROVED BATCHING AND RATE LIMITING
     console.log('[Staking Service] Fetching transaction details with batching...');
@@ -181,7 +184,9 @@ export async function fetchStakingData(
     for (let i = 0; i < allSignatures.length; i += BATCH_SIZE) {
       const batchSignatures = allSignatures.slice(i, i + BATCH_SIZE);
       console.log(
-        `[Staking Service] Processing batch ${i / BATCH_SIZE + 1}/${Math.ceil(allSignatures.length / BATCH_SIZE)}`
+        `[Staking Service] Processing batch ${i / BATCH_SIZE + 1}/${Math.ceil(
+          allSignatures.length / BATCH_SIZE
+        )}`
       );
 
       // Retry mechanism for each batch
@@ -237,8 +242,8 @@ export async function fetchStakingData(
     let walletStakesMap = new Map<
       string,
       {
-        deposits: Array<{ amount: number; timestamp: number }>;
-        withdrawals: Array<{ amount: number; timestamp: number }>;
+        deposits: Array<{ amount: number; timestamp: number; signature: string }>;
+        withdrawals: Array<{ amount: number; timestamp: number; signature: string }>;
         netAmount: number;
       }
     >();
@@ -256,7 +261,7 @@ export async function fetchStakingData(
           // Only include wallets with positive balances
           if (stakeData.totalStaked > 0) {
             // Create deposits and withdrawals arrays from stakes
-            const deposits: Array<{ amount: number; timestamp: number }> = [];
+            const deposits: Array<{ amount: number; timestamp: number; signature: string }> = [];
 
             // Create a single deposit entry for each stake
             for (const stake of stakeData.stakes) {
@@ -264,6 +269,7 @@ export async function fetchStakingData(
               deposits.push({
                 amount: stake.amount,
                 timestamp: stakeDate,
+                signature: '',
               });
             }
 
@@ -329,7 +335,9 @@ export async function fetchStakingData(
 
     if (percentDifference > 1) {
       console.warn(
-        `[Staking Service] WARNING: Calculated total differs from actual balance by ${percentDifference.toFixed(2)}%`
+        `[Staking Service] WARNING: Calculated total differs from actual balance by ${percentDifference.toFixed(
+          2
+        )}%`
       );
       console.warn(`[Staking Service] This may indicate issues with transaction processing logic`);
       console.warn(
@@ -380,8 +388,8 @@ function processSPLTransferTransaction(
   walletStakesMap: Map<
     string,
     {
-      deposits: Array<{ amount: number; timestamp: number }>;
-      withdrawals: Array<{ amount: number; timestamp: number }>;
+      deposits: Array<{ amount: number; timestamp: number; signature: string }>;
+      withdrawals: Array<{ amount: number; timestamp: number; signature: string }>;
       netAmount: number;
     }
   >,
@@ -391,7 +399,9 @@ function processSPLTransferTransaction(
   if (tx.meta?.err) return;
 
   try {
-    console.log(`[Staking Service] Processing transaction ${tx.transaction.signatures[0]}`);
+    // Get transaction signature for tracking
+    const signature = tx.transaction.signatures[0] || '';
+    console.log(`[Staking Service] Processing transaction ${signature}`);
 
     // Get transaction timestamp
     const timestamp = tx.blockTime ? tx.blockTime * 1000 : Date.now();
@@ -447,6 +457,8 @@ function processSPLTransferTransaction(
             const withdrawalAmount = contractPreAmount - contractPostAmount;
             console.log(`[Staking Service] Contract withdrew ${withdrawalAmount} tokens`);
 
+            let withdrawalRecorded = false;
+
             // Find the user account that gained tokens
             for (const [userAccount, ownerAddress] of userTokenAccounts.entries()) {
               const userPreBalance = preBalances.find(
@@ -461,17 +473,38 @@ function processSPLTransferTransaction(
                   userAccount
               );
 
-              if (userPreBalance && userPostBalance) {
-                const userPreAmount = userPreBalance.uiTokenAmount.uiAmount || 0;
+              // Handle both cases: existing account (has pre-balance) and new account (no pre-balance)
+              if (userPostBalance) {
+                const userPreAmount = userPreBalance?.uiTokenAmount.uiAmount || 0; // Default to 0 if no pre-balance
                 const userPostAmount = userPostBalance.uiTokenAmount.uiAmount || 0;
+                const gainAmount = userPostAmount - userPreAmount;
+
+                // Debug logging for withdrawal matching
+                if (
+                  signature.includes(
+                    'pJo4MFP99wiVQUqoEMHRpeQHR9ui9oNDGYFx7j2b5eHkGmBvum9L8VH3LNnGEnqmP853Bb4MMwturw8umamZj8c'
+                  )
+                ) {
+                  console.log(`[DEBUG WITHDRAWAL] User account: ${userAccount}`);
+                  console.log(`[DEBUG WITHDRAWAL] Owner: ${ownerAddress}`);
+                  console.log(
+                    `[DEBUG WITHDRAWAL] User pre: ${userPreAmount}, post: ${userPostAmount}`
+                  );
+                  console.log(`[DEBUG WITHDRAWAL] Gain amount: ${gainAmount}`);
+                  console.log(`[DEBUG WITHDRAWAL] Withdrawal amount: ${withdrawalAmount}`);
+                  console.log(
+                    `[DEBUG WITHDRAWAL] Difference: ${Math.abs(gainAmount - withdrawalAmount)}`
+                  );
+                  console.log(`[DEBUG WITHDRAWAL] Has pre-balance: ${!!userPreBalance}`);
+                }
 
                 if (userPostAmount > userPreAmount) {
-                  const gainAmount = userPostAmount - userPreAmount;
+                  // Increase tolerance and also check for approximate matches
+                  const tolerance = Math.max(1, withdrawalAmount * 0.001); // 0.1% tolerance or minimum 1 token
 
-                  // If the gain is approximately equal to the withdrawal (allowing for small differences due to fees)
-                  if (Math.abs(gainAmount - withdrawalAmount) < 1) {
+                  if (Math.abs(gainAmount - withdrawalAmount) < tolerance) {
                     console.log(
-                      `[Staking Service] Detected withdrawal of ${withdrawalAmount} tokens to wallet ${ownerAddress}`
+                      `[Staking Service] Detected withdrawal of ${withdrawalAmount} tokens to wallet ${ownerAddress} (signature: ${signature})`
                     );
 
                     // Initialize wallet entry if not exists
@@ -483,10 +516,11 @@ function processSPLTransferTransaction(
                       });
                     }
 
-                    // Record withdrawal
+                    // Record withdrawal with signature
                     const walletInfo = walletStakesMap.get(ownerAddress)!;
-                    walletInfo.withdrawals.push({ amount: withdrawalAmount, timestamp });
+                    walletInfo.withdrawals.push({ amount: withdrawalAmount, timestamp, signature });
                     walletInfo.netAmount -= withdrawalAmount;
+                    withdrawalRecorded = true;
 
                     // FIX: Don't reset negative net amounts to zero
                     // Instead, keep track of negative balances which will be handled properly in formatStakingData
@@ -496,6 +530,58 @@ function processSPLTransferTransaction(
                       );
                       // We'll leave the negative balance as is to be handled properly later
                     }
+                    break; // Exit the loop once we've recorded the withdrawal
+                  } else if (
+                    signature.includes(
+                      'pJo4MFP99wiVQUqoEMHRpeQHR9ui9oNDGYFx7j2b5eHkGmBvum9L8VH3LNnGEnqmP853Bb4MMwturw8umamZj8c'
+                    )
+                  ) {
+                    console.log(
+                      `[DEBUG WITHDRAWAL] Tolerance check failed: ${Math.abs(gainAmount - withdrawalAmount)} >= ${tolerance}`
+                    );
+                  }
+                }
+              }
+            }
+
+            // If withdrawal wasn't recorded, log for debugging
+            if (!withdrawalRecorded) {
+              console.log(
+                `[Staking Service] WARNING: Failed to record withdrawal of ${withdrawalAmount} tokens (signature: ${signature})`
+              );
+
+              // For debugging the specific problematic transaction
+              if (
+                signature.includes(
+                  'pJo4MFP99wiVQUqoEMHRpeQHR9ui9oNDGYFx7j2b5eHkGmBvum9L8VH3LNnGEnqmP853Bb4MMwturw8umamZj8c'
+                )
+              ) {
+                console.log('[DEBUG WITHDRAWAL] Detailed account analysis:');
+                console.log(
+                  `[DEBUG WITHDRAWAL] Contract token accounts found: ${contractTokenAccounts.size}`
+                );
+                console.log(
+                  `[DEBUG WITHDRAWAL] User token accounts found: ${userTokenAccounts.size}`
+                );
+
+                for (const [userAccount, ownerAddress] of userTokenAccounts.entries()) {
+                  const userPreBalance = preBalances.find(
+                    balance =>
+                      tx.transaction.message.accountKeys[balance.accountIndex].pubkey.toString() ===
+                      userAccount
+                  );
+                  const userPostBalance = postBalances.find(
+                    balance =>
+                      tx.transaction.message.accountKeys[balance.accountIndex].pubkey.toString() ===
+                      userAccount
+                  );
+
+                  if (userPreBalance && userPostBalance) {
+                    const userPreAmount = userPreBalance.uiTokenAmount.uiAmount || 0;
+                    const userPostAmount = userPostBalance.uiTokenAmount.uiAmount || 0;
+                    console.log(
+                      `[DEBUG WITHDRAWAL] Account ${userAccount} (owner: ${ownerAddress}): ${userPreAmount} -> ${userPostAmount} (change: ${userPostAmount - userPreAmount})`
+                    );
                   }
                 }
               }
@@ -531,7 +617,7 @@ function processSPLTransferTransaction(
                   // If the loss is approximately equal to the deposit (allowing for small differences due to fees)
                   if (Math.abs(lossAmount - depositAmount) < 1) {
                     console.log(
-                      `[Staking Service] Detected deposit of ${depositAmount} tokens from wallet ${ownerAddress}`
+                      `[Staking Service] Detected deposit of ${depositAmount} tokens from wallet ${ownerAddress} (signature: ${signature})`
                     );
 
                     // Initialize wallet entry if not exists
@@ -543,9 +629,9 @@ function processSPLTransferTransaction(
                       });
                     }
 
-                    // Record deposit
+                    // Record deposit with signature
                     const walletInfo = walletStakesMap.get(ownerAddress)!;
-                    walletInfo.deposits.push({ amount: depositAmount, timestamp });
+                    walletInfo.deposits.push({ amount: depositAmount, timestamp, signature });
                     walletInfo.netAmount += depositAmount;
                   }
                 }
@@ -576,8 +662,8 @@ function formatStakingData(
   walletStakesMap: Map<
     string,
     {
-      deposits: Array<{ amount: number; timestamp: number }>;
-      withdrawals: Array<{ amount: number; timestamp: number }>;
+      deposits: Array<{ amount: number; timestamp: number; signature: string }>;
+      withdrawals: Array<{ amount: number; timestamp: number; signature: string }>;
       netAmount: number;
     }
   >,
@@ -589,19 +675,34 @@ function formatStakingData(
   const stakeDataArray: StakeData[] = [];
   const STAKING_PERIOD_DAYS = 90;
 
-  // Special case wallet override based on known actual values
-  const WALLET_OVERRIDES: Record<string, number> = {
-    F5Vw7k9rwy9QFtbjJdvnyJiA6Hs3bfxszeuYMDQXHQtd: 63117,
-    // Add other wallet overrides here if needed
-  };
+  // DEBUG WALLET: F5Vw7k9rwy9QFtbjJdvnyJiA6Hs3bfxszeuYMDQXHQtd
+  const DEBUG_WALLET = 'F5Vw7k9rwy9QFtbjJdvnyJiA6Hs3bfxszeuYMDQXHQtd';
 
+  // Remove wallet overrides and process all wallets using the same logic
   for (const [walletAddress, stakeInfo] of walletStakesMap.entries()) {
-    // Apply special case overrides if applicable
-    if (WALLET_OVERRIDES[walletAddress]) {
-      console.log(
-        `[Staking Service] Applying override for wallet ${walletAddress}: ${WALLET_OVERRIDES[walletAddress]}`
-      );
-      stakeInfo.netAmount = WALLET_OVERRIDES[walletAddress];
+    const isDebugWallet = walletAddress === DEBUG_WALLET;
+
+    if (isDebugWallet) {
+      console.log(`\n[STAKE DEBUG] ========= Processing debug wallet ${DEBUG_WALLET} =========`);
+      console.log(`[STAKE DEBUG] Raw net amount: ${stakeInfo.netAmount}`);
+      console.log(`[STAKE DEBUG] Deposits count: ${stakeInfo.deposits.length}`);
+      console.log(`[STAKE DEBUG] Withdrawals count: ${stakeInfo.withdrawals.length}`);
+
+      // Log all deposits
+      console.log('[STAKE DEBUG] === DEPOSITS ===');
+      stakeInfo.deposits.forEach((deposit, i) => {
+        console.log(
+          `[STAKE DEBUG] Deposit #${i}: ${deposit.amount} tokens at ${new Date(deposit.timestamp).toISOString()} - Signature: ${deposit.signature}`
+        );
+      });
+
+      // Log all withdrawals
+      console.log('[STAKE DEBUG] === WITHDRAWALS ===');
+      stakeInfo.withdrawals.forEach((withdrawal, i) => {
+        console.log(
+          `[STAKE DEBUG] Withdrawal #${i}: ${withdrawal.amount} tokens at ${new Date(withdrawal.timestamp).toISOString()} - Signature: ${withdrawal.signature}`
+        );
+      });
     }
 
     // Calculate raw totals
@@ -612,15 +713,23 @@ function formatStakingData(
     );
     const rawNetAmount = totalDeposits - totalWithdrawals;
 
-    // Skip wallets with zero or negative final balances unless they have overrides
-    if (!WALLET_OVERRIDES[walletAddress] && rawNetAmount <= 0) {
-      console.log(
-        `[Staking Service] Skipping wallet ${walletAddress} with zero or negative balance (${rawNetAmount})`
-      );
+    if (isDebugWallet) {
+      console.log(`[STAKE DEBUG] Total deposits: ${totalDeposits}`);
+      console.log(`[STAKE DEBUG] Total withdrawals: ${totalWithdrawals}`);
+      console.log(`[STAKE DEBUG] Raw net amount: ${rawNetAmount}`);
+    }
+
+    // Skip wallets with zero or negative final balances
+    if (rawNetAmount <= 0) {
+      if (isDebugWallet) {
+        console.log(
+          `[STAKE DEBUG] Skipping wallet with zero or negative balance (${rawNetAmount})`
+        );
+      }
       continue;
     }
 
-    // IMPROVED APPROACH: Use chronological timeline to determine the true staking balance
+    // Use chronological approach for all wallets to properly track stakes
 
     // Sort all transactions chronologically
     const allTransactions = [
@@ -628,176 +737,168 @@ function formatStakingData(
         type: 'deposit' as const,
         amount: d.amount,
         timestamp: d.timestamp,
+        signature: d.signature,
       })),
       ...stakeInfo.withdrawals.map(w => ({
         type: 'withdrawal' as const,
         amount: w.amount,
         timestamp: w.timestamp,
+        signature: w.signature,
       })),
     ].sort((a, b) => a.timestamp - b.timestamp);
 
-    // Simulate the balance over time
-    let runningBalance = 0;
-    let lastDepositTimestamp = 0;
-    let hadNegativeBalance = false;
+    if (isDebugWallet) {
+      console.log('[STAKE DEBUG] === CHRONOLOGICAL TRANSACTION TIMELINE ===');
+      allTransactions.forEach((tx, i) => {
+        console.log(
+          `[STAKE DEBUG] Transaction #${i}: ${tx.type} of ${tx.amount} tokens at ${new Date(tx.timestamp).toISOString()} - Signature: ${tx.signature}`
+        );
+      });
+    }
 
+    // Use improved FIFO approach with chronological processing
+    // Track individual deposits as they come in and apply withdrawals in FIFO order
+    let activeDeposits: Array<{ amount: number; timestamp: number; signature: string }> = [];
+
+    if (isDebugWallet) {
+      console.log('[STAKE DEBUG] === FIFO PROCESSING STEPS ===');
+    }
+
+    // Process chronologically
     for (const tx of allTransactions) {
       if (tx.type === 'deposit') {
-        runningBalance += tx.amount;
-        lastDepositTimestamp = tx.timestamp;
-      } else {
-        runningBalance -= tx.amount;
-        if (runningBalance < 0) {
-          hadNegativeBalance = true;
+        // Add new deposit
+        activeDeposits.push({
+          amount: tx.amount,
+          timestamp: tx.timestamp,
+          signature: tx.signature,
+        });
+
+        if (isDebugWallet) {
+          console.log(
+            `[STAKE DEBUG] Added deposit of ${tx.amount} tokens at ${new Date(tx.timestamp).toISOString()} - Signature: ${tx.signature}`
+          );
+          console.log(
+            `[STAKE DEBUG] Active deposits count: ${activeDeposits.length}, total: ${activeDeposits.reduce((sum, d) => sum + d.amount, 0)}`
+          );
+        }
+      } else if (tx.type === 'withdrawal') {
+        // Process withdrawal using FIFO
+        let remainingWithdrawal = tx.amount;
+
+        if (isDebugWallet) {
+          console.log(
+            `[STAKE DEBUG] Processing withdrawal of ${tx.amount} tokens at ${new Date(tx.timestamp).toISOString()} - Signature: ${tx.signature}`
+          );
+        }
+
+        // Keep going until the full withdrawal is applied or we run out of deposits
+        while (remainingWithdrawal > 0 && activeDeposits.length > 0) {
+          const oldestDeposit = activeDeposits[0];
+
+          if (oldestDeposit.amount > remainingWithdrawal) {
+            // Partial withdrawal from this deposit
+            oldestDeposit.amount -= remainingWithdrawal;
+
+            if (isDebugWallet) {
+              console.log(
+                `[STAKE DEBUG] Partial withdrawal: ${remainingWithdrawal} tokens from deposit at ${new Date(oldestDeposit.timestamp).toISOString()} (Signature: ${oldestDeposit.signature}), ${oldestDeposit.amount} remaining`
+              );
+            }
+
+            remainingWithdrawal = 0;
+          } else {
+            // Full withdrawal of this deposit
+            remainingWithdrawal -= oldestDeposit.amount;
+
+            if (isDebugWallet) {
+              console.log(
+                `[STAKE DEBUG] Full withdrawal: ${oldestDeposit.amount} tokens from deposit at ${new Date(oldestDeposit.timestamp).toISOString()} (Signature: ${oldestDeposit.signature})`
+              );
+            }
+
+            // Remove this deposit
+            activeDeposits.shift();
+          }
+        }
+
+        if (isDebugWallet) {
+          if (remainingWithdrawal > 0) {
+            console.log(
+              `[STAKE DEBUG] WARNING: Withdrawal exceeds deposits by ${remainingWithdrawal} tokens`
+            );
+          }
+          console.log(
+            `[STAKE DEBUG] Active deposits after withdrawal: ${activeDeposits.length}, total: ${activeDeposits.reduce((sum, d) => sum + d.amount, 0)}`
+          );
         }
       }
     }
 
-    // If there were negative balances, create a synthetic deposit for the final balance
-    if (hadNegativeBalance && runningBalance > 0) {
-      console.log(
-        `[Staking Service] Wallet ${walletAddress} had negative balances during timeline but ended positive`
-      );
-      console.log(
-        `[Staking Service] Creating synthetic deposit of ${runningBalance} tokens at ${new Date(lastDepositTimestamp).toISOString()}`
-      );
+    // Filter out deposits with zero amount
+    activeDeposits = activeDeposits.filter(d => d.amount > 0);
 
-      // Create a stake record representing the final balance
-      const depositDate = new Date(lastDepositTimestamp);
-      const unlockDate = new Date(depositDate);
-      unlockDate.setDate(unlockDate.getDate() + STAKING_PERIOD_DAYS);
-
-      const isLocked = unlockDate > now;
-
-      // Use the final balance as the staked amount
-      const totalStaked = runningBalance;
-      const totalLocked = isLocked ? totalStaked : 0;
-      const totalUnlocked = isLocked ? 0 : totalStaked;
-
-      if (totalStaked > 0) {
-        stakeDataArray.push({
-          walletAddress,
-          totalStaked,
-          totalLocked,
-          totalUnlocked,
-          stakes: [
-            {
-              amount: totalStaked,
-              stakeDate: depositDate.toISOString(),
-              unlockDate: unlockDate.toISOString(),
-              isLocked,
-              mintAddress: TOKEN_MINT_ADDRESS,
-            },
-          ],
-        });
-      }
+    if (isDebugWallet) {
+      console.log('[STAKE DEBUG] === FINAL ACTIVE DEPOSITS AFTER PROCESSING ===');
+      activeDeposits.forEach((deposit, i) => {
+        console.log(
+          `[STAKE DEBUG] Active deposit #${i}: ${deposit.amount} tokens from ${new Date(deposit.timestamp).toISOString()} - Signature: ${deposit.signature}`
+        );
+      });
     }
-    // For wallets with special overrides
-    else if (WALLET_OVERRIDES[walletAddress]) {
-      // Use the most recent deposit timestamp or current date if no deposits
-      const mostRecentTimestamp =
-        stakeInfo.deposits.length > 0
-          ? Math.max(...stakeInfo.deposits.map(d => d.timestamp))
-          : Date.now();
 
-      const depositDate = new Date(mostRecentTimestamp);
+    // Calculate stakes from active deposits
+    const stakes = activeDeposits.map(deposit => {
+      const depositDate = new Date(deposit.timestamp);
       const unlockDate = new Date(depositDate);
       unlockDate.setDate(unlockDate.getDate() + STAKING_PERIOD_DAYS);
 
+      // Tokens are only considered unlocked if they're past unlock date
       const isLocked = unlockDate > now;
 
-      // Use the override value
-      const totalStaked = WALLET_OVERRIDES[walletAddress];
-      const totalLocked = isLocked ? totalStaked : 0;
-      const totalUnlocked = isLocked ? 0 : totalStaked;
+      if (isDebugWallet) {
+        console.log(
+          `[STAKE DEBUG] Created stake: ${deposit.amount} tokens, staked on ${depositDate.toISOString()}, unlocks on ${unlockDate.toISOString()}, currently ${isLocked ? 'LOCKED' : 'UNLOCKED'} - Original signature: ${deposit.signature}`
+        );
+      }
 
+      return {
+        amount: deposit.amount,
+        stakeDate: depositDate.toISOString(),
+        unlockDate: unlockDate.toISOString(),
+        isLocked,
+        mintAddress: TOKEN_MINT_ADDRESS,
+      };
+    });
+
+    // Calculate locked and unlocked amounts
+    const totalLocked = stakes
+      .filter(stake => stake.isLocked)
+      .reduce((sum, stake) => sum + stake.amount, 0);
+
+    const totalUnlocked = stakes
+      .filter(stake => !stake.isLocked)
+      .reduce((sum, stake) => sum + stake.amount, 0);
+
+    const totalStaked = totalLocked + totalUnlocked;
+
+    if (isDebugWallet) {
+      console.log(`[STAKE DEBUG] Final calculation results:`);
+      console.log(`[STAKE DEBUG] Total staked: ${totalStaked}`);
+      console.log(`[STAKE DEBUG] Total locked: ${totalLocked}`);
+      console.log(`[STAKE DEBUG] Total unlocked: ${totalUnlocked}`);
+      console.log(`[STAKE DEBUG] Number of separate stakes: ${stakes.length}`);
+      console.log('[STAKE DEBUG] ========= End of debug wallet processing =========\n');
+    }
+
+    if (totalStaked > 0) {
       stakeDataArray.push({
         walletAddress,
         totalStaked,
         totalLocked,
         totalUnlocked,
-        stakes: [
-          {
-            amount: totalStaked,
-            stakeDate: depositDate.toISOString(),
-            unlockDate: unlockDate.toISOString(),
-            isLocked,
-            mintAddress: TOKEN_MINT_ADDRESS,
-          },
-        ],
+        stakes,
       });
-    }
-    // For normal wallets with positive balances throughout
-    else if (rawNetAmount > 0) {
-      // Use the standard FIFO approach
-      let remainingDeposits = [...stakeInfo.deposits].sort((a, b) => a.timestamp - b.timestamp);
-      let remainingWithdrawals = [...stakeInfo.withdrawals].sort(
-        (a, b) => a.timestamp - b.timestamp
-      );
-
-      // Process withdrawals to reduce deposit amounts
-      let remainingWithdrawalAmount = 0;
-      for (const withdrawal of remainingWithdrawals) {
-        remainingWithdrawalAmount += withdrawal.amount;
-      }
-
-      // Reduce deposits by withdrawal amounts (FIFO order)
-      for (let i = 0; i < remainingDeposits.length; i++) {
-        const deposit = remainingDeposits[i];
-
-        if (remainingWithdrawalAmount >= deposit.amount) {
-          // This deposit has been fully withdrawn
-          remainingWithdrawalAmount -= deposit.amount;
-          deposit.amount = 0;
-        } else if (remainingWithdrawalAmount > 0) {
-          // This deposit has been partially withdrawn
-          deposit.amount -= remainingWithdrawalAmount;
-          remainingWithdrawalAmount = 0;
-        }
-        // Otherwise, this deposit is not affected by withdrawals
-      }
-
-      // Filter out deposits that have been completely withdrawn
-      remainingDeposits = remainingDeposits.filter(deposit => deposit.amount > 0);
-
-      // Calculate stakes from remaining deposit amounts
-      const stakes = remainingDeposits.map(deposit => {
-        const depositDate = new Date(deposit.timestamp);
-        const unlockDate = new Date(depositDate);
-        unlockDate.setDate(unlockDate.getDate() + STAKING_PERIOD_DAYS);
-
-        // Tokens are only considered unlocked if they're past unlock date
-        const isLocked = unlockDate > now;
-
-        return {
-          amount: deposit.amount,
-          stakeDate: depositDate.toISOString(),
-          unlockDate: unlockDate.toISOString(),
-          isLocked,
-          mintAddress: TOKEN_MINT_ADDRESS,
-        };
-      });
-
-      // Calculate locked and unlocked amounts
-      const totalLocked = stakes
-        .filter(stake => stake.isLocked)
-        .reduce((sum, stake) => sum + stake.amount, 0);
-
-      const totalUnlocked = stakes
-        .filter(stake => !stake.isLocked)
-        .reduce((sum, stake) => sum + stake.amount, 0);
-
-      const totalStaked = totalLocked + totalUnlocked;
-
-      if (totalStaked > 0) {
-        stakeDataArray.push({
-          walletAddress,
-          totalStaked,
-          totalLocked,
-          totalUnlocked,
-          stakes,
-        });
-      }
     }
   }
 
