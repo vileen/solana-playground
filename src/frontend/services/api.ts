@@ -500,7 +500,7 @@ export function fetchStakingSnapshots(): Promise<any[]> {
 }
 
 // Fetch unlock summary
-export function fetchUnlockSummary(snapshotId?: number): Promise<any[]> {
+export function fetchUnlockSummary(snapshotId?: number, walletAddress?: string): Promise<any[]> {
   try {
     const baseUrl = getApiUrl();
     let url;
@@ -518,6 +518,9 @@ export function fetchUnlockSummary(snapshotId?: number): Promise<any[]> {
     const finalUrl = new URL(url);
     if (snapshotId !== undefined && snapshotId !== null) {
       finalUrl.searchParams.append('snapshotId', snapshotId.toString());
+    }
+    if (walletAddress && walletAddress.trim() !== '') {
+      finalUrl.searchParams.append('walletAddress', walletAddress.trim());
     }
 
     console.log('Fetching unlock summary from:', finalUrl.toString());

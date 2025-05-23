@@ -133,7 +133,9 @@ const StakingView = ({ onError, onSuccess }: StakingViewProps) => {
   const fetchUnlockSummaryData = async () => {
     try {
       const snapshotIdParam = selectedSnapshotId === null ? undefined : selectedSnapshotId;
-      const summary = await fetchUnlockSummary(snapshotIdParam);
+      const walletAddressParam =
+        searchTerm && searchTerm.trim() !== '' ? searchTerm.trim() : undefined;
+      const summary = await fetchUnlockSummary(snapshotIdParam, walletAddressParam);
       setUnlockSummary(summary);
     } catch (error: any) {
       console.error('Error fetching unlock summary:', error);
@@ -147,6 +149,11 @@ const StakingView = ({ onError, onSuccess }: StakingViewProps) => {
       const snapshotIdParam = selectedSnapshotId === null ? undefined : selectedSnapshotId;
       const data = await fetchStakingData(value, snapshotIdParam);
       setStakingData(data);
+
+      // Also refresh the unlock summary with the new filter
+      const walletAddressParam = value && value.trim() !== '' ? value.trim() : undefined;
+      const summary = await fetchUnlockSummary(snapshotIdParam, walletAddressParam);
+      setUnlockSummary(summary);
     } catch (error: any) {
       console.error('Error searching staking data:', error);
       onError(`Failed to search staking data: ${error.message || 'Unknown error'}`);
@@ -361,6 +368,12 @@ const StakingView = ({ onError, onSuccess }: StakingViewProps) => {
 
   // Memoize chart options
   const chartOptions = useCallback((): ChartOptions => {
+    const isFiltered = searchTerm && searchTerm.trim() !== '';
+    const baseTitle = 'Future Token Unlock Schedule';
+    const title = isFiltered
+      ? `${baseTitle} - Wallet: ${searchTerm.substring(0, 8)}...`
+      : baseTitle;
+
     return {
       indexAxis: 'x',
       scales: {
@@ -414,7 +427,7 @@ const StakingView = ({ onError, onSuccess }: StakingViewProps) => {
         },
         title: {
           display: true,
-          text: 'Future Token Unlock Schedule',
+          text: title,
           font: {
             size: 16,
             weight: 'bold',
@@ -443,7 +456,7 @@ const StakingView = ({ onError, onSuccess }: StakingViewProps) => {
         },
       },
     };
-  }, []);
+  }, [searchTerm]);
 
   // Add an effect to clean up any chart instances when the dialog closes
   useEffect(() => {
@@ -455,9 +468,18 @@ const StakingView = ({ onError, onSuccess }: StakingViewProps) => {
 
   // Render unlock summary dialog
   const renderUnlockSummaryDialog = () => {
+    const isFiltered = searchTerm && searchTerm.trim() !== '';
+    const headerTitle = isFiltered
+      ? `Future Token Unlock Summary - Wallet: ${searchTerm.substring(0, 8)}...`
+      : 'Future Token Unlock Summary';
+
+    const descriptionText = isFiltered
+      ? `This chart shows the scheduled token unlocks from today onwards for wallet ${searchTerm}. It displays the amount of tokens that will be eligible for withdrawal on each date for this specific wallet.`
+      : 'This chart shows the scheduled token unlocks from today onwards. It displays the amount of tokens that will be eligible for withdrawal on each date.';
+
     return (
       <Dialog
-        header="Future Token Unlock Summary"
+        header={headerTitle}
         visible={unlockSummaryVisible}
         style={{ width: '80vw' }}
         onHide={() => {
@@ -467,10 +489,15 @@ const StakingView = ({ onError, onSuccess }: StakingViewProps) => {
       >
         <div className="card">
           <div className="mb-3">
-            <p className="text-lg">
-              This chart shows the scheduled token unlocks from today onwards. It displays the
-              amount of tokens that will be eligible for withdrawal on each date.
-            </p>
+            <p className="text-lg">{descriptionText}</p>
+            {isFiltered && (
+              <div className="p-3 mt-2 bg-blue-50 border-round">
+                <i className="pi pi-info-circle mr-2" style={{ color: '#2196F3' }}></i>
+                <span className="font-medium text-blue-800">
+                  Currently filtered by wallet: {searchTerm}
+                </span>
+              </div>
+            )}
           </div>
           <div style={{ height: '600px', position: 'relative' }}>
             {unlockSummaryVisible && (
@@ -522,68 +549,72 @@ const StakingView = ({ onError, onSuccess }: StakingViewProps) => {
                     header="Token Amount"
                     body={rowData => formatTokenAmount(rowData.amount)}
                   />
-                  <Column
-                    field="profiles"
-                    header="Social Profiles"
-                    body={rowData => {
-                      // Collect all wallet addresses that have tokens unlocking on this date
-                      const walletsWithUnlocksOnThisDate = stakingData.filter(stakeData =>
-                        stakeData.stakes.some(
-                          stake =>
-                            new Date(stake.unlockDate).toLocaleDateString() ===
-                              new Date(rowData.date).toLocaleDateString() && stake.isLocked
-                        )
-                      );
+                  {!isFiltered && (
+                    <Column
+                      field="profiles"
+                      header="Social Profiles"
+                      body={rowData => {
+                        // Collect all wallet addresses that have tokens unlocking on this date
+                        const walletsWithUnlocksOnThisDate = stakingData.filter(stakeData =>
+                          stakeData.stakes.some(
+                            stake =>
+                              new Date(stake.unlockDate).toLocaleDateString() ===
+                                new Date(rowData.date).toLocaleDateString() && stake.isLocked
+                          )
+                        );
 
-                      if (walletsWithUnlocksOnThisDate.length === 0) {
-                        return <span className="text-muted">-</span>;
-                      }
+                        if (walletsWithUnlocksOnThisDate.length === 0) {
+                          return <span className="text-muted">-</span>;
+                        }
 
-                      return (
-                        <div className="flex flex-column gap-2">
-                          {walletsWithUnlocksOnThisDate.map((wallet, index) => {
-                            const profile = socialProfiles[wallet.walletAddress];
-                            // Calculate how many tokens this wallet will get unlocked on this date
-                            const unlockAmountOnDate = wallet.stakes
-                              .filter(
-                                stake =>
-                                  new Date(stake.unlockDate).toLocaleDateString() ===
-                                    new Date(rowData.date).toLocaleDateString() && stake.isLocked
-                              )
-                              .reduce((sum, stake) => sum + stake.amount, 0);
+                        return (
+                          <div className="flex flex-column gap-2">
+                            {walletsWithUnlocksOnThisDate.map((wallet, index) => {
+                              const profile = socialProfiles[wallet.walletAddress];
+                              // Calculate how many tokens this wallet will get unlocked on this date
+                              const unlockAmountOnDate = wallet.stakes
+                                .filter(
+                                  stake =>
+                                    new Date(stake.unlockDate).toLocaleDateString() ===
+                                      new Date(rowData.date).toLocaleDateString() && stake.isLocked
+                                )
+                                .reduce((sum, stake) => sum + stake.amount, 0);
 
-                            return (
-                              <div
-                                key={index}
-                                className="flex align-items-center gap-2 p-2 border-bottom-1 border-300"
-                              >
-                                <div className="flex flex-wrap gap-1">
-                                  {profile ? (
-                                    <>
-                                      {profile.comment && (
-                                        <SocialPillComment text={profile.comment} />
-                                      )}
-                                      {profile.twitter && <SocialPillX handle={profile.twitter} />}
-                                      {profile.discord && (
-                                        <SocialPillDiscord handle={profile.discord} />
-                                      )}
-                                    </>
-                                  ) : (
-                                    <span className="text-xs text-color-secondary">
-                                      {wallet.walletAddress.substring(0, 8)}...
-                                    </span>
-                                  )}
+                              return (
+                                <div
+                                  key={index}
+                                  className="flex align-items-center gap-2 p-2 border-bottom-1 border-300"
+                                >
+                                  <div className="flex flex-wrap gap-1">
+                                    {profile ? (
+                                      <>
+                                        {profile.comment && (
+                                          <SocialPillComment text={profile.comment} />
+                                        )}
+                                        {profile.twitter && (
+                                          <SocialPillX handle={profile.twitter} />
+                                        )}
+                                        {profile.discord && (
+                                          <SocialPillDiscord handle={profile.discord} />
+                                        )}
+                                      </>
+                                    ) : (
+                                      <span className="text-xs text-color-secondary">
+                                        {wallet.walletAddress.substring(0, 8)}...
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="ml-auto font-medium text-color-secondary">
+                                    {formatTokenAmount(unlockAmountOnDate)}
+                                  </span>
                                 </div>
-                                <span className="ml-auto font-medium text-color-secondary">
-                                  {formatTokenAmount(unlockAmountOnDate)}
-                                </span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      );
-                    }}
-                  />
+                              );
+                            })}
+                          </div>
+                        );
+                      }}
+                    />
+                  )}
                 </DataTable>
               </>
             ) : (
