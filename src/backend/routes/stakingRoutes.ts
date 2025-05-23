@@ -100,10 +100,11 @@ router.get('/staking-snapshot/:id', async (req, res) => {
  */
 router.get('/staking-unlock-summary', async (req, res) => {
   try {
-    const { snapshotId } = req.query;
+    const { snapshotId, walletAddress } = req.query;
     const snapshotIdNum = snapshotId ? parseInt(String(snapshotId), 10) : undefined;
+    const walletAddressStr = walletAddress ? String(walletAddress) : undefined;
 
-    const summary = await getUnlockSummary(snapshotIdNum);
+    const summary = await getUnlockSummary(snapshotIdNum, walletAddressStr);
     return res.json(summary);
   } catch (error: any) {
     console.error('Error fetching unlock summary:', error);

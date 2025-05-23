@@ -1182,7 +1182,8 @@ export async function getFilteredStakingData(
  * Generate a summary of upcoming unlocks grouped by date
  */
 export async function getUnlockSummary(
-  snapshotId?: number
+  snapshotId?: number,
+  walletAddress?: string
 ): Promise<{ date: string; amount: number }[]> {
   try {
     // First check if we have a valid snapshot
@@ -1202,32 +1203,50 @@ export async function getUnlockSummary(
       snapshotIdToUse = latestSnapshotResult.rows[0].id;
     }
 
-    console.log(`[Staking Service] Generating unlock summary for snapshot ID: ${snapshotIdToUse}`);
+    console.log(
+      `[Staking Service] Generating unlock summary for snapshot ID: ${snapshotIdToUse}${walletAddress ? ` filtered by wallet: ${walletAddress}` : ''}`
+    );
 
     // Get today's date in YYYY-MM-DD format
     const today = new Date().toISOString().substring(0, 10);
     console.log(`[Staking Service] Filtering unlocks from today (${today}) onwards`);
 
-    // Query the database directly for unlock data grouped by date, filtering for dates from today
-    const unlockResult = await query(
-      `SELECT 
+    // Build the query with optional wallet filter
+    let sqlQuery = `SELECT 
         TO_CHAR(unlock_date, 'YYYY-MM-DD') AS date,
         SUM(amount) AS amount
       FROM 
         staking_stakes
       WHERE 
         snapshot_id = $1
-        AND unlock_date >= $2::date
-      GROUP BY 
+        AND unlock_date >= $2::date`;
+
+    const queryParams: any[] = [snapshotIdToUse, today];
+
+    // Add wallet filter if provided
+    if (walletAddress) {
+      sqlQuery += ` AND wallet_address = $3`;
+      queryParams.push(walletAddress);
+    }
+
+    sqlQuery += ` GROUP BY 
         TO_CHAR(unlock_date, 'YYYY-MM-DD')
       ORDER BY 
-        date ASC`,
-      [snapshotIdToUse, today]
-    );
+        date ASC`;
+
+    // Query the database directly for unlock data grouped by date, filtering for dates from today
+    const unlockResult = await query(sqlQuery, queryParams);
 
     // Check if we got any results
     if (unlockResult.rowCount === 0) {
-      console.log('[Staking Service] No future unlock data found for snapshot');
+      console.log(
+        `[Staking Service] No future unlock data found for snapshot${walletAddress ? ` and wallet ${walletAddress}` : ''}`
+      );
+
+      // If filtering by wallet and no results, return empty array instead of sample data
+      if (walletAddress) {
+        return [];
+      }
 
       // Get the total staked amount for this snapshot to generate sample data
       const totalStakedResult = await query(
@@ -1264,7 +1283,9 @@ export async function getUnlockSummary(
       amount: parseFloat(row.amount),
     }));
 
-    console.log(`[Staking Service] Generated unlock summary with ${unlockSummary.length} entries`);
+    console.log(
+      `[Staking Service] Generated unlock summary with ${unlockSummary.length} entries${walletAddress ? ` for wallet ${walletAddress}` : ''}`
+    );
     return unlockSummary;
   } catch (error) {
     console.error('[Staking Service] Error generating unlock summary:', error);
