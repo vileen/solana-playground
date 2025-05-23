@@ -15,6 +15,7 @@ import {
 
 import ProfileDialog from './ProfileDialog.js';
 import SearchBar from './SearchBar.js';
+import { fetchStakingData } from './StakingAPI.js';
 import XIcon from './XIcon.js';
 
 interface SocialProfilesProps {
@@ -30,6 +31,11 @@ interface WalletData {
   gen1Count: number;
   infantCount: number;
   nftCount: number;
+  stakingData?: {
+    totalStaked: number;
+    totalLocked: number;
+    totalUnlocked: number;
+  };
 }
 
 interface GroupedSocialProfile {
@@ -43,6 +49,9 @@ interface GroupedSocialProfile {
   totalGen1Count: number;
   totalInfantCount: number;
   totalNftCount: number;
+  totalStaked: number;
+  totalLocked: number;
+  totalUnlocked: number;
 }
 
 // Use forwardRef to expose methods to parent component
@@ -55,7 +64,7 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
     const [selectedProfile, setSelectedProfile] = useState<any>(null);
     const appNavigation = useAppNavigation();
     // Add state for sorting
-    const [sortField, setSortField] = useState<string>('totalTokenBalance');
+    const [sortField, setSortField] = useState<string>('totalStaked');
     const [sortOrder, setSortOrder] = useState<1 | -1>(-1); // -1 for descending
 
     // Expose methods via ref
@@ -75,6 +84,7 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
         const profiles = await fetchSocialProfiles();
         const nftHolders = await fetchNftHolders();
         const tokenHolders = await fetchTokenHolders();
+        const stakingData = await fetchStakingData();
 
         // Create maps for quick lookups
         const tokenMap = new Map();
@@ -91,6 +101,15 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
           });
         });
 
+        const stakingMap = new Map();
+        stakingData.forEach(stake => {
+          stakingMap.set(stake.walletAddress, {
+            totalStaked: stake.totalStaked || 0,
+            totalLocked: stake.totalLocked || 0,
+            totalUnlocked: stake.totalUnlocked || 0,
+          });
+        });
+
         // Group wallets by social identity
         const groupedProfiles = new Map<string, GroupedSocialProfile>();
 
@@ -103,13 +122,18 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
             return;
           }
 
-          // Fetch NFT and token data for this wallet
+          // Fetch NFT, token, and staking data for this wallet
           const nftData = nftMap.get(profile.address) || {
             gen1Count: 0,
             infantCount: 0,
             nftCount: 0,
           };
           const tokenBalance = tokenMap.get(profile.address) || 0;
+          const stakingInfo = stakingMap.get(profile.address) || {
+            totalStaked: 0,
+            totalLocked: 0,
+            totalUnlocked: 0,
+          };
 
           // Prepare wallet data
           const walletData: WalletData = {
@@ -118,6 +142,7 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
             gen1Count: nftData.gen1Count,
             infantCount: nftData.infantCount,
             nftCount: nftData.nftCount,
+            stakingData: stakingInfo,
           };
 
           // Create or update the grouped profile
@@ -129,6 +154,9 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
             existingProfile.totalGen1Count += nftData.gen1Count;
             existingProfile.totalInfantCount += nftData.infantCount;
             existingProfile.totalNftCount += nftData.nftCount;
+            existingProfile.totalStaked += stakingInfo.totalStaked;
+            existingProfile.totalLocked += stakingInfo.totalLocked;
+            existingProfile.totalUnlocked += stakingInfo.totalUnlocked;
 
             // Update the profile if this wallet has a comment and the profile doesn't
             if (profile.comment && !existingProfile.comment) {
@@ -148,6 +176,9 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
               totalGen1Count: nftData.gen1Count,
               totalInfantCount: nftData.infantCount,
               totalNftCount: nftData.nftCount,
+              totalStaked: stakingInfo.totalStaked,
+              totalLocked: stakingInfo.totalLocked,
+              totalUnlocked: stakingInfo.totalUnlocked,
             });
           }
         });
@@ -172,9 +203,13 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
           );
         }
 
-        // Apply default sorting
+        // Apply default sorting (prioritize staking totals, then tokens, then NFTs)
         filteredProfiles.sort((a, b) => {
-          // First sort by totalTokenBalance
+          // First sort by totalStaked
+          if (a.totalStaked !== b.totalStaked) {
+            return b.totalStaked - a.totalStaked; // Descending order
+          }
+          // Then sort by totalTokenBalance
           if (a.totalTokenBalance !== b.totalTokenBalance) {
             return b.totalTokenBalance - a.totalTokenBalance; // Descending order
           }
@@ -261,7 +296,14 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
                 >
                   {wallet.address.substring(0, 8)}...
                   {wallet.address.substring(wallet.address.length - 8)}
-                  <img src="/solscan_logo.png" alt="Solscan" width="16" height="16" className="ml-1" style={{ opacity: 0.7, verticalAlign: 'middle' }} />
+                  <img
+                    src="/solscan_logo.png"
+                    alt="Solscan"
+                    width="16"
+                    height="16"
+                    className="ml-1"
+                    style={{ opacity: 0.7, verticalAlign: 'middle' }}
+                  />
                 </a>
                 <Button
                   icon="pi pi-pencil"
@@ -278,6 +320,27 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
             header="Token Balance"
             body={(wallet: WalletData) => formatTokenBalance(wallet.tokenBalance)}
           />
+          <Column
+            field="stakingData"
+            header="Staked"
+            body={(wallet: WalletData) =>
+              wallet.stakingData ? formatTokenBalance(wallet.stakingData.totalStaked) : '0'
+            }
+          />
+          <Column
+            field="stakingData"
+            header="Locked"
+            body={(wallet: WalletData) =>
+              wallet.stakingData ? formatTokenBalance(wallet.stakingData.totalLocked) : '0'
+            }
+          />
+          <Column
+            field="stakingData"
+            header="Unlocked"
+            body={(wallet: WalletData) =>
+              wallet.stakingData ? formatTokenBalance(wallet.stakingData.totalUnlocked) : '0'
+            }
+          />
           <Column field="gen1Count" header="Gen1 Count" />
           <Column field="infantCount" header="Infant Count" />
           <Column field="nftCount" header="Total NFTs" />
@@ -285,7 +348,7 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
             body={(wallet: WalletData) => (
               <a
                 href="#"
-                onClick={(e) => {
+                onClick={e => {
                   e.preventDefault();
                   if (wallet.nftCount > 0) {
                     // Navigate to NFT holder table and apply wallet to search
@@ -307,10 +370,13 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
     );
 
     // Open profile dialog with specific wallet highlighted
-    const openEditProfileDialogWithWallet = (profile: GroupedSocialProfile, walletAddress: string) => {
+    const openEditProfileDialogWithWallet = (
+      profile: GroupedSocialProfile,
+      walletAddress: string
+    ) => {
       setSelectedProfile({
         ...profile,
-        selectedWalletAddress: walletAddress
+        selectedWalletAddress: walletAddress,
       });
       setProfileDialogVisible(true);
     };
@@ -408,6 +474,12 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
             socialProfiles.reduce((acc, profile) => acc + profile.totalTokenBalance, 0)
           )}
         </div>
+        <div>
+          <strong>Total Staked:</strong>{' '}
+          {formatTokenBalance(
+            socialProfiles.reduce((acc, profile) => acc + profile.totalStaked, 0)
+          )}
+        </div>
       </div>
     );
 
@@ -471,6 +543,12 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
             field="totalTokenBalance"
             header="Total Tokens"
             body={rowData => formatTokenBalance(rowData.totalTokenBalance)}
+            sortable
+          />
+          <Column
+            field="totalStaked"
+            header="GP Staking"
+            body={rowData => formatTokenBalance(rowData.totalStaked)}
             sortable
           />
           <Column field="totalGen1Count" header="Total Gen1" sortable />
