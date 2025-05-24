@@ -269,11 +269,11 @@ const AppContent: React.FC = () => {
             <EventsPanel />
           </TabPanel>
 
-          <TabPanel header="Timeline View">
+          <TabPanel header="Events Timeline">
             <CombinedSnapshotsPanel />
           </TabPanel>
 
-          <TabPanel header="Staking View">
+          <TabPanel header="Staking">
             <StakingView onError={handleError} onSuccess={handleSuccess} />
           </TabPanel>
 

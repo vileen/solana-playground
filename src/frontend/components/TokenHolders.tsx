@@ -11,6 +11,7 @@ import { useAppNavigation } from '../hooks/useAppNavigation.js';
 import { fetchTokenHolders, fetchTokenSnapshots, takeTokenSnapshot } from '../services/api.js';
 
 import SearchBar from './SearchBar.js';
+import WalletAddress from './WalletAddress.js';
 import XIcon from './XIcon.js';
 
 interface TokenHoldersProps {
@@ -34,7 +35,7 @@ const TokenHolders = forwardRef<{ fetchHolders: () => Promise<void> }, TokenHold
     const appNavigation = useAppNavigation();
     const initialSearchTerm = appNavigation.getSearchParam();
     const [localSearchTerm, setLocalSearchTerm] = useState<string>(initialSearchTerm || searchTerm);
-    
+
     // Use refs to track current fetch requests and prevent duplicates
     const currentFetchController = useRef<AbortController | null>(null);
     const lastSearchTerm = useRef<string>(localSearchTerm);
@@ -59,7 +60,7 @@ const TokenHolders = forwardRef<{ fetchHolders: () => Promise<void> }, TokenHold
             console.error('Error loading initial data:', error);
           }
         };
-        
+
         loadInitialData();
       }
     }, []);
@@ -71,12 +72,15 @@ const TokenHolders = forwardRef<{ fetchHolders: () => Promise<void> }, TokenHold
       if (searchParam !== localSearchTerm) {
         setLocalSearchTerm(searchParam);
         onSearchChange(searchParam);
-        
+
         // Don't fetch if we've already fetched with these params
-        if (searchParam !== lastSearchTerm.current || selectedSnapshotId !== lastSnapshotId.current) {
+        if (
+          searchParam !== lastSearchTerm.current ||
+          selectedSnapshotId !== lastSnapshotId.current
+        ) {
           lastSearchTerm.current = searchParam;
           lastSnapshotId.current = selectedSnapshotId;
-          
+
           // Fetch data here directly after state update
           const fetchData = async () => {
             try {
@@ -85,7 +89,7 @@ const TokenHolders = forwardRef<{ fetchHolders: () => Promise<void> }, TokenHold
               console.error('Error fetching data:', error);
             }
           };
-          
+
           fetchData();
         }
       }
@@ -96,7 +100,7 @@ const TokenHolders = forwardRef<{ fetchHolders: () => Promise<void> }, TokenHold
       // Only fetch when snapshot changes and it's not the initial load
       if (dataLoaded.current && selectedSnapshotId !== lastSnapshotId.current) {
         lastSnapshotId.current = selectedSnapshotId;
-        
+
         const fetchData = async () => {
           try {
             await fetchHolders(localSearchTerm);
@@ -104,7 +108,7 @@ const TokenHolders = forwardRef<{ fetchHolders: () => Promise<void> }, TokenHold
             console.error('Error fetching data on snapshot change:', error);
           }
         };
-        
+
         fetchData();
       }
     }, [selectedSnapshotId]);
@@ -125,15 +129,15 @@ const TokenHolders = forwardRef<{ fetchHolders: () => Promise<void> }, TokenHold
         if (currentFetchController.current) {
           currentFetchController.current.abort();
         }
-        
+
         // Create new controller for this request
         currentFetchController.current = new AbortController();
-        
+
         setLoading(true);
         // Convert null to undefined for the API call
         const snapshotIdParam = selectedSnapshotId === null ? undefined : selectedSnapshotId;
         const data = await fetchTokenHolders(searchTermValue, snapshotIdParam);
-        
+
         // Only update state if this is still the active request
         if (currentFetchController.current) {
           setHolders(data);
@@ -174,13 +178,13 @@ const TokenHolders = forwardRef<{ fetchHolders: () => Promise<void> }, TokenHold
 
       const options = snapshots.map(snapshot => ({
         label: `${new Date(snapshot.timestamp).toLocaleString()} (ID: ${snapshot.id})`,
-        value: snapshot.id
+        value: snapshot.id,
       }));
 
       // Add an option for the latest snapshot
       options.unshift({
         label: 'Latest Snapshot',
-        value: null
+        value: null,
       });
 
       return (
@@ -189,7 +193,7 @@ const TokenHolders = forwardRef<{ fetchHolders: () => Promise<void> }, TokenHold
           <Dropdown
             value={selectedSnapshotId}
             options={options}
-            onChange={(e) => {
+            onChange={e => {
               setSelectedSnapshotId(e.value);
             }}
             placeholder="Latest Snapshot"
@@ -200,15 +204,7 @@ const TokenHolders = forwardRef<{ fetchHolders: () => Promise<void> }, TokenHold
 
     // Table columns and templates
     const addressTemplate = (rowData: TokenHolder) => (
-      <a
-        href={`https://solscan.io/account/${rowData.address}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="wallet-link"
-      >
-        {rowData.address}
-        <img src="/solscan_logo.png" alt="Solscan" width="16" height="16" className="ml-1" style={{ opacity: 0.7, verticalAlign: 'middle' }} />
-      </a>
+      <WalletAddress address={rowData.address} showExternalLink={true} showCopyIcon={true} />
     );
 
     const socialActionsTemplate = (rowData: TokenHolder) => (
@@ -293,7 +289,7 @@ const TokenHolders = forwardRef<{ fetchHolders: () => Promise<void> }, TokenHold
     const handleSearchChange = (value: string) => {
       // Update local state immediately
       setLocalSearchTerm(value);
-      
+
       // Update URL and parent state
       appNavigation.updateSearchParam(value);
       onSearchChange(value);

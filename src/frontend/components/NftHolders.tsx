@@ -11,6 +11,7 @@ import { useAppNavigation } from '../hooks/useAppNavigation.js';
 import * as API from '../services/api.js';
 
 import SearchBar from './SearchBar.js';
+import WalletAddress from './WalletAddress.js';
 import XIcon from './XIcon.js';
 
 interface NftHoldersProps {
@@ -204,22 +205,7 @@ const NftHolders = forwardRef<{ fetchHolders: () => Promise<void> }, NftHoldersP
 
     // Table columns and templates
     const addressTemplate = (rowData: NFTHolder) => (
-      <a
-        href={`https://solscan.io/account/${rowData.address}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="wallet-link"
-      >
-        {rowData.address}
-        <img
-          src="/solscan_logo.png"
-          alt="Solscan"
-          width="16"
-          height="16"
-          className="ml-1"
-          style={{ opacity: 0.7, verticalAlign: 'middle' }}
-        />
-      </a>
+      <WalletAddress address={rowData.address} showExternalLink={true} showCopyIcon={true} />
     );
 
     const rowExpansionTemplate = (holder: NFTHolder) => (

@@ -22,6 +22,7 @@ import {
   fetchUnlockSummary,
   takeStakingSnapshot,
 } from './StakingAPI.js';
+import WalletAddress from './WalletAddress.js';
 
 interface StakingViewProps {
   onError: (message: string) => void;
@@ -209,7 +210,7 @@ const StakingView = ({ onError, onSuccess }: StakingViewProps) => {
   // Address template
   const addressTemplate = (rowData: StakeData) => (
     <div className="flex align-items-center">
-      <span className="font-medium">{rowData.walletAddress}</span>
+      <WalletAddress address={rowData.walletAddress} shortened={true} showCopyIcon={true} />
     </div>
   );
 
@@ -599,9 +600,12 @@ const StakingView = ({ onError, onSuccess }: StakingViewProps) => {
                                         )}
                                       </>
                                     ) : (
-                                      <span className="text-xs text-color-secondary">
-                                        {wallet.walletAddress.substring(0, 8)}...
-                                      </span>
+                                      <WalletAddress
+                                        address={wallet.walletAddress}
+                                        shortened={true}
+                                        showCopyIcon={true}
+                                        className="text-xs text-color-secondary"
+                                      />
                                     )}
                                   </div>
                                   <span className="ml-auto font-medium text-color-secondary">

@@ -1,6 +1,9 @@
+import React from 'react';
+
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
-import React from 'react';
+
+import WalletAddress from './WalletAddress.js';
 
 interface TokenHoldersTableProps {
   holders: any[];
@@ -8,29 +11,27 @@ interface TokenHoldersTableProps {
   onShowSocialDialog?: (holder: any) => void;
 }
 
-const TokenHoldersTable: React.FC<TokenHoldersTableProps> = ({ 
-  holders, 
+const TokenHoldersTable: React.FC<TokenHoldersTableProps> = ({
+  holders,
   loading,
-  onShowSocialDialog
+  onShowSocialDialog,
 }) => {
   const addressTemplate = (rowData: any) => {
     return (
       <div className="flex align-items-center">
-        <span>{rowData.address}</span>
+        <WalletAddress address={rowData.address} showCopyIcon={true} />
       </div>
     );
   };
 
   const balanceTemplate = (rowData: any) => {
-    return (
-      <span>{rowData.balance}</span>
-    );
+    return <span>{rowData.balance}</span>;
   };
 
   const actionsTemplate = (rowData: any) => {
     return (
       <div className="flex gap-2">
-        <button 
+        <button
           className="p-button p-button-sm p-button-outlined"
           onClick={() => onShowSocialDialog && onShowSocialDialog(rowData)}
         >
@@ -41,10 +42,10 @@ const TokenHoldersTable: React.FC<TokenHoldersTableProps> = ({
   };
 
   return (
-    <DataTable 
-      value={holders} 
+    <DataTable
+      value={holders}
       loading={loading}
-      paginator 
+      paginator
       rows={10}
       rowsPerPageOptions={[10, 25, 50]}
       emptyMessage="No token holders found"
@@ -56,4 +57,4 @@ const TokenHoldersTable: React.FC<TokenHoldersTableProps> = ({
   );
 };
 
-export default TokenHoldersTable; 
+export default TokenHoldersTable;

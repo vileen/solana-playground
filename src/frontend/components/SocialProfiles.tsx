@@ -16,6 +16,7 @@ import {
 import ProfileDialog from './ProfileDialog.js';
 import SearchBar from './SearchBar.js';
 import { fetchStakingData } from './StakingAPI.js';
+import WalletAddress from './WalletAddress.js';
 import XIcon from './XIcon.js';
 
 interface SocialProfilesProps {
@@ -287,24 +288,12 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
             header="Wallet Address"
             body={(wallet: WalletData) => (
               <div className="flex align-items-center">
-                <a
-                  href={`https://solscan.io/account/${wallet.address}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="wallet-link"
-                  title="View on Solscan"
-                >
-                  {wallet.address.substring(0, 8)}...
-                  {wallet.address.substring(wallet.address.length - 8)}
-                  <img
-                    src="/solscan_logo.png"
-                    alt="Solscan"
-                    width="16"
-                    height="16"
-                    className="ml-1"
-                    style={{ opacity: 0.7, verticalAlign: 'middle' }}
-                  />
-                </a>
+                <WalletAddress
+                  address={wallet.address}
+                  shortened={true}
+                  showExternalLink={true}
+                  showCopyIcon={true}
+                />
                 <Button
                   icon="pi pi-pencil"
                   className="p-button-text p-button-rounded ml-2"
