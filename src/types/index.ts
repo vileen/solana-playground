@@ -137,3 +137,147 @@ export interface EventNFTSnapshot {
   total_count: number;
   events: NFTEvent[];
 }
+
+// Liquidity Pool Analysis Types
+export interface PoolTokenAnalysis {
+  platform: string;
+  poolAddress: string;
+  totalTokens: number;
+  uniqueWallets: number;
+  walletDistribution: {
+    [walletAddress: string]: number;
+  };
+}
+
+export interface LiquidityPoolsAnalysis {
+  orca: PoolTokenAnalysis[];
+  raydium: PoolTokenAnalysis[];
+  meteora: PoolTokenAnalysis[];
+  totalAnalysis: {
+    totalTokensAcrossPlatforms: number;
+    totalUniqueWallets: number;
+    platformBreakdown: {
+      [platform: string]: {
+        totalTokens: number;
+        uniqueWallets: number;
+      };
+    };
+    topWallets: {
+      address: string;
+      totalTokens: number;
+      platforms: string[];
+      twitter?: string;
+      discord?: string;
+      comment?: string;
+      id?: string;
+    }[];
+    walletDetails: {
+      address: string;
+      totalTokens: number;
+      platforms: string[];
+      poolBreakdown: {
+        [platform: string]: {
+          tokens: number;
+          pools: string[];
+        };
+      };
+      twitter?: string;
+      discord?: string;
+      comment?: string;
+      id?: string;
+    }[];
+  };
+}
+
+export interface PlatformAnalysisResponse {
+  platform: string;
+  pools: PoolTokenAnalysis[];
+  summary: {
+    totalPools: number;
+    totalTokens: number;
+    totalUniqueWallets: number;
+  };
+}
+
+// Liquidity Pool Transaction Flow Analysis Types
+export interface PoolTransfer {
+  signature: string;
+  timestamp: string;
+  amount: number;
+  counterpartyAddress: string;
+  direction: 'inflow' | 'outflow';
+  twitter?: string;
+  discord?: string;
+  comment?: string;
+  id?: string;
+}
+
+export interface PoolTransactionAnalysis extends PoolTokenAnalysis {
+  inflows: PoolTransfer[];
+  outflows: PoolTransfer[];
+  totalInflow: number;
+  totalOutflow: number;
+  uniqueContributors: number;
+  contributorBreakdown: {
+    [address: string]: {
+      address: string;
+      totalInflow: number;
+      totalOutflow: number;
+      netContribution: number;
+      transactionCount: number;
+      twitter?: string;
+      discord?: string;
+      comment?: string;
+      id?: string;
+    };
+  };
+}
+
+export interface LiquidityPoolsTransactionAnalysis {
+  orca: PoolTransactionAnalysis[];
+  raydium: PoolTransactionAnalysis[];
+  meteora: PoolTransactionAnalysis[];
+  totalAnalysis: {
+    totalTokensAcrossPlatforms: number;
+    totalUniqueWallets: number;
+    totalInflows: number;
+    totalOutflows: number;
+    platformBreakdown: {
+      [platform: string]: {
+        totalTokens: number;
+        uniqueWallets: number;
+        totalInflows: number;
+        totalOutflows: number;
+      };
+    };
+    topContributors: {
+      address: string;
+      totalContributed: number;
+      totalReceived: number;
+      netContribution: number;
+      platforms: string[];
+      twitter?: string;
+      discord?: string;
+      comment?: string;
+      id?: string;
+    }[];
+    contributorDetails: {
+      address: string;
+      totalContributed: number;
+      totalReceived: number;
+      netContribution: number;
+      platforms: string[];
+      poolBreakdown: {
+        [platform: string]: {
+          contributed: number;
+          received: number;
+          pools: string[];
+        };
+      };
+      twitter?: string;
+      discord?: string;
+      comment?: string;
+      id?: string;
+    }[];
+  };
+}

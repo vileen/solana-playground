@@ -23,6 +23,7 @@
     "db:migrate:incremental": "tsx src/backend/db/migrations/applyIncrementalSnapshotMigration.ts",
     "staking:take-snapshot": "tsx src/backend/scripts/takeStakingSnapshot.ts",
     "staking:take-incremental": "tsx src/backend/scripts/takeIncrementalSnapshot.ts",
+    "lp:take-snapshot": "tsx src/backend/scripts/takeLiquidityPoolSnapshot.ts",
     "verified:take-snapshot": "tsx src/backend/scripts/takeStakingSnapshot.ts",
     "nft:take-snapshot": "tsx src/backend/scripts/takeNFTSnapshot.ts",
     "verify:transactions": "tsx src/backend/scripts/verifyStakingTransactions.ts",

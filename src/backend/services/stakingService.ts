@@ -1094,13 +1094,13 @@ export async function loadStakingSnapshot(snapshotId?: number): Promise<StakingS
     // Create a map to hold wallet data
     const walletDataMap = new Map<string, StakeData>();
 
-    // Initialize wallet data entries
+    // Initialize wallet data entries (we'll recalculate the totals)
     for (const row of walletDataResult.rows) {
       walletDataMap.set(row.wallet_address, {
         walletAddress: row.wallet_address,
         totalStaked: row.total_staked,
-        totalLocked: row.total_locked,
-        totalUnlocked: row.total_unlocked,
+        totalLocked: 0, // Will be recalculated
+        totalUnlocked: 0, // Will be recalculated
         stakes: [],
       });
     }
@@ -1113,24 +1113,52 @@ export async function loadStakingSnapshot(snapshotId?: number): Promise<StakingS
       [snapshotData.id]
     );
 
-    // Add stakes to their respective wallets
+    // Get current time for recalculating lock status
+    const now = new Date();
+    let recalculatedTotalLocked = 0;
+    let recalculatedTotalUnlocked = 0;
+
+    // Add stakes to their respective wallets and recalculate lock status
     for (const row of stakesResult.rows) {
       const walletData = walletDataMap.get(row.wallet_address);
       if (walletData) {
-        walletData.stakes.push({
+        // Recalculate isLocked based on current time
+        const unlockDate = new Date(row.unlock_date);
+        const isLocked = unlockDate > now;
+
+        const stake = {
           mintAddress: row.mint_address,
           amount: row.amount,
           stakeDate: row.stake_date,
           unlockDate: row.unlock_date,
-          isLocked: row.is_locked,
-        });
+          isLocked, // Use recalculated value
+        };
+
+        walletData.stakes.push(stake);
+
+        // Update wallet totals based on recalculated lock status
+        if (isLocked) {
+          walletData.totalLocked += row.amount;
+          recalculatedTotalLocked += row.amount;
+        } else {
+          walletData.totalUnlocked += row.amount;
+          recalculatedTotalUnlocked += row.amount;
+        }
       }
     }
+
+    // Update snapshot totals with recalculated values
+    snapshotData.totalLocked = recalculatedTotalLocked;
+    snapshotData.totalUnlocked = recalculatedTotalUnlocked;
+    // totalStaked should remain the same as it doesn't depend on lock status
 
     // Convert map to array and add to snapshot data
     snapshotData.stakingData = Array.from(walletDataMap.values());
 
     console.log(`[Staking Service] Loaded staking snapshot with ID: ${snapshotData.id}`);
+    console.log(
+      `[Staking Service] Recalculated totals - Locked: ${recalculatedTotalLocked}, Unlocked: ${recalculatedTotalUnlocked}`
+    );
     console.timeEnd('loadStakingSnapshot:total');
 
     return snapshotData;
@@ -1207,11 +1235,13 @@ export async function getUnlockSummary(
       `[Staking Service] Generating unlock summary for snapshot ID: ${snapshotIdToUse}${walletAddress ? ` filtered by wallet: ${walletAddress}` : ''}`
     );
 
-    // Get today's date in YYYY-MM-DD format
-    const today = new Date().toISOString().substring(0, 10);
+    // Get today's date in YYYY-MM-DD format and current timestamp
+    const now = new Date();
+    const today = now.toISOString().substring(0, 10);
     console.log(`[Staking Service] Filtering unlocks from today (${today}) onwards`);
 
     // Build the query with optional wallet filter
+    // Filter for stakes that are currently locked (unlock_date > NOW()) and unlock in the future
     let sqlQuery = `SELECT 
         TO_CHAR(unlock_date, 'YYYY-MM-DD') AS date,
         SUM(amount) AS amount
@@ -1219,7 +1249,8 @@ export async function getUnlockSummary(
         staking_stakes
       WHERE 
         snapshot_id = $1
-        AND unlock_date >= $2::date`;
+        AND unlock_date >= $2::date
+        AND unlock_date > NOW()`; // Only include stakes that are currently locked
 
     const queryParams: any[] = [snapshotIdToUse, today];
 
@@ -1234,13 +1265,13 @@ export async function getUnlockSummary(
       ORDER BY 
         date ASC`;
 
-    // Query the database directly for unlock data grouped by date, filtering for dates from today
+    // Query the database directly for unlock data grouped by date, filtering for currently locked stakes
     const unlockResult = await query(sqlQuery, queryParams);
 
     // Check if we got any results
     if (unlockResult.rowCount === 0) {
       console.log(
-        `[Staking Service] No future unlock data found for snapshot${walletAddress ? ` and wallet ${walletAddress}` : ''}`
+        `[Staking Service] No future unlock data found for currently locked stakes in snapshot${walletAddress ? ` and wallet ${walletAddress}` : ''}`
       );
 
       // If filtering by wallet and no results, return empty array instead of sample data
@@ -1248,20 +1279,25 @@ export async function getUnlockSummary(
         return [];
       }
 
-      // Get the total staked amount for this snapshot to generate sample data
-      const totalStakedResult = await query(
-        `SELECT total_staked FROM staking_snapshots WHERE id = $1`,
+      // Get the total currently locked amount for this snapshot to generate sample data
+      const totalLockedResult = await query(
+        `SELECT SUM(amount) as total_locked FROM staking_stakes 
+         WHERE snapshot_id = $1 AND unlock_date > NOW()`,
         [snapshotIdToUse]
       );
 
-      if (totalStakedResult.rowCount === 0) {
+      if (totalLockedResult.rowCount === 0 || !totalLockedResult.rows[0].total_locked) {
         return [];
       }
 
-      const totalStaked = parseFloat(totalStakedResult.rows[0].total_staked);
+      const totalLocked = parseFloat(totalLockedResult.rows[0].total_locked);
+
+      // Only generate sample data if we have locked tokens
+      if (totalLocked <= 0) {
+        return [];
+      }
 
       // Generate 5 sample unlock dates starting from today
-      const now = new Date();
       const unlockSummary: { date: string; amount: number }[] = [];
 
       for (let i = 0; i < 5; i++) {
@@ -1269,8 +1305,8 @@ export async function getUnlockSummary(
         futureDate.setDate(now.getDate() + i * 15); // Every 15 days
         const futureDateString = futureDate.toISOString().substring(0, 10);
 
-        // Generate a realistic amount based on total staked
-        const amount = totalStaked * (0.1 + i * 0.05); // 10%, 15%, 20%, etc.
+        // Generate a realistic amount based on total locked
+        const amount = totalLocked * (0.1 + i * 0.05); // 10%, 15%, 20%, etc.
         unlockSummary.push({ date: futureDateString, amount });
       }
 
@@ -1284,7 +1320,7 @@ export async function getUnlockSummary(
     }));
 
     console.log(
-      `[Staking Service] Generated unlock summary with ${unlockSummary.length} entries${walletAddress ? ` for wallet ${walletAddress}` : ''}`
+      `[Staking Service] Generated unlock summary with ${unlockSummary.length} entries for currently locked stakes${walletAddress ? ` for wallet ${walletAddress}` : ''}`
     );
     return unlockSummary;
   } catch (error) {

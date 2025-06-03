@@ -87,10 +87,18 @@ const WalletAddress: React.FC<WalletAddressProps> = ({
           href={`https://solscan.io/account/${address}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="wallet-link"
+          className="wallet-link flex align-items-center gap-1"
           title={title || 'View on Solscan'}
+          style={{ textDecoration: 'none', color: 'inherit' }}
         >
           {linkText || displayAddress}
+          <img
+            src="/solscan_logo.png"
+            alt="Solscan"
+            width="16"
+            height="16"
+            style={{ opacity: 0.7, verticalAlign: 'middle' }}
+          />
         </a>
       );
     }
@@ -107,15 +115,6 @@ const WalletAddress: React.FC<WalletAddressProps> = ({
     return (
       <div className={`flex align-items-center gap-1 ${className}`} style={style}>
         {renderAddressContent()}
-        {showExternalLink && (
-          <img
-            src="/solscan_logo.png"
-            alt="Solscan"
-            width="16"
-            height="16"
-            style={{ opacity: 0.7, verticalAlign: 'middle' }}
-          />
-        )}
         {showCopyIcon && (
           <i
             className={`pi ${copyFeedback ? 'pi-check' : 'pi-copy'} cursor-pointer`}
