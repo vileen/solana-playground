@@ -1,22 +1,9 @@
-import dotenv from 'dotenv';
 import { existsSync } from 'fs';
 import { mkdir } from 'fs/promises';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
-// Load environment variables with preference for .env.local
-const rootDir = process.cwd();
-const envLocalPath = join(rootDir, '.env.local');
-const envPath = join(rootDir, '.env');
-
-// First try .env.local, then fall back to .env
-if (existsSync(envLocalPath)) {
-  console.log('Loading environment from .env.local');
-  dotenv.config({ path: envLocalPath });
-} else {
-  console.log('Loading environment from .env');
-  dotenv.config({ path: envPath });
-}
+import { ENV } from './env.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -64,26 +51,26 @@ if (API_KEY && !RPC_URL.includes('api-key=') && !RPC_URL.includes('@')) {
   console.log('Added API key to RPC URL');
 }
 
-// Create a data directory in the project root
-const DATA_DIR = join(rootDir, 'data');
+// Application data directory
+const rootDir = process.cwd();
+export const DATA_DIR = join(rootDir, 'data');
 console.log(`Using data directory: ${DATA_DIR}`);
 
-// Create the directory if it doesn't exist
+// Create a data directory in the project root
 try {
   if (!existsSync(DATA_DIR)) {
     mkdir(DATA_DIR, { recursive: true });
     console.log(`Created data directory: ${DATA_DIR}`);
-  } else {
-    console.log(`Using existing data directory: ${DATA_DIR}`);
   }
-} catch (error: any) {
-  console.error(`Error creating data directory: ${error.message}`);
+} catch (error) {
+  console.warn(`Failed to create data directory: ${error}`);
 }
 
-export { DATA_DIR };
-
 // Path for social profiles storage
-export const SOCIAL_PROFILES_FILE = join(DATA_DIR, 'social_profiles.json');
+export const SOCIAL_PROFILES_FILE = join(DATA_DIR, 'social_profiles.csv');
 
 // Server port
 export const PORT = process.env.PORT || 3001;
+
+// Re-export environment variables for backward compatibility
+export const DATABASE_URL = ENV.DATABASE_URL;

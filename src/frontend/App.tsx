@@ -277,6 +277,10 @@ const AppContent: React.FC = () => {
             <StakingView onError={handleError} onSuccess={handleSuccess} />
           </TabPanel>
 
+          {/* <TabPanel header="Liquidity Pools">
+            <LiquidityPoolsView onError={handleError} onSuccess={handleSuccess} />
+          </TabPanel> */}
+
           <TabPanel header="Social Profiles">
             <SocialProfiles
               ref={socialProfilesRef}
