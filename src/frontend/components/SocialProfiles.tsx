@@ -81,11 +81,38 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
       try {
         setLoading(true);
 
-        // Fetch data with search term if provided
+        // Step 1: Fetch social profiles first (this now returns all wallets for matching profiles)
         const profiles = await fetchSocialProfiles(searchTerm);
-        const nftHolders = await fetchNftHolders(searchTerm);
-        const tokenHolders = await fetchTokenHolders(searchTerm);
-        const stakingData = await fetchStakingData(searchTerm);
+
+        // Step 2: Extract all wallet addresses from the social profiles
+        const allWalletAddresses = profiles.map(profile => profile.address);
+
+        // Step 3: If we have a search term, fetch balance data for ALL related wallets
+        // If no search term, fetch all data without filtering
+        let nftHolders, tokenHolders, stakingData;
+
+        if (searchTerm && allWalletAddresses.length > 0) {
+          // When searching, we need to get data for all wallets in the matching profiles
+          // We'll fetch all data and then filter to our specific wallet addresses
+          const [allNftHolders, allTokenHolders, allStakingData] = await Promise.all([
+            fetchNftHolders(''), // Fetch all
+            fetchTokenHolders(''), // Fetch all
+            fetchStakingData(''), // Fetch all
+          ]);
+
+          // Filter to only include wallets from our social profiles
+          const walletAddressSet = new Set(allWalletAddresses);
+          nftHolders = allNftHolders.filter(holder => walletAddressSet.has(holder.address));
+          tokenHolders = allTokenHolders.filter(holder => walletAddressSet.has(holder.address));
+          stakingData = allStakingData.filter(stake => walletAddressSet.has(stake.walletAddress));
+        } else {
+          // No search term - fetch all data normally
+          [nftHolders, tokenHolders, stakingData] = await Promise.all([
+            fetchNftHolders(searchTerm),
+            fetchTokenHolders(searchTerm),
+            fetchStakingData(searchTerm),
+          ]);
+        }
 
         // Create maps for quick lookups
         const tokenMap = new Map();
