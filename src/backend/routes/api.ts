@@ -188,17 +188,33 @@ router.post('/social-profiles', (req: Request, res: Response) => {
 // Get all social profiles
 router.get('/social-profiles', async (req: Request, res: Response) => {
   try {
+    // @ts-ignore - Express types issue
+    const { search } = req.query;
     const profiles = await loadSocialProfiles();
 
     // Convert to array format for easier consumption
-    const profileArray = Object.entries(profiles).map(([address, data]) => ({
+    let profileArray = Object.entries(profiles).map(([address, data]) => ({
       address,
       ...data,
     }));
 
+    // Filter by search term if provided
+    if (search && typeof search === 'string') {
+      const searchLower = search.toLowerCase();
+      profileArray = profileArray.filter(
+        profile =>
+          profile.address.toLowerCase().includes(searchLower) ||
+          profile.twitter?.toLowerCase().includes(searchLower) ||
+          profile.discord?.toLowerCase().includes(searchLower) ||
+          profile.comment?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // @ts-ignore - Express types issue
     res.json(profileArray);
   } catch (error: any) {
     console.error('Error in /social-profiles endpoint:', error);
+    // @ts-ignore - Express types issue
     res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });

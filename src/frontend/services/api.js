@@ -9,15 +9,15 @@ export const fetchNftHolders = async (searchTerm, snapshotId) => {
   try {
     let url = `${API_BASE_URL}/holders`;
     const params = new URLSearchParams();
-    
+
     if (searchTerm) {
       params.append('search', searchTerm);
     }
-    
+
     if (snapshotId) {
       params.append('snapshotId', snapshotId);
     }
-    
+
     if (params.toString()) {
       url += `?${params.toString()}`;
     }
@@ -38,15 +38,15 @@ export const fetchTokenHolders = async (searchTerm, snapshotId) => {
   try {
     let url = `${API_BASE_URL}/token-holders`;
     const params = new URLSearchParams();
-    
+
     if (searchTerm) {
       params.append('search', searchTerm);
     }
-    
+
     if (snapshotId) {
       params.append('snapshotId', snapshotId);
     }
-    
+
     if (params.toString()) {
       url += `?${params.toString()}`;
     }
@@ -63,9 +63,14 @@ export const fetchTokenHolders = async (searchTerm, snapshotId) => {
 };
 
 // Fetch social profiles
-export const fetchSocialProfiles = async () => {
+export const fetchSocialProfiles = async searchTerm => {
   try {
-    const response = await fetch(`${API_BASE_URL}/social-profiles`);
+    const url = new URL(`${API_BASE_URL}/social-profiles`, window.location.origin);
+    if (searchTerm) {
+      url.searchParams.append('search', searchTerm);
+    }
+
+    const response = await fetch(url.toString());
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -214,7 +219,7 @@ export const fetchLatestNFTEvents = async () => {
 };
 
 // Fetch token events for a specific snapshot
-export const fetchTokenEventsForSnapshot = async (snapshotId) => {
+export const fetchTokenEventsForSnapshot = async snapshotId => {
   try {
     const response = await fetch(`${API_BASE_URL}/token-events/${snapshotId}`);
     if (!response.ok) {
@@ -228,7 +233,7 @@ export const fetchTokenEventsForSnapshot = async (snapshotId) => {
 };
 
 // Fetch NFT events for a specific snapshot
-export const fetchNFTEventsForSnapshot = async (snapshotId) => {
+export const fetchNFTEventsForSnapshot = async snapshotId => {
   try {
     const response = await fetch(`${API_BASE_URL}/nft-events/${snapshotId}`);
     if (!response.ok) {
@@ -244,7 +249,9 @@ export const fetchNFTEventsForSnapshot = async (snapshotId) => {
 // Fetch token snapshots with their events
 export const fetchTokenSnapshotsWithEvents = async (limit = 5, skip = 0) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/events/token/snapshots?limit=${limit}&skip=${skip}`);
+    const response = await fetch(
+      `${API_BASE_URL}/events/token/snapshots?limit=${limit}&skip=${skip}`
+    );
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -258,7 +265,9 @@ export const fetchTokenSnapshotsWithEvents = async (limit = 5, skip = 0) => {
 // Fetch NFT snapshots with their events
 export const fetchNFTSnapshotsWithEvents = async (limit = 5, skip = 0) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/events/nft/snapshots?limit=${limit}&skip=${skip}`);
+    const response = await fetch(
+      `${API_BASE_URL}/events/nft/snapshots?limit=${limit}&skip=${skip}`
+    );
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -293,6 +302,95 @@ export const fetchTokenSnapshots = async (limit = 10) => {
     return await response.json();
   } catch (error) {
     console.error('Error fetching token snapshots:', error);
+    return [];
+  }
+};
+
+// ============= STAKING API FUNCTIONS =============
+// Fetch staking data
+export const fetchStakingData = async (searchTerm = '', snapshotId) => {
+  try {
+    let url = `${API_BASE_URL}/staking`;
+    const params = new URLSearchParams();
+
+    if (searchTerm) {
+      params.append('search', searchTerm);
+    }
+
+    if (snapshotId !== undefined && snapshotId !== null) {
+      params.append('snapshotId', snapshotId.toString());
+    }
+
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching staking data:', error);
+    throw error;
+  }
+};
+
+// Take staking snapshot
+export const takeStakingSnapshot = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/staking-snapshot`, {
+      method: 'POST',
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error taking staking snapshot:', error);
+    throw error;
+  }
+};
+
+// Fetch staking snapshots
+export const fetchStakingSnapshots = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/staking-snapshots`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching staking snapshots:', error);
+    return [];
+  }
+};
+
+// Fetch unlock summary
+export const fetchUnlockSummary = async (snapshotId, walletAddress) => {
+  try {
+    let url = `${API_BASE_URL}/staking-unlock-summary`;
+    const params = new URLSearchParams();
+
+    if (snapshotId !== undefined && snapshotId !== null) {
+      params.append('snapshotId', snapshotId.toString());
+    }
+
+    if (walletAddress && walletAddress.trim() !== '') {
+      params.append('walletAddress', walletAddress.trim());
+    }
+
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching unlock summary:', error);
     return [];
   }
 };
