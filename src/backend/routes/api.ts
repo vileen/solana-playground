@@ -201,12 +201,26 @@ router.get('/social-profiles', async (req: Request, res: Response) => {
     // Filter by search term if provided
     if (search && typeof search === 'string') {
       const searchLower = search.toLowerCase();
-      profileArray = profileArray.filter(
-        profile =>
+
+      // First, find all social IDs that match the search criteria
+      const matchingSocialIds = new Set<string>();
+
+      profileArray.forEach(profile => {
+        if (
           profile.address.toLowerCase().includes(searchLower) ||
           profile.twitter?.toLowerCase().includes(searchLower) ||
           profile.discord?.toLowerCase().includes(searchLower) ||
           profile.comment?.toLowerCase().includes(searchLower)
+        ) {
+          if (profile.id) {
+            matchingSocialIds.add(profile.id);
+          }
+        }
+      });
+
+      // Then, return ALL profiles that belong to any of the matching social IDs
+      profileArray = profileArray.filter(
+        profile => profile.id && matchingSocialIds.has(profile.id)
       );
     }
 
