@@ -14,19 +14,23 @@ import { EventNFTSnapshot, EventTokenSnapshot } from '../../types/index.js';
 import * as api from '../services/api.js';
 import { truncateAddress } from '../utils/addressUtils.js';
 import { formatNumber, formatRelativeTime } from '../utils/formatting.js';
+
 import SocialPillComment from './SocialPillComment.js';
 import SocialPillDiscord from './SocialPillDiscord.js';
 import SocialPillX from './SocialPillX.js';
 
-
 // Creating strongly-typed wrappers for our API functions
-const fetchTokenSnapshotsWithEvents = (limit: number, skip: number = 0): Promise<EventTokenSnapshot[]> => {
-  // @ts-expect-error API type definitions have issues with the second parameter
+const fetchTokenSnapshotsWithEvents = (
+  limit: number,
+  skip: number = 0
+): Promise<EventTokenSnapshot[]> => {
   return api.fetchTokenSnapshotsWithEvents(limit, skip);
 };
 
-const fetchNFTSnapshotsWithEvents = (limit: number, skip: number = 0): Promise<EventNFTSnapshot[]> => {
-  // @ts-expect-error API type definitions have issues with the second parameter
+const fetchNFTSnapshotsWithEvents = (
+  limit: number,
+  skip: number = 0
+): Promise<EventNFTSnapshot[]> => {
   return api.fetchNFTSnapshotsWithEvents(limit, skip);
 };
 
@@ -75,10 +79,10 @@ const CombinedSnapshotsPanel: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [tokenSnapshotLoading, setTokenSnapshotLoading] = useState<boolean>(false);
   const [nftSnapshotLoading, setNftSnapshotLoading] = useState<boolean>(false);
-  
+
   // Initialize with 'all' instead of null as the default value
   const [eventTypeFilter, setEventTypeFilter] = useState<string>('all');
-  
+
   const [showBothTypes, setShowBothTypes] = useState(true);
   const [showTokenOnly, setShowTokenOnly] = useState(false);
   const [showNftOnly, setShowNftOnly] = useState(false);
@@ -87,18 +91,18 @@ const CombinedSnapshotsPanel: React.FC = () => {
   const loadingMoreRef = useRef<boolean>(false);
   const hasMoreRef = useRef<boolean>(true);
   const toastRef = useRef<Toast>(null);
-  
+
   // This useEffect triggers the initial data fetch
   useEffect(() => {
     loadInitialSnapshots();
   }, []);
-  
+
   // This useEffect combines all events whenever snapshots change or filters change
   useEffect(() => {
     console.log('Combining all events from snapshots with filters');
     combineAndFilterEvents();
   }, [tokenSnapshots, nftSnapshots, showBothTypes, showTokenOnly, showNftOnly, eventTypeFilter]);
-  
+
   // This useEffect logs the filtered events whenever they change
   useEffect(() => {
     console.log('Filtered events updated, count:', filteredEvents.length);
@@ -106,96 +110,98 @@ const CombinedSnapshotsPanel: React.FC = () => {
 
   // Combine all events from all snapshots and apply filters
   const combineAndFilterEvents = () => {
-    console.log("Running combineAndFilterEvents");
-    console.log("Filter states - Type:", showBothTypes ? "All" : showTokenOnly ? "Tokens" : "NFTs", 
-                "EventType:", eventTypeFilter);
-    
+    console.log('Running combineAndFilterEvents');
+    console.log(
+      'Filter states - Type:',
+      showBothTypes ? 'All' : showTokenOnly ? 'Tokens' : 'NFTs',
+      'EventType:',
+      eventTypeFilter
+    );
+
     let combinedEvents: CombinedEvent[] = [];
-    
+
     // Process token events if they should be shown
     if (showBothTypes || showTokenOnly) {
-      console.log("Processing token events from", tokenSnapshots.length, "snapshots");
-      
+      console.log('Processing token events from', tokenSnapshots.length, 'snapshots');
+
       for (const snapshot of tokenSnapshots) {
         if (snapshot.events && snapshot.events.length > 0) {
           const snapshotEvents = snapshot.events.map(event => ({
             ...event,
-            type: 'token' as const
+            type: 'token' as const,
           }));
           combinedEvents = combinedEvents.concat(snapshotEvents);
         }
       }
     }
-    
+
     // Process NFT events if they should be shown
     if (showBothTypes || showNftOnly) {
-      console.log("Processing NFT events from", nftSnapshots.length, "snapshots");
-      
+      console.log('Processing NFT events from', nftSnapshots.length, 'snapshots');
+
       for (const snapshot of nftSnapshots) {
         if (snapshot.events && snapshot.events.length > 0) {
           const snapshotEvents = snapshot.events.map(event => ({
             ...event,
-            type: 'nft' as const
+            type: 'nft' as const,
           }));
           combinedEvents = combinedEvents.concat(snapshotEvents);
         }
       }
     }
-    
+
     // Sort all events by timestamp (newest first)
-    combinedEvents.sort((a, b) => 
-      new Date(b.event_timestamp).getTime() - new Date(a.event_timestamp).getTime()
+    combinedEvents.sort(
+      (a, b) => new Date(b.event_timestamp).getTime() - new Date(a.event_timestamp).getTime()
     );
-    
-    console.log("Combined", combinedEvents.length, "total events");
+
+    console.log('Combined', combinedEvents.length, 'total events');
     setAllEvents(combinedEvents);
-    
+
     // Apply event type filter if selected
     if (eventTypeFilter && eventTypeFilter !== 'all') {
-      const filtered = combinedEvents.filter(event => 
-        event.event_type === eventTypeFilter
-      );
-      console.log("Filtered to", filtered.length, "events of type", eventTypeFilter);
+      const filtered = combinedEvents.filter(event => event.event_type === eventTypeFilter);
+      console.log('Filtered to', filtered.length, 'events of type', eventTypeFilter);
       setFilteredEvents(filtered);
     } else {
-      console.log("No event type filter applied");
+      console.log('No event type filter applied');
       setFilteredEvents(combinedEvents);
     }
   };
-  
+
   const loadInitialSnapshots = async () => {
     setLoading(true);
     try {
       // Load initial batch of token snapshots
-      console.log("Fetching initial token snapshots...");
+      console.log('Fetching initial token snapshots...');
       let tokenSnapshotsData;
       try {
         tokenSnapshotsData = await fetchTokenSnapshotsWithEvents(5);
-        console.log("Token snapshots raw response:", tokenSnapshotsData);
+        console.log('Token snapshots raw response:', tokenSnapshotsData);
       } catch (err) {
-        console.error("Error fetching token snapshots:", err);
+        console.error('Error fetching token snapshots:', err);
         tokenSnapshotsData = [];
       }
-      
+
       // Ensure we have an array, even if empty
       const tokenSnapshotsArray = Array.isArray(tokenSnapshotsData) ? tokenSnapshotsData : [];
-      console.log("Token snapshots processed:", tokenSnapshotsArray);
+      console.log('Token snapshots processed:', tokenSnapshotsArray);
       setTokenSnapshots(tokenSnapshotsArray);
-      
+
       // Load initial batch of NFT snapshots
-      console.log("Fetching initial NFT snapshots...");
+      console.log('Fetching initial NFT snapshots...');
       let nftSnapshotsData;
       try {
         nftSnapshotsData = await fetchNFTSnapshotsWithEvents(5);
-        console.log("NFT snapshots raw response:", nftSnapshotsData);
+        console.log('NFT snapshots raw response:', nftSnapshotsData);
       } catch (err) {
-        console.error("Error fetching NFT snapshots:", err);
+        console.error('Error fetching NFT snapshots:', err);
         nftSnapshotsData = [];
       }
-      
+
       // Ensure we have an array, even if empty
       const nftSnapshotsArray = Array.isArray(nftSnapshotsData) ? nftSnapshotsData : [];
-      console.log("NFT snapshots processed:", nftSnapshotsArray);
+      console.log('NFT snapshots processed:', nftSnapshotsArray);
       setNftSnapshots(nftSnapshotsArray);
     } catch (error) {
       console.error('Error loading snapshots:', error);
@@ -203,37 +209,39 @@ const CombinedSnapshotsPanel: React.FC = () => {
       setLoading(false);
     }
   };
-  
+
   const loadMoreSnapshots = async () => {
     if (loadingMoreRef.current || !hasMoreRef.current) return;
-    
+
     loadingMoreRef.current = true;
-    
+
     try {
       // Calculate how many more snapshots to load
       const loadedTokenCount = tokenSnapshots.length;
       const loadedNftCount = nftSnapshots.length;
-      
-      console.log(`Loading more snapshots. Current counts - Tokens: ${loadedTokenCount}, NFTs: ${loadedNftCount}`);
-      
+
+      console.log(
+        `Loading more snapshots. Current counts - Tokens: ${loadedTokenCount}, NFTs: ${loadedNftCount}`
+      );
+
       // Get more token snapshots if needed
       const newTokenSnapshots = await fetchTokenSnapshotsWithEvents(5, loadedTokenCount);
-      console.log("Additional token snapshots:", newTokenSnapshots);
-      
+      console.log('Additional token snapshots:', newTokenSnapshots);
+
       // Get more NFT snapshots if needed
       const newNftSnapshots = await fetchNFTSnapshotsWithEvents(5, loadedNftCount);
-      console.log("Additional NFT snapshots:", newNftSnapshots);
-      
+      console.log('Additional NFT snapshots:', newNftSnapshots);
+
       // Check if we have more data to load
-      hasMoreRef.current = 
-        (newTokenSnapshots && newTokenSnapshots.length > 0) || 
+      hasMoreRef.current =
+        (newTokenSnapshots && newTokenSnapshots.length > 0) ||
         (newNftSnapshots && newNftSnapshots.length > 0);
-      
+
       // Update the state with new snapshots
       if (newTokenSnapshots && newTokenSnapshots.length > 0) {
         setTokenSnapshots(prev => [...prev, ...newTokenSnapshots]);
       }
-      
+
       if (newNftSnapshots && newNftSnapshots.length > 0) {
         setNftSnapshots(prev => [...prev, ...newNftSnapshots]);
       }
@@ -250,21 +258,21 @@ const CombinedSnapshotsPanel: React.FC = () => {
     try {
       const result = await takeTokenSnapshot();
       console.log('Token snapshot taken:', result);
-      toastRef.current?.show({ 
-        severity: 'success', 
-        summary: 'Token Snapshot Taken', 
+      toastRef.current?.show({
+        severity: 'success',
+        summary: 'Token Snapshot Taken',
         detail: 'New token snapshot captured successfully',
-        life: 3000
+        life: 3000,
       });
       // Reload data after taking snapshot
       loadInitialSnapshots();
     } catch (error) {
       console.error('Error taking token snapshot:', error);
-      toastRef.current?.show({ 
-        severity: 'error', 
-        summary: 'Error', 
+      toastRef.current?.show({
+        severity: 'error',
+        summary: 'Error',
         detail: 'Failed to take token snapshot',
-        life: 3000
+        life: 3000,
       });
     } finally {
       setTokenSnapshotLoading(false);
@@ -277,27 +285,27 @@ const CombinedSnapshotsPanel: React.FC = () => {
     try {
       const result = await takeNftSnapshot();
       console.log('NFT snapshot taken:', result);
-      toastRef.current?.show({ 
-        severity: 'success', 
-        summary: 'NFT Snapshot Taken', 
+      toastRef.current?.show({
+        severity: 'success',
+        summary: 'NFT Snapshot Taken',
         detail: 'New NFT snapshot captured successfully',
-        life: 3000
+        life: 3000,
       });
       // Reload data after taking snapshot
       loadInitialSnapshots();
     } catch (error) {
       console.error('Error taking NFT snapshot:', error);
-      toastRef.current?.show({ 
-        severity: 'error', 
-        summary: 'Error', 
+      toastRef.current?.show({
+        severity: 'error',
+        summary: 'Error',
         detail: 'Failed to take NFT snapshot',
-        life: 3000
+        life: 3000,
       });
     } finally {
       setNftSnapshotLoading(false);
     }
   };
-  
+
   // Render event type badge
   const eventTypeBadge = (event: CombinedEvent) => {
     let severity: 'success' | 'info' | 'warning' | 'danger' | 'secondary' = 'info';
@@ -351,67 +359,92 @@ const CombinedSnapshotsPanel: React.FC = () => {
       return <Tag severity="info" value="NFT" />;
     }
   };
-  
+
   // Format timestamp
   const timestampTemplate = (event: CombinedEvent) => {
     const date = new Date(event.event_timestamp);
     return (
       <div className="flex flex-column">
         <span className="font-semibold">{formatRelativeTime(date)}</span>
-        <span className="text-sm text-color-secondary">
-          {date.toLocaleString()}
-        </span>
+        <span className="text-sm text-color-secondary">{date.toLocaleString()}</span>
       </div>
     );
   };
-  
+
   // Snapshot timestamp template
   const snapshotTimestampTemplate = (event: CombinedEvent) => {
     const date = new Date(event.snapshot_timestamp);
     return (
       <div className="flex flex-column">
         <span className="font-medium">{date.toLocaleDateString()}</span>
-        <span className="text-sm text-color-secondary">
-          {formatRelativeTime(date)}
-        </span>
+        <span className="text-sm text-color-secondary">{formatRelativeTime(date)}</span>
       </div>
     );
   };
 
   // Format wallet address with X/Discord if available
-  const addressTemplate = (address?: string, twitter?: string, discord?: string, comment?: string) => {
+  const addressTemplate = (
+    address?: string,
+    twitter?: string,
+    discord?: string,
+    comment?: string
+  ) => {
     if (!address) return null;
     const solscanUrl = `https://solscan.io/account/${address}`;
     return (
       <div className="flex flex-column">
         <div className="flex align-items-center">
-          <a href={solscanUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex align-items-center">
+          <a
+            href={solscanUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline flex align-items-center"
+          >
             {truncateAddress(address)}
-            <img src="/solscan_logo.png" alt="Solscan" width="14" height="14" className="ml-1" style={{ opacity: 0.7, verticalAlign: 'middle' }} />
+            <img
+              src="/solscan_logo.png"
+              alt="Solscan"
+              width="14"
+              height="14"
+              className="ml-1"
+              style={{ opacity: 0.7, verticalAlign: 'middle' }}
+            />
           </a>
         </div>
         {comment ? (
           <SocialPillComment text={comment} className="mt-1" style={{ fontWeight: 500 }} />
-        ) : (twitter || discord) && (
-          <div className="flex mt-1 gap-2">
-            {twitter && <SocialPillX handle={twitter} />}
-            {discord && <SocialPillDiscord handle={discord} />}
-          </div>
+        ) : (
+          (twitter || discord) && (
+            <div className="flex mt-1 gap-2">
+              {twitter && <SocialPillX handle={twitter} />}
+              {discord && <SocialPillDiscord handle={discord} />}
+            </div>
+          )
         )}
       </div>
     );
   };
-  
+
   // Source address template
   const sourceAddressTemplate = (event: CombinedEvent) => {
-    return addressTemplate(event.source_address, event.source_twitter, event.source_discord, event.source_comment);
+    return addressTemplate(
+      event.source_address,
+      event.source_twitter,
+      event.source_discord,
+      event.source_comment
+    );
   };
 
   // Destination address template
   const destinationAddressTemplate = (event: CombinedEvent) => {
-    return addressTemplate(event.destination_address, event.dest_twitter, event.dest_discord, event.dest_comment);
+    return addressTemplate(
+      event.destination_address,
+      event.dest_twitter,
+      event.dest_discord,
+      event.dest_comment
+    );
   };
-  
+
   // Amount/NFT details template
   const assetDetailsTemplate = (event: CombinedEvent) => {
     if (event.type === 'token' && event.amount !== undefined) {
@@ -430,22 +463,33 @@ const CombinedSnapshotsPanel: React.FC = () => {
     }
     return <span>-</span>;
   };
-  
+
   // Social profile template
   const socialProfileTemplate = (event: CombinedEvent) => {
     // Determine if it's a self-transfer within the same profile
-    const isSelfTransfer = 
-      event.event_type === 'transfer_between' && 
-      event.twitter && event.source_twitter && event.dest_twitter &&
-      event.twitter === event.source_twitter && event.twitter === event.dest_twitter;
+    const isSelfTransfer =
+      event.event_type === 'transfer_between' &&
+      event.twitter &&
+      event.source_twitter &&
+      event.dest_twitter &&
+      event.twitter === event.source_twitter &&
+      event.twitter === event.dest_twitter;
 
     // If no profiles found
-    if (!event.twitter && !event.discord && !event.comment && 
-        !event.source_twitter && !event.source_discord && !event.source_comment &&
-        !event.dest_twitter && !event.dest_discord && !event.dest_comment) {
+    if (
+      !event.twitter &&
+      !event.discord &&
+      !event.comment &&
+      !event.source_twitter &&
+      !event.source_discord &&
+      !event.source_comment &&
+      !event.dest_twitter &&
+      !event.dest_discord &&
+      !event.dest_comment
+    ) {
       return <span>-</span>;
     }
-    
+
     if (isSelfTransfer) {
       // For self transfers, show just the profile with a self-transfer tag
       return (
@@ -458,16 +502,20 @@ const CombinedSnapshotsPanel: React.FC = () => {
               {event.discord && <SocialPillDiscord handle={event.discord} />}
             </div>
           )}
-          <Tag severity="info" icon="pi pi-arrows-h">Self Transfer</Tag>
+          <Tag severity="info" icon="pi pi-arrows-h">
+            Self Transfer
+          </Tag>
         </div>
       );
-    } else if (event.event_type === 'transfer_between' || 
-               event.event_type === 'transfer_in' || 
-               event.event_type === 'transfer_out') {
+    } else if (
+      event.event_type === 'transfer_between' ||
+      event.event_type === 'transfer_in' ||
+      event.event_type === 'transfer_out'
+    ) {
       // For transfers between different profiles or unknown profiles
       const hasSource = event.source_twitter || event.source_discord || event.source_comment;
       const hasDest = event.dest_twitter || event.dest_discord || event.dest_comment;
-      
+
       if (hasSource && hasDest) {
         // Both source and destination have profiles
         return (
@@ -536,7 +584,7 @@ const CombinedSnapshotsPanel: React.FC = () => {
         );
       }
     }
-    
+
     // For non-transfer events or fallback
     return (
       <div className="flex flex-column">
@@ -559,15 +607,11 @@ const CombinedSnapshotsPanel: React.FC = () => {
     const typeOptions = [
       { label: 'All Types', value: 'all' },
       { label: 'Tokens Only', value: 'tokens' },
-      { label: 'NFTs Only', value: 'nfts' }
+      { label: 'NFTs Only', value: 'nfts' },
     ];
-    
-    const selectedTypeValue = showBothTypes 
-      ? 'all' 
-      : showTokenOnly 
-        ? 'tokens' 
-        : 'nfts';
-    
+
+    const selectedTypeValue = showBothTypes ? 'all' : showTokenOnly ? 'tokens' : 'nfts';
+
     const onTypeChange = (e: { value: string }) => {
       const value = e.value;
       if (value === 'all') {
@@ -584,35 +628,35 @@ const CombinedSnapshotsPanel: React.FC = () => {
         setShowNftOnly(true);
       }
     };
-    
+
     return (
       <div className="flex flex-column gap-3 mb-3">
         <div className="flex justify-between items-center">
           <div className="flex gap-2">
-            <Button 
-              label="Take Token Snapshot" 
+            <Button
+              label="Take Token Snapshot"
               icon="pi pi-camera"
               onClick={handleTakeTokenSnapshot}
               loading={tokenSnapshotLoading}
               className="p-button-success p-button-sm"
             />
-            <Button 
-              label="Take NFT Snapshot" 
+            <Button
+              label="Take NFT Snapshot"
               icon="pi pi-camera"
               onClick={handleTakeNftSnapshot}
               loading={nftSnapshotLoading}
               className="p-button-info p-button-sm"
             />
           </div>
-          <Button 
-            icon="pi pi-refresh" 
+          <Button
+            icon="pi pi-refresh"
             onClick={loadInitialSnapshots}
             loading={loading}
             className="p-button-outlined p-button-sm"
             tooltip="Refresh Data"
           />
         </div>
-        
+
         <div className="flex justify-between items-center">
           <div>
             <style>
@@ -630,14 +674,14 @@ const CombinedSnapshotsPanel: React.FC = () => {
                 }
               `}
             </style>
-            <SelectButton 
-              value={selectedTypeValue} 
-              options={typeOptions} 
+            <SelectButton
+              value={selectedTypeValue}
+              options={typeOptions}
               onChange={onTypeChange}
               className="p-buttonset-sm separated-button"
             />
           </div>
-          
+
           <Dropdown
             value={eventTypeFilter}
             options={[
@@ -646,9 +690,9 @@ const CombinedSnapshotsPanel: React.FC = () => {
               { label: 'Transfers In', value: 'transfer_in' },
               { label: 'Transfers Out', value: 'transfer_out' },
               { label: 'Transfers Between', value: 'transfer_between' },
-              { label: 'Empty Wallets', value: 'wallet_empty' }
+              { label: 'Empty Wallets', value: 'wallet_empty' },
             ]}
-            onChange={(e) => {
+            onChange={e => {
               const newValue = e.value;
               console.log('Setting event type filter to:', newValue);
               setEventTypeFilter(newValue);
@@ -660,12 +704,12 @@ const CombinedSnapshotsPanel: React.FC = () => {
       </div>
     );
   };
-  
+
   // Load more button
   const loadMoreButton = () => {
     return (
       <div className="flex justify-center mt-3">
-        <Button 
+        <Button
           label="Load More"
           icon="pi pi-plus"
           onClick={loadMoreSnapshots}
@@ -676,13 +720,13 @@ const CombinedSnapshotsPanel: React.FC = () => {
       </div>
     );
   };
-  
+
   return (
     <div className="combined-snapshots-panel">
       <Toast ref={toastRef} />
       <h2>Snapshots Timeline</h2>
       {filterControls()}
-      
+
       <DataTable
         value={filteredEvents}
         scrollable
@@ -695,16 +739,37 @@ const CombinedSnapshotsPanel: React.FC = () => {
       >
         <Column field="event_type" header="Type" body={eventTypeBadge} style={{ width: '100px' }} />
         <Column field="type" header="Asset" body={assetTypeBadge} style={{ width: '80px' }} />
-        <Column field="event_timestamp" header="When" body={timestampTemplate} style={{ width: '180px' }} sortable />
-        <Column field="snapshot_timestamp" header="Snapshot" body={snapshotTimestampTemplate} style={{ width: '120px' }} />
+        <Column
+          field="event_timestamp"
+          header="When"
+          body={timestampTemplate}
+          style={{ width: '180px' }}
+          sortable
+        />
+        <Column
+          field="snapshot_timestamp"
+          header="Snapshot"
+          body={snapshotTimestampTemplate}
+          style={{ width: '120px' }}
+        />
         <Column field="source_address" header="From" body={sourceAddressTemplate} />
         <Column field="destination_address" header="To" body={destinationAddressTemplate} />
-        <Column field="asset_details" header="Details" body={assetDetailsTemplate} style={{ width: '150px' }} />
-        <Column field="social_profile" header="Social Profile" body={socialProfileTemplate} style={{ width: '180px' }} />
+        <Column
+          field="asset_details"
+          header="Details"
+          body={assetDetailsTemplate}
+          style={{ width: '150px' }}
+        />
+        <Column
+          field="social_profile"
+          header="Social Profile"
+          body={socialProfileTemplate}
+          style={{ width: '180px' }}
+        />
       </DataTable>
-      
+
       {loadMoreButton()}
-      
+
       {/* Debug info */}
       {filteredEvents.length === 0 && !loading && (
         <div className="mt-4 p-3 surface-100 border-round">
@@ -717,7 +782,7 @@ const CombinedSnapshotsPanel: React.FC = () => {
           <p>Show Token Only: {showTokenOnly.toString()}</p>
           <p>Show NFT Only: {showNftOnly.toString()}</p>
           <p>Event Type Filter: {eventTypeFilter}</p>
-          <button 
+          <button
             className="p-button p-button-sm p-button-outlined mt-2"
             onClick={() => {
               // Force a combine and re-render
@@ -732,4 +797,4 @@ const CombinedSnapshotsPanel: React.FC = () => {
   );
 };
 
-export default CombinedSnapshotsPanel; 
+export default CombinedSnapshotsPanel;

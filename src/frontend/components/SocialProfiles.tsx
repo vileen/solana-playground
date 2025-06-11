@@ -10,12 +10,12 @@ import {
   saveSocialProfile as apiSaveSocialProfile,
   fetchNftHolders,
   fetchSocialProfiles,
+  fetchStakingData,
   fetchTokenHolders,
 } from '../services/api.js';
 
 import ProfileDialog from './ProfileDialog.js';
 import SearchBar from './SearchBar.js';
-import { fetchStakingData } from './StakingAPI.js';
 import WalletAddress from './WalletAddress.js';
 import XIcon from './XIcon.js';
 
@@ -81,11 +81,11 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
       try {
         setLoading(true);
 
-        // Fetch all data
-        const profiles = await fetchSocialProfiles();
-        const nftHolders = await fetchNftHolders();
-        const tokenHolders = await fetchTokenHolders();
-        const stakingData = await fetchStakingData();
+        // Fetch data with search term if provided
+        const profiles = await fetchSocialProfiles(searchTerm);
+        const nftHolders = await fetchNftHolders(searchTerm);
+        const tokenHolders = await fetchTokenHolders(searchTerm);
+        const stakingData = await fetchStakingData(searchTerm);
 
         // Create maps for quick lookups
         const tokenMap = new Map();
@@ -187,22 +187,9 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
         // Convert map to array
         const groupedProfilesArray = Array.from(groupedProfiles.values());
 
-        // Filter by search term if provided
+        // Since we're already filtering on the backend, we don't need additional frontend filtering when there's a searchTerm
+        // Only apply frontend filtering when there's no search term (i.e., when we're showing all data)
         let filteredProfiles = groupedProfilesArray;
-        if (searchTerm) {
-          const searchLower = searchTerm.toLowerCase();
-          filteredProfiles = groupedProfilesArray.filter(
-            profile =>
-              profile.displayName.toLowerCase().includes(searchLower) ||
-              profile.twitter?.toLowerCase().includes(searchLower) ||
-              false ||
-              profile.discord?.toLowerCase().includes(searchLower) ||
-              false ||
-              profile.comment?.toLowerCase().includes(searchLower) ||
-              false ||
-              profile.wallets.some(wallet => wallet.address.toLowerCase().includes(searchLower))
-          );
-        }
 
         // Apply default sorting (prioritize tokens, then staking, then NFTs)
         filteredProfiles.sort((a, b) => {

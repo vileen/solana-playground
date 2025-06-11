@@ -10,18 +10,18 @@ import { Dropdown } from 'primereact/dropdown';
 import { ProgressSpinner } from 'primereact/progressspinner';
 
 import { Stake, StakeData } from '../../types/index.js';
-
-import SearchBar from './SearchBar.js';
-import SocialPillComment from './SocialPillComment.js';
-import SocialPillDiscord from './SocialPillDiscord.js';
-import SocialPillX from './SocialPillX.js';
 import {
   fetchSocialProfiles,
   fetchStakingData,
   fetchStakingSnapshots,
   fetchUnlockSummary,
   takeStakingSnapshot,
-} from './StakingAPI.js';
+} from '../services/api.js';
+
+import SearchBar from './SearchBar.js';
+import SocialPillComment from './SocialPillComment.js';
+import SocialPillDiscord from './SocialPillDiscord.js';
+import SocialPillX from './SocialPillX.js';
 import WalletAddress from './WalletAddress.js';
 
 interface StakingViewProps {
@@ -134,8 +134,7 @@ const StakingView = ({ onError, onSuccess }: StakingViewProps) => {
   const fetchUnlockSummaryData = async () => {
     try {
       const snapshotIdParam = selectedSnapshotId === null ? undefined : selectedSnapshotId;
-      const walletAddressParam =
-        searchTerm && searchTerm.trim() !== '' ? searchTerm.trim() : undefined;
+      const walletAddressParam = searchTerm && searchTerm.trim() !== '' ? searchTerm.trim() : '';
       const summary = await fetchUnlockSummary(snapshotIdParam, walletAddressParam);
       setUnlockSummary(summary);
     } catch (error: any) {
@@ -152,7 +151,7 @@ const StakingView = ({ onError, onSuccess }: StakingViewProps) => {
       setStakingData(data);
 
       // Also refresh the unlock summary with the new filter
-      const walletAddressParam = value && value.trim() !== '' ? value.trim() : undefined;
+      const walletAddressParam = value && value.trim() !== '' ? value.trim() : '';
       const summary = await fetchUnlockSummary(snapshotIdParam, walletAddressParam);
       setUnlockSummary(summary);
     } catch (error: any) {
