@@ -53,6 +53,7 @@ interface GroupedSocialProfile {
   totalStaked: number;
   totalLocked: number;
   totalUnlocked: number;
+  totalTokensAndStaked: number;
 }
 
 // Use forwardRef to expose methods to parent component
@@ -65,7 +66,7 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
     const [selectedProfile, setSelectedProfile] = useState<any>(null);
     const appNavigation = useAppNavigation();
     // Add state for sorting
-    const [sortField, setSortField] = useState<string>('totalTokenBalance');
+    const [sortField, setSortField] = useState<string>('totalTokensAndStaked');
     const [sortOrder, setSortOrder] = useState<1 | -1>(-1); // -1 for descending
 
     // Expose methods via ref
@@ -185,6 +186,8 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
             existingProfile.totalStaked += stakingInfo.totalStaked;
             existingProfile.totalLocked += stakingInfo.totalLocked;
             existingProfile.totalUnlocked += stakingInfo.totalUnlocked;
+            existingProfile.totalTokensAndStaked =
+              existingProfile.totalTokenBalance + existingProfile.totalStaked;
 
             // Update the profile if this wallet has a comment and the profile doesn't
             if (profile.comment && !existingProfile.comment) {
@@ -207,6 +210,7 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
               totalStaked: stakingInfo.totalStaked,
               totalLocked: stakingInfo.totalLocked,
               totalUnlocked: stakingInfo.totalUnlocked,
+              totalTokensAndStaked: tokenBalance + stakingInfo.totalStaked,
             });
           }
         });
@@ -218,15 +222,11 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
         // Only apply frontend filtering when there's no search term (i.e., when we're showing all data)
         let filteredProfiles = groupedProfilesArray;
 
-        // Apply default sorting (prioritize tokens, then staking, then NFTs)
+        // Apply default sorting (prioritize total tokens + staked, then NFTs)
         filteredProfiles.sort((a, b) => {
-          // First sort by totalTokenBalance
-          if (a.totalTokenBalance !== b.totalTokenBalance) {
-            return b.totalTokenBalance - a.totalTokenBalance; // Descending order
-          }
-          // Then sort by totalStaked
-          if (a.totalStaked !== b.totalStaked) {
-            return b.totalStaked - a.totalStaked; // Descending order
+          // First sort by totalTokensAndStaked
+          if (a.totalTokensAndStaked !== b.totalTokensAndStaked) {
+            return b.totalTokensAndStaked - a.totalTokensAndStaked; // Descending order
           }
           // Then sort by totalNftCount
           return b.totalNftCount - a.totalNftCount; // Descending order
@@ -543,8 +543,14 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
           <Column field="discord" header="Discord" body={discordTemplate} sortable />
           <Column field="wallets" header="Wallets" body={walletsCountTemplate} sortable />
           <Column
+            field="totalTokensAndStaked"
+            header="Holdings + Staked"
+            body={rowData => formatTokenBalance(rowData.totalTokensAndStaked)}
+            sortable
+          />
+          <Column
             field="totalTokenBalance"
-            header="Total Tokens"
+            header="Token Holdings"
             body={rowData => formatTokenBalance(rowData.totalTokenBalance)}
             sortable
           />
