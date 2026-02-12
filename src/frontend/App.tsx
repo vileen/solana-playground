@@ -15,7 +15,7 @@ import ProfileDialog from './components/ProfileDialog.js';
 import SocialProfiles from './components/SocialProfiles.js';
 import StakingView from './components/StakingView.js';
 import TokenHolders from './components/TokenHolders.js';
-import { useAppNavigation } from './hooks/useAppNavigation.js';
+import { ROUTE_TO_TAB_INDEX, useAppNavigation } from './hooks/useAppNavigation.js';
 import {
   deleteSocialProfile as apiDeleteSocialProfile,
   saveSocialProfile as apiSaveSocialProfile,
@@ -26,11 +26,12 @@ import { getSavedTheme, loadThemeCSS, toggleTheme } from './utils/theme.js';
 // Create a wrapper component that will handle route changes
 const AppContent: React.FC = () => {
   const appNavigation = useAppNavigation();
+  const location = useLocation();
+
   const [activeTab, setActiveTab] = useState(() => appNavigation.getCurrentTabIndex());
   const [profileDialogVisible, setProfileDialogVisible] = useState(false);
   const [selectedHolder, setSelectedHolder] = useState<any>(null);
   const [selectedWalletAddress, setSelectedWalletAddress] = useState<string | undefined>(undefined);
-  const [sharedSearchTerm, setSharedSearchTerm] = useState(appNavigation.getSearchParam());
   const [isDarkMode, setIsDarkMode] = useState(true);
 
   // References to child components for refreshing
@@ -39,7 +40,6 @@ const AppContent: React.FC = () => {
   const socialProfilesRef = useRef<any>(null);
 
   const toast = useRef<Toast>(null);
-  const location = useLocation();
 
   useEffect(() => {
     // Load saved theme preference
@@ -48,18 +48,14 @@ const AppContent: React.FC = () => {
     loadThemeCSS(savedIsDarkMode);
   }, []);
 
-  // Listen for URL changes to update the active tab
+  // Update active tab when URL pathname changes
   useEffect(() => {
-    // Get the tab index from the current URL
-    const tabIndex = appNavigation.getCurrentTabIndex();
-    setActiveTab(tabIndex);
-
-    // Extract search parameter and update shared search term
-    const searchParam = appNavigation.getSearchParam();
-    if (searchParam !== sharedSearchTerm) {
-      setSharedSearchTerm(searchParam);
-    }
-  }, [location, appNavigation]);
+    const path = location.pathname;
+    const matchingEntry = Object.entries(ROUTE_TO_TAB_INDEX).find(
+      ([route]) => path === route || path.startsWith(route + '/')
+    );
+    setActiveTab(matchingEntry ? matchingEntry[1] : 0);
+  }, [location.pathname]);
 
   const handleThemeToggle = () => {
     setIsDarkMode(toggleTheme(isDarkMode));
@@ -67,13 +63,8 @@ const AppContent: React.FC = () => {
 
   // Handle tab change
   const handleTabChange = (e: { index: number }) => {
-    const newTabIndex = e.index;
-
-    // Update URL to match the selected tab
-    appNavigation.navigateToTab(newTabIndex);
-
-    // We don't need to update the active tab state here
-    // because the location change will trigger the useEffect above
+    // Navigate to the tab route — the useEffect above will update activeTab
+    appNavigation.navigateToTab(e.index);
   };
 
   const showSocialDialog = async (holder: any) => {
@@ -249,8 +240,6 @@ const AppContent: React.FC = () => {
               onError={handleError}
               onSuccess={handleSuccess}
               onShowSocialDialog={showSocialDialog}
-              searchTerm={sharedSearchTerm}
-              onSearchChange={setSharedSearchTerm}
             />
           </TabPanel>
 
@@ -260,8 +249,6 @@ const AppContent: React.FC = () => {
               onError={handleError}
               onSuccess={handleSuccess}
               onShowSocialDialog={showSocialDialog}
-              searchTerm={sharedSearchTerm}
-              onSearchChange={setSharedSearchTerm}
             />
           </TabPanel>
 
@@ -286,8 +273,6 @@ const AppContent: React.FC = () => {
               ref={socialProfilesRef}
               onError={handleError}
               onSuccess={handleSuccess}
-              searchTerm={sharedSearchTerm}
-              onSearchChange={setSharedSearchTerm}
             />
           </TabPanel>
         </TabView>

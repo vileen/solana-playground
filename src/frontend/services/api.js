@@ -5,7 +5,7 @@ const API_BASE_URL =
     : 'http://localhost:3001/api';
 
 // Fetch NFT holders
-export const fetchNftHolders = async (searchTerm, snapshotId) => {
+export const fetchNftHolders = async (searchTerm, snapshotId, { signal } = {}) => {
   try {
     let url = `${API_BASE_URL}/holders`;
     const params = new URLSearchParams();
@@ -22,19 +22,20 @@ export const fetchNftHolders = async (searchTerm, snapshotId) => {
       url += `?${params.toString()}`;
     }
 
-    const response = await fetch(url);
+    const response = await fetch(url, { signal });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     return await response.json();
   } catch (error) {
+    if (error.name === 'AbortError') throw error; // Re-throw abort errors without logging
     console.error('Error fetching NFT holders:', error);
     throw error;
   }
 };
 
 // Fetch token holders
-export const fetchTokenHolders = async (searchTerm, snapshotId) => {
+export const fetchTokenHolders = async (searchTerm, snapshotId, { signal } = {}) => {
   try {
     let url = `${API_BASE_URL}/token-holders`;
     const params = new URLSearchParams();
@@ -51,31 +52,33 @@ export const fetchTokenHolders = async (searchTerm, snapshotId) => {
       url += `?${params.toString()}`;
     }
 
-    const response = await fetch(url);
+    const response = await fetch(url, { signal });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     return await response.json();
   } catch (error) {
+    if (error.name === 'AbortError') throw error;
     console.error('Error fetching token holders:', error);
     throw error;
   }
 };
 
 // Fetch social profiles
-export const fetchSocialProfiles = async searchTerm => {
+export const fetchSocialProfiles = async (searchTerm, { signal } = {}) => {
   try {
     const url = new URL(`${API_BASE_URL}/social-profiles`, window.location.origin);
     if (searchTerm) {
       url.searchParams.append('search', searchTerm);
     }
 
-    const response = await fetch(url.toString());
+    const response = await fetch(url.toString(), { signal });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     return await response.json();
   } catch (error) {
+    if (error.name === 'AbortError') throw error;
     console.error('Error fetching social profiles:', error);
     throw error;
   }
@@ -308,7 +311,7 @@ export const fetchTokenSnapshots = async (limit = 10) => {
 
 // ============= STAKING API FUNCTIONS =============
 // Fetch staking data
-export const fetchStakingData = async (searchTerm = '', snapshotId) => {
+export const fetchStakingData = async (searchTerm = '', snapshotId, { signal } = {}) => {
   try {
     let url = `${API_BASE_URL}/staking`;
     const params = new URLSearchParams();
@@ -325,12 +328,13 @@ export const fetchStakingData = async (searchTerm = '', snapshotId) => {
       url += `?${params.toString()}`;
     }
 
-    const response = await fetch(url);
+    const response = await fetch(url, { signal });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     return await response.json();
   } catch (error) {
+    if (error.name === 'AbortError') throw error;
     console.error('Error fetching staking data:', error);
     throw error;
   }
@@ -367,7 +371,7 @@ export const fetchStakingSnapshots = async () => {
 };
 
 // Fetch unlock summary
-export const fetchUnlockSummary = async (snapshotId, walletAddress) => {
+export const fetchUnlockSummary = async (snapshotId, walletAddress, { signal } = {}) => {
   try {
     let url = `${API_BASE_URL}/staking-unlock-summary`;
     const params = new URLSearchParams();
@@ -384,12 +388,13 @@ export const fetchUnlockSummary = async (snapshotId, walletAddress) => {
       url += `?${params.toString()}`;
     }
 
-    const response = await fetch(url);
+    const response = await fetch(url, { signal });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     return await response.json();
   } catch (error) {
+    if (error.name === 'AbortError') throw error;
     console.error('Error fetching unlock summary:', error);
     return [];
   }
