@@ -1,4 +1,5 @@
 import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
@@ -22,8 +23,6 @@ import XIcon from './XIcon.js';
 interface SocialProfilesProps {
   onError: (message: string) => void;
   onSuccess: (message: string) => void;
-  searchTerm: string;
-  onSearchChange: (value: string) => void;
 }
 
 interface WalletData {
@@ -58,13 +57,16 @@ interface GroupedSocialProfile {
 
 // Use forwardRef to expose methods to parent component
 const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, SocialProfilesProps>(
-  ({ onError, onSuccess, searchTerm, onSearchChange }, ref) => {
+  ({ onError, onSuccess }, ref) => {
+    const [searchParams] = useSearchParams();
+    const searchTerm = searchParams.get('search') || '';
+    const appNavigation = useAppNavigation();
+
     const [socialProfiles, setSocialProfiles] = useState<GroupedSocialProfile[]>([]);
     const [loading, setLoading] = useState(false);
     const [expandedRows, setExpandedRows] = useState<any>(null);
     const [profileDialogVisible, setProfileDialogVisible] = useState(false);
     const [selectedProfile, setSelectedProfile] = useState<any>(null);
-    const appNavigation = useAppNavigation();
     // Add state for sorting
     const [sortField, setSortField] = useState<string>('totalTokensAndStaked');
     const [sortOrder, setSortOrder] = useState<1 | -1>(-1); // -1 for descending
@@ -75,43 +77,73 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
     }));
 
     useEffect(() => {
-      loadSocialProfiles();
+      const abortController = new AbortController();
+      loadSocialProfiles(abortController.signal);
+      return () => abortController.abort();
     }, [searchTerm]);
 
-    const loadSocialProfiles = async () => {
+    const loadSocialProfiles = async (signal?: AbortSignal) => {
       try {
         setLoading(true);
 
         // Step 1: Fetch social profiles first (this now returns all wallets for matching profiles)
-        const profiles = await fetchSocialProfiles(searchTerm);
+        const profiles = await fetchSocialProfiles(searchTerm, { signal });
 
         // Step 2: Extract all wallet addresses from the social profiles
-        const allWalletAddresses = profiles.map(profile => profile.address);
+        const allWalletAddresses = profiles.map((profile: any) => profile.address);
 
-        // Step 3: If we have a search term, fetch balance data for ALL related wallets
-        // If no search term, fetch all data without filtering
-        let nftHolders, tokenHolders, stakingData;
+        // Step 3: Fetch balance data for the wallets in parallel
+        // When searching, we need data for all wallets in matching profiles (which may not match the search term directly)
+        // We fetch per-wallet using individual search terms so the backend filters server-side
+        let nftHolders: any[] = [];
+        let tokenHolders: any[] = [];
+        let stakingData: any[] = [];
 
         if (searchTerm && allWalletAddresses.length > 0) {
-          // When searching, we need to get data for all wallets in the matching profiles
-          // We'll fetch all data and then filter to our specific wallet addresses
-          const [allNftHolders, allTokenHolders, allStakingData] = await Promise.all([
-            fetchNftHolders(''), // Fetch all
-            fetchTokenHolders(''), // Fetch all
-            fetchStakingData(''), // Fetch all
-          ]);
+          // Fetch data for each wallet address in the matching profiles
+          // Use Promise.all to fetch balance data for all wallet addresses in parallel
+          const walletDataResults = await Promise.all(
+            allWalletAddresses.map(async (address: string) => {
+              const [nft, token, staking] = await Promise.all([
+                fetchNftHolders(address, undefined, { signal }),
+                fetchTokenHolders(address, undefined, { signal }),
+                fetchStakingData(address, undefined, { signal }),
+              ]);
+              return { nft, token, staking };
+            })
+          );
 
-          // Filter to only include wallets from our social profiles
-          const walletAddressSet = new Set(allWalletAddresses);
-          nftHolders = allNftHolders.filter(holder => walletAddressSet.has(holder.address));
-          tokenHolders = allTokenHolders.filter(holder => walletAddressSet.has(holder.address));
-          stakingData = allStakingData.filter(stake => walletAddressSet.has(stake.walletAddress));
+          // Flatten results and deduplicate by address
+          const seenNft = new Set<string>();
+          const seenToken = new Set<string>();
+          const seenStaking = new Set<string>();
+
+          for (const result of walletDataResults) {
+            for (const holder of result.nft) {
+              if (!seenNft.has(holder.address)) {
+                seenNft.add(holder.address);
+                nftHolders.push(holder);
+              }
+            }
+            for (const holder of result.token) {
+              if (!seenToken.has(holder.address)) {
+                seenToken.add(holder.address);
+                tokenHolders.push(holder);
+              }
+            }
+            for (const stake of result.staking) {
+              if (!seenStaking.has(stake.walletAddress)) {
+                seenStaking.add(stake.walletAddress);
+                stakingData.push(stake);
+              }
+            }
+          }
         } else {
           // No search term - fetch all data normally
           [nftHolders, tokenHolders, stakingData] = await Promise.all([
-            fetchNftHolders(searchTerm),
-            fetchTokenHolders(searchTerm),
-            fetchStakingData(searchTerm),
+            fetchNftHolders('', undefined, { signal }),
+            fetchTokenHolders('', undefined, { signal }),
+            fetchStakingData('', undefined, { signal }),
           ]);
         }
 
@@ -234,6 +266,7 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
 
         setSocialProfiles(filteredProfiles);
       } catch (error: any) {
+        if (error.name === 'AbortError') return; // Silently ignore aborted requests
         onError(`Error loading social profiles: ${error.message}`);
       } finally {
         setLoading(false);
@@ -501,11 +534,7 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
         <div className="flex justify-between items-center mb-3 table-header">
           <h3 className="m-0">Social Profiles: {socialProfiles.length}</h3>
           <div className="flex gap-2 items-center">
-            <SearchBar
-              searchTerm={searchTerm}
-              onSearchChange={onSearchChange}
-              placeholder="Search social profiles..."
-            />
+            <SearchBar placeholder="Search social profiles..." />
             <Button
               label="Add Profile"
               icon="pi pi-plus"
@@ -515,7 +544,7 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
             <Button
               label="Refresh"
               icon="pi pi-refresh"
-              onClick={loadSocialProfiles}
+              onClick={() => loadSocialProfiles()}
               loading={loading}
             />
           </div>

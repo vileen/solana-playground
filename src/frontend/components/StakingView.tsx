@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 import { ChartData, ChartOptions } from 'chart.js';
 import { Button } from 'primereact/button';
@@ -37,52 +38,47 @@ interface SocialInfo {
 }
 
 const StakingView = ({ onError, onSuccess }: StakingViewProps) => {
+  const [searchParams] = useSearchParams();
+  const searchTerm = searchParams.get('search') || '';
+
   const [stakingData, setStakingData] = useState<StakeData[]>([]);
   const [loading, setLoading] = useState(false);
   const [snapshots, setSnapshots] = useState<any[]>([]);
   const [selectedSnapshotId, setSelectedSnapshotId] = useState<number | null>(null);
-  const [searchTerm, setSearchTerm] = useState<string>('');
   const [expandedRows, setExpandedRows] = useState<any>({});
   const [unlockSummary, setUnlockSummary] = useState<{ date: string; amount: number }[]>([]);
   const [unlockSummaryVisible, setUnlockSummaryVisible] = useState(false);
   const [socialProfiles, setSocialProfiles] = useState<Record<string, SocialInfo>>({});
   const [chartKey, setChartKey] = useState<number>(0);
 
-  // Load initial data
+  // Load static data once on mount
   useEffect(() => {
-    const loadInitialData = async () => {
-      try {
-        setLoading(true);
-        await fetchSnapshots();
-        await fetchSocialProfilesData();
-        await fetchStakingDataFromApi();
-        await fetchUnlockSummaryData();
-      } catch (error) {
-        console.error('Error loading initial data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadInitialData();
+    fetchSnapshots();
+    fetchSocialProfilesData();
   }, []);
 
-  // Reload data when snapshot changes
+  // Fetch data that depends on search term or snapshot selection
   useEffect(() => {
-    const reloadData = async () => {
+    const abortController = new AbortController();
+
+    const loadDynamicData = async () => {
       try {
         setLoading(true);
-        await fetchStakingDataFromApi();
-        await fetchUnlockSummaryData();
-      } catch (error) {
-        console.error('Error reloading data:', error);
+        await Promise.all([
+          fetchStakingDataFromApi(abortController.signal),
+          fetchUnlockSummaryData(abortController.signal),
+        ]);
+      } catch (error: any) {
+        if (error.name === 'AbortError') return;
+        console.error('Error loading data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    reloadData();
-  }, [selectedSnapshotId]);
+    loadDynamicData();
+    return () => abortController.abort();
+  }, [searchTerm, selectedSnapshotId]);
 
   const fetchSnapshots = async () => {
     try {
@@ -117,46 +113,28 @@ const StakingView = ({ onError, onSuccess }: StakingViewProps) => {
     }
   };
 
-  const fetchStakingDataFromApi = async () => {
+  const fetchStakingDataFromApi = async (signal?: AbortSignal) => {
     try {
-      setLoading(true);
       const snapshotIdParam = selectedSnapshotId === null ? undefined : selectedSnapshotId;
-      const data = await fetchStakingData(searchTerm, snapshotIdParam);
+      const data = await fetchStakingData(searchTerm, snapshotIdParam, { signal });
       setStakingData(data);
     } catch (error: any) {
+      if (error.name === 'AbortError') return;
       console.error('Error fetching staking data:', error);
       onError(`Failed to fetch staking data: ${error.message || 'Unknown error'}`);
-    } finally {
-      setLoading(false);
     }
   };
 
-  const fetchUnlockSummaryData = async () => {
+  const fetchUnlockSummaryData = async (signal?: AbortSignal) => {
     try {
       const snapshotIdParam = selectedSnapshotId === null ? undefined : selectedSnapshotId;
       const walletAddressParam = searchTerm && searchTerm.trim() !== '' ? searchTerm.trim() : '';
-      const summary = await fetchUnlockSummary(snapshotIdParam, walletAddressParam);
+      const summary = await fetchUnlockSummary(snapshotIdParam, walletAddressParam, { signal });
       setUnlockSummary(summary);
     } catch (error: any) {
+      if (error.name === 'AbortError') return;
       console.error('Error fetching unlock summary:', error);
       onError(`Failed to fetch unlock summary: ${error.message || 'Unknown error'}`);
-    }
-  };
-
-  const handleSearch = async (value: string) => {
-    setSearchTerm(value);
-    try {
-      const snapshotIdParam = selectedSnapshotId === null ? undefined : selectedSnapshotId;
-      const data = await fetchStakingData(value, snapshotIdParam);
-      setStakingData(data);
-
-      // Also refresh the unlock summary with the new filter
-      const walletAddressParam = value && value.trim() !== '' ? value.trim() : '';
-      const summary = await fetchUnlockSummary(snapshotIdParam, walletAddressParam);
-      setUnlockSummary(summary);
-    } catch (error: any) {
-      console.error('Error searching staking data:', error);
-      onError(`Failed to search staking data: ${error.message || 'Unknown error'}`);
     }
   };
 
@@ -436,7 +414,7 @@ const StakingView = ({ onError, onSuccess }: StakingViewProps) => {
         tooltip: {
           callbacks: {
             label: context => {
-              const value = context.parsed.y;
+              const value = context.parsed.y ?? 0;
               return `Tokens: ${formatTokenAmount(value)}`;
             },
           },
@@ -687,11 +665,7 @@ const StakingView = ({ onError, onSuccess }: StakingViewProps) => {
       </div>
 
       <div className="mb-3">
-        <SearchBar
-          searchTerm={searchTerm}
-          onSearchChange={handleSearch}
-          placeholder="Search by wallet address..."
-        />
+        <SearchBar placeholder="Search by wallet address..." />
       </div>
 
       {loading ? (
