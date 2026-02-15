@@ -41,6 +41,20 @@ solana-snapshot-tool/
    npm run dev
    ```
 
+## Self-hosting (Mac mini)
+
+If you want to move off Render and host on your own machine, use the hardened deployment guide in:
+
+- `DEPLOY_MAC_MINI.md`
+
+It covers:
+
+- reverse proxy with TLS
+- firewall and network exposure strategy
+- environment variable setup
+- process supervision
+- PostgreSQL hardening and backups
+
 ## Backend API
 
 - `GET /api/snapshot` - Create a new snapshot

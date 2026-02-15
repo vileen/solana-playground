@@ -17,10 +17,34 @@ const __dirname = dirname(__filename);
 // Create Express app
 const app = express();
 
+app.disable('x-powered-by');
+
+const trustProxyEnabled = process.env.TRUST_PROXY === 'true';
+if (trustProxyEnabled) {
+  app.set('trust proxy', 1);
+}
+
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map(origin => origin.trim())
+  .filter(Boolean);
+
 // CORS configuration
 const corsOptions = {
   origin: function (origin, callback) {
-    // In production, only allow same-origin requests or no origin (like mobile apps)
+    // Non-browser clients can send no Origin header.
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+
+    // If ALLOWED_ORIGINS is set, use it as the source of truth.
+    if (allowedOrigins.length > 0) {
+      callback(null, allowedOrigins.includes(origin));
+      return;
+    }
+
+    // Backward-compatible fallback for existing Render deployments.
     if (process.env.NODE_ENV === 'production') {
       if (!origin || origin === process.env.RENDER_EXTERNAL_URL) {
         callback(null, true);
@@ -38,7 +62,21 @@ const corsOptions = {
 
 // Apply middleware
 app.use(cors(corsOptions));
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  if (process.env.ENFORCE_HTTPS === 'true') {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+  next();
+});
+
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok' });
+});
 
 // Create data directory if it doesn't exist
 mkdir(DATA_DIR, { recursive: true }).catch(console.error);
