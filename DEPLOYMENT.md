@@ -82,12 +82,26 @@ In your GitHub repository, go to **Settings → Secrets and variables → Action
 
 | Secret | Value | Example |
 |--------|-------|---------|
-| `VITE_API_URL` | Your backend URL | `https://your-ngrok-url.ngrok.io/api` or `http://localhost:3001/api` |
+| `VITE_API_URL` | Your backend URL | `https://your-tunnel.trycloudflare.com/api` |
 
-**Note**: If your backend is local, you'll need to use a tunnel like ngrok:
+**For local backend with public access, use Cloudflare Tunnel (recommended):**
+
+```bash
+# Install cloudflared
+brew install cloudflared
+
+# Start tunnel to your local backend
+cloudflared tunnel --url http://localhost:3001
+
+# Copy the https URL (e.g., https://something.trycloudflare.com)
+# Add /api to it and set as VITE_API_URL in GitHub Secrets
+# Example: https://something.trycloudflare.com/api
+```
+
+**Alternative: ngrok**
 ```bash
 ngrok http 3001
-# Then set VITE_API_URL to the https URL provided by ngrok
+# Then set VITE_API_URL to the https URL provided by ngrok + /api
 ```
 
 ---
