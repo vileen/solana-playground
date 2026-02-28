@@ -6,3 +6,4 @@ dist
 data
 .ideaDEPLOY_MAC_MINI.md
 *.local
+.env
