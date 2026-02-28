@@ -41,6 +41,25 @@ solana-snapshot-tool/
    npm run dev
    ```
 
+## Deployment
+
+This project uses a hybrid architecture:
+- **Frontend**: GitHub Pages (free static hosting)
+- **Backend + Database**: Local on your machine
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed setup instructions.
+
+Quick start:
+```bash
+# 1. Start local backend
+yarn install
+yarn db:init
+yarn start
+
+# 2. Deploy frontend (auto via GitHub Actions on push to main)
+# Or manually: GITHUB_PAGES=true yarn build
+```
+
 ## Backend API
 
 - `GET /api/snapshot` - Create a new snapshot
@@ -51,4 +70,7 @@ solana-snapshot-tool/
 ## Frontend
 
 - NFT Holders Tab - View all NFT holders
-- Social Profiles Tab - View and manage social mappings 
+- Token Holders Tab - View all token holders
+- Social Profiles Tab - View and manage social mappings
+- Staking Tab - Track staking positions and unlock schedules
+- Events Tab - View transfer and activity events 
