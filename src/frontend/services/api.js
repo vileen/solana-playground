@@ -1,8 +1,10 @@
 // Helper to get the base API URL based on environment
+// For GitHub Pages, use VITE_API_URL from env or default to localhost
 const API_BASE_URL =
-  process.env.NODE_ENV === 'production' || window.location.hostname !== 'localhost'
+  import.meta.env?.VITE_API_URL ||
+  (process.env.NODE_ENV === 'production' || window.location.hostname !== 'localhost'
     ? '/api'
-    : 'http://localhost:3001/api';
+    : 'http://localhost:3001/api');
 
 // Fetch NFT holders
 export const fetchNftHolders = async (searchTerm, snapshotId, { signal } = {}) => {
