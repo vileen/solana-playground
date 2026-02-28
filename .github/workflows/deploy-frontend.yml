@@ -36,6 +36,8 @@ jobs:
       - name: Build
         run: yarn build
         env:
+          # GitHub Pages base path for vite
+          GITHUB_PAGES: true
           # Backend URL - set this in GitHub repository secrets
           # For local backend testing, use ngrok or similar
           VITE_API_URL: ${{ secrets.VITE_API_URL || '' }}
