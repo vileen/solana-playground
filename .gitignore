@@ -4,4 +4,5 @@ node_modules
 .yarn
 dist
 data
-.idea
+.ideaDEPLOY_MAC_MINI.md
+*.local
