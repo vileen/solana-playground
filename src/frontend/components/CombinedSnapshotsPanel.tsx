@@ -13,6 +13,7 @@ import { EventNFTSnapshot, EventTokenSnapshot } from '../../types/index.js';
 // This is a workaround for TypeScript not recognizing the full function signatures
 import * as api from '../services/api.js';
 import { truncateAddress } from '../utils/addressUtils.js';
+import solscanLogo from '../assets/solscan_logo.png';
 import { formatNumber, formatRelativeTime } from '../utils/formatting.js';
 
 import SocialPillComment from './SocialPillComment.js';
@@ -402,7 +403,7 @@ const CombinedSnapshotsPanel: React.FC = () => {
           >
             {truncateAddress(address)}
             <img
-              src="/solscan_logo.png"
+              src={solscanLogo}
               alt="Solscan"
               width="14"
               height="14"

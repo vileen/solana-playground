@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
+import solscanLogo from '../assets/solscan_logo.png';
+
 import { Button } from 'primereact/button';
 import { Card } from 'primereact/card';
 import { Column } from 'primereact/column';
@@ -200,7 +202,7 @@ const EventsPanel: React.FC = () => {
         <div className="flex align-items-center">
           <a href={solscanUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex align-items-center">
             {truncateAddress(address)}
-            <img src="/solscan_logo.png" alt="Solscan" width="14" height="14" className="ml-1" style={{ opacity: 0.7, verticalAlign: 'middle' }} />
+            <img src={solscanLogo} alt="Solscan" width="14" height="14" className="ml-1" style={{ opacity: 0.7, verticalAlign: 'middle' }} />
           </a>
         </div>
         {comment ? (

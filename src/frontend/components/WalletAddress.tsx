@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 
+import solscanLogo from '../assets/solscan_logo.png';
+
 interface WalletAddressProps {
   address: string;
   shortened?: boolean;
@@ -93,7 +95,7 @@ const WalletAddress: React.FC<WalletAddressProps> = ({
         >
           {linkText || displayAddress}
           <img
-            src="/solscan_logo.png"
+            src={solscanLogo}
             alt="Solscan"
             width="16"
             height="16"
