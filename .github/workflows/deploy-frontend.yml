@@ -42,6 +42,10 @@ jobs:
           # For local backend testing, use ngrok or similar
           VITE_API_URL: ${{ secrets.VITE_API_URL || '' }}
 
+      # Fix SPA routing: copy index.html to 404.html for GitHub Pages
+      - name: Fix SPA routing
+        run: cp dist/index.html dist/404.html
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
