@@ -17,13 +17,17 @@ if (existsSync(envLocalPath)) {
   dotenvConfig({ path: envPath });
 }
 
-// Force SSL for Render.com's PostgreSQL which requires it
-const sslConfig = { rejectUnauthorized: false };
+// SSL configuration: enable for Render.com (production), disable for local development
+const isLocalhost = process.env.DATABASE_URL?.includes('localhost') || 
+                    process.env.PGHOST === 'localhost' ||
+                    process.env.PGHOST === '127.0.0.1';
+
+const sslConfig = isLocalhost ? false : { rejectUnauthorized: false };
 
 // Create database pool configuration from environment variables
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: sslConfig, // Always use SSL with rejectUnauthorized: false for Render.com
+  ssl: sslConfig, // SSL for production (Render), no SSL for local development
   max: 20, // Maximum number of clients in the pool
   idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
   connectionTimeoutMillis: 2000, // Return error after 2 seconds if connection not established
