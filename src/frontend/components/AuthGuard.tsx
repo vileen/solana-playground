@@ -22,25 +22,20 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   if (!isAuthenticated) {
     return (
       <div style={{
-        height: '100vh',
-        width: '100vw',
+        minHeight: '100vh',
         background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        overflow: 'auto',
       }}>
         <div style={{
           background: '#0f3460',
-          padding: '40px',
+          padding: '32px',
           borderRadius: '16px',
           boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-          width: '100%',
-          maxWidth: '400px',
+          width: '90%',
+          maxWidth: '320px',
           textAlign: 'center',
         }}>
           <div style={{
