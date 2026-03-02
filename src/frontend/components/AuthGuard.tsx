@@ -37,6 +37,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
           width: '90%',
           maxWidth: '320px',
           textAlign: 'center',
+          boxSizing: 'border-box',
         }}>
           <div style={{
             width: '60px',
@@ -81,6 +82,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
               autoFocus
               style={{
                 width: '100%',
+                maxWidth: '100%',
+                boxSizing: 'border-box',
                 padding: '14px 18px',
                 fontSize: '16px',
                 background: '#1a1a2e',
