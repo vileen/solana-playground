@@ -31,11 +31,11 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       }}>
         <div style={{
           background: '#0f3460',
-          padding: '32px',
+          padding: '40px',
           borderRadius: '16px',
           boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
           width: '90%',
-          maxWidth: '320px',
+          maxWidth: '400px',
           textAlign: 'center',
           boxSizing: 'border-box',
         }}>
