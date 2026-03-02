@@ -8,6 +8,7 @@ import { Toast } from 'primereact/toast';
 
 import './App.css';
 import './TabViewFix.css';
+import { AuthGuard } from './components/AuthGuard.js';
 import CombinedSnapshotsPanel from './components/CombinedSnapshotsPanel.js';
 import EventsPanel from './components/EventsPanel.js';
 import NftHolders from './components/NftHolders.js';
@@ -15,6 +16,7 @@ import ProfileDialog from './components/ProfileDialog.js';
 import SocialProfiles from './components/SocialProfiles.js';
 import StakingView from './components/StakingView.js';
 import TokenHolders from './components/TokenHolders.js';
+import { useAuth } from './hooks/useAuth.js';
 import { ROUTE_TO_TAB_INDEX, useAppNavigation } from './hooks/useAppNavigation.js';
 import {
   deleteSocialProfile as apiDeleteSocialProfile,
@@ -27,6 +29,7 @@ import { getSavedTheme, loadThemeCSS, toggleTheme } from './utils/theme.js';
 const AppContent: React.FC = () => {
   const appNavigation = useAppNavigation();
   const location = useLocation();
+  const { logout } = useAuth();
 
   const [activeTab, setActiveTab] = useState(() => appNavigation.getCurrentTabIndex());
   const [profileDialogVisible, setProfileDialogVisible] = useState(false);
@@ -226,6 +229,12 @@ const AppContent: React.FC = () => {
             onClick={handleThemeToggle}
             tooltip={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
           />
+          <Button
+            icon="pi pi-sign-out"
+            className="p-button-rounded p-button-text"
+            onClick={logout}
+            tooltip="Logout"
+          />
         </div>
       </header>
 
@@ -294,7 +303,9 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
   return (
     <HashRouter>
-      <AppContent />
+      <AuthGuard>
+        <AppContent />
+      </AuthGuard>
     </HashRouter>
   );
 };
