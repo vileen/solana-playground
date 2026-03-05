@@ -27,9 +27,10 @@ import {
 import { getSavedTheme, loadThemeCSS, toggleTheme } from './utils/theme.js';
 
 // API Base URL for health check
-const VITE_API_URL = (import.meta as any).env?.VITE_API_URL || '';
-const API_BASE_URL = VITE_API_URL
-  ? `${VITE_API_URL.replace(/\/$/, '')}/api`
+const rawApiUrl = (import.meta as any).env?.VITE_API_URL || '';
+// Normalize: remove trailing slash and /api if present, then add /api
+const API_BASE_URL = rawApiUrl
+  ? `${rawApiUrl.replace(/\/$/, '').replace(/\/api$/, '')}/api`
   : (process.env.NODE_ENV === 'production' || window.location.hostname !== 'localhost'
       ? '/api'
       : 'http://localhost:3001/api');

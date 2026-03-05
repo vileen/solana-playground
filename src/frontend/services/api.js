@@ -1,8 +1,9 @@
 // Helper to get the base API URL based on environment
 // For GitHub Pages, use VITE_API_URL from env or default to localhost
-const API_URL = import.meta.env?.VITE_API_URL || '';
-const API_BASE_URL = API_URL
-  ? `${API_URL.replace(/\/$/, '')}/api`  // Remove trailing slash if present, then add /api
+const rawApiUrl = import.meta.env?.VITE_API_URL || '';
+// Normalize: remove trailing slash and /api if present, then add /api
+const API_BASE_URL = rawApiUrl
+  ? `${rawApiUrl.replace(/\/$/, '').replace(/\/api$/, '')}/api`
   : (process.env.NODE_ENV === 'production' || window.location.hostname !== 'localhost'
       ? '/api'
       : 'http://localhost:3001/api');

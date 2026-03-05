@@ -11,7 +11,9 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_URL = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '') + '/api';
+// Normalize API URL - ensure it ends with /api but doesn't duplicate it
+const rawApiUrl = import.meta.env.VITE_API_URL || '';
+const API_URL = rawApiUrl.replace(/\/$/, '').replace(/\/api$/, '') + '/api';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
