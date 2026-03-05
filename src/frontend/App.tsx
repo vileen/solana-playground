@@ -17,7 +17,7 @@ import ProfileDialog from './components/ProfileDialog.js';
 import SocialProfiles from './components/SocialProfiles.js';
 import StakingView from './components/StakingView.js';
 import TokenHolders from './components/TokenHolders.js';
-import { useAuth } from './hooks/useAuth.js';
+import { AuthProvider, useAuth } from './contexts/AuthContext.js';
 import { ROUTE_TO_TAB_INDEX, useAppNavigation } from './hooks/useAppNavigation.js';
 import {
   deleteSocialProfile as apiDeleteSocialProfile,
@@ -360,9 +360,11 @@ const App: React.FC = () => {
   return (
     <HashRouter>
       <HealthCheckWrapper>
-        <AuthGuard>
-          <AppContent />
-        </AuthGuard>
+        <AuthProvider>
+          <AuthGuard>
+            <AppContent />
+          </AuthGuard>
+        </AuthProvider>
       </HealthCheckWrapper>
     </HashRouter>
   );

@@ -1,4 +1,4 @@
-import { useAuth } from '../hooks/useAuth.js';
+import { useAuth } from '../contexts/AuthContext.js';
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, password, setPassword, error, login } = useAuth();

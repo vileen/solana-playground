@@ -1,8 +1,19 @@
-import { useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+
+interface AuthContextType {
+  isAuthenticated: boolean | null;
+  password: string;
+  setPassword: (password: string) => void;
+  error: string;
+  login: (inputPassword: string) => Promise<void>;
+  logout: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 
-export function useAuth() {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -57,12 +68,26 @@ export function useAuth() {
     }
   };
 
-  return {
-    isAuthenticated,
-    password,
-    setPassword,
-    error,
-    login,
-    logout,
-  };
+  return (
+    <AuthContext.Provider
+      value={{
+        isAuthenticated,
+        password,
+        setPassword,
+        error,
+        login,
+        logout,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 }
