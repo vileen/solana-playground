@@ -78,10 +78,10 @@ app.use(
     saveUninitialized: false,
     name: 'solana-playground.sid',
     cookie: {
-      secure: process.env.NODE_ENV === 'production',
+      secure: true, // Must be true for SameSite=None
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      sameSite: 'none', // Required for cross-origin requests
     },
   })
 );
