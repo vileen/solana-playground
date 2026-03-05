@@ -9,6 +9,7 @@ import { Toast } from 'primereact/toast';
 import './App.css';
 import './TabViewFix.css';
 import { AuthGuard } from './components/AuthGuard.js';
+import { OfflineScreen } from './components/OfflineScreen.js';
 import CombinedSnapshotsPanel from './components/CombinedSnapshotsPanel.js';
 import EventsPanel from './components/EventsPanel.js';
 import NftHolders from './components/NftHolders.js';
@@ -24,6 +25,13 @@ import {
   fetchSocialProfiles,
 } from './services/api.js';
 import { getSavedTheme, loadThemeCSS, toggleTheme } from './utils/theme.js';
+
+// API Base URL for health check
+const API_BASE_URL =
+  (import.meta as any).env?.VITE_API_URL ||
+  (process.env.NODE_ENV === 'production' || window.location.hostname !== 'localhost'
+    ? '/api'
+    : 'http://localhost:3001/api');
 
 // Create a wrapper component that will handle route changes
 const AppContent: React.FC = () => {
@@ -299,13 +307,63 @@ const AppContent: React.FC = () => {
   );
 };
 
+// Health check wrapper
+const HealthCheckWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [healthStatus, setHealthStatus] = useState<'checking' | 'online' | 'offline'>('checking');
+  const [showLoading, setShowLoading] = useState(true);
+
+  const checkHealth = async () => {
+    setHealthStatus('checking');
+    try {
+      const response = await fetch(`${API_BASE_URL}/health`, {
+        method: 'GET',
+        signal: AbortSignal.timeout(5000)
+      });
+      
+      if (response.ok) {
+        setHealthStatus('online');
+      } else {
+        setHealthStatus('offline');
+      }
+    } catch (error) {
+      setHealthStatus('offline');
+    }
+  };
+
+  useEffect(() => {
+    checkHealth();
+    // Hide loading after minimum 500ms to prevent flash
+    const timer = setTimeout(() => setShowLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (healthStatus === 'checking' && showLoading) {
+    return (
+      <div className="loading-screen">
+        <div className="loading-content">
+          <i className="pi pi-spin pi-spinner" style={{ fontSize: '3rem' }}></i>
+          <p>Checking connection...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (healthStatus === 'offline') {
+    return <OfflineScreen onRetry={checkHealth} />;
+  }
+
+  return <>{children}</>;
+};
+
 // Main App component that provides the Router context
 const App: React.FC = () => {
   return (
     <HashRouter>
-      <AuthGuard>
-        <AppContent />
-      </AuthGuard>
+      <HealthCheckWrapper>
+        <AuthGuard>
+          <AppContent />
+        </AuthGuard>
+      </HealthCheckWrapper>
     </HashRouter>
   );
 };

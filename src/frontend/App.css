@@ -375,3 +375,23 @@ table tbody tr.has-social-profile {
 .light-theme table tbody tr.has-social-profile {
   background-color: rgba(227, 242, 253, 0.8) !important;
 }
+
+/* Loading screen */
+.loading-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-ground);
+}
+
+.loading-content {
+  text-align: center;
+  color: var(--text-color);
+}
+
+.loading-content p {
+  margin-top: 1rem;
+  font-size: 1.1rem;
+  color: var(--text-color-secondary);
+}
