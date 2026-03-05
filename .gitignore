@@ -1,0 +1,10 @@
+node_modules
+.DS_Store
+.env.local
+.yarn
+dist
+data
+.ideaDEPLOY_MAC_MINI.md
+*.local
+.env
+backups/*.sql
