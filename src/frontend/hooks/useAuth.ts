@@ -1,37 +1,60 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
-const AUTH_KEY = 'solana-playground-auth';
-const CORRECT_PASSWORD = 'f09e8b8a8fc1';
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 export function useAuth() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
+  // Check auth status on mount
   useEffect(() => {
-    // Check localStorage on mount
-    const stored = localStorage.getItem(AUTH_KEY);
-    if (stored === CORRECT_PASSWORD) {
-      setIsAuthenticated(true);
-    } else {
-      setIsAuthenticated(false);
-    }
+    checkAuthStatus();
   }, []);
 
-  const login = (inputPassword: string) => {
-    if (inputPassword === CORRECT_PASSWORD) {
-      localStorage.setItem(AUTH_KEY, CORRECT_PASSWORD);
-      setIsAuthenticated(true);
-      setError('');
-    } else {
-      setError('Invalid password');
+  const checkAuthStatus = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/auth/status`, {
+        credentials: 'include',
+      });
+      const data = await response.json();
+      setIsAuthenticated(data.isAuthenticated);
+    } catch {
+      setIsAuthenticated(false);
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem(AUTH_KEY);
-    setIsAuthenticated(false);
-    setPassword('');
+  const login = async (inputPassword: string) => {
+    try {
+      const response = await fetch(`${API_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ password: inputPassword }),
+      });
+
+      if (response.ok) {
+        setIsAuthenticated(true);
+        setError('');
+      } else {
+        const data = await response.json();
+        setError(data.error || 'Invalid password');
+      }
+    } catch {
+      setError('Network error. Please try again.');
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await fetch(`${API_URL}/api/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } finally {
+      setIsAuthenticated(false);
+      setPassword('');
+    }
   };
 
   return {

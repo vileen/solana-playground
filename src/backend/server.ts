@@ -1,12 +1,16 @@
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express from 'express';
+import session from 'express-session';
 import { existsSync } from 'fs';
 import { mkdir } from 'fs/promises';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
 import { DATA_DIR, PORT } from './config/config.js';
+import { requireAuth } from './middleware/auth.js';
 import apiRoutes from './routes/api.js';
+import authRoutes from './routes/auth.js';
 import eventsRoutes from './routes/events.js';
 import stakingRoutes from './routes/stakingRoutes.js';
 
@@ -63,6 +67,24 @@ const corsOptions = {
 // Apply middleware
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '1mb' }));
+app.use(cookieParser());
+
+// Session configuration
+const sessionSecret = process.env.SESSION_SECRET || 'solana-playground-secret-change-in-production';
+app.use(
+  session({
+    secret: sessionSecret,
+    resave: false,
+    saveUninitialized: false,
+    name: 'solana-playground.sid',
+    cookie: {
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      sameSite: 'lax',
+    },
+  })
+);
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
@@ -81,10 +103,13 @@ app.get('/api/health', (_req, res) => {
 // Create data directory if it doesn't exist
 mkdir(DATA_DIR, { recursive: true }).catch(console.error);
 
-// Set up API routes
-app.use('/api', apiRoutes);
-app.use('/api/events', eventsRoutes);
-app.use('/api', stakingRoutes);
+// Set up auth routes (public)
+app.use('/api', authRoutes);
+
+// Set up protected API routes
+app.use('/api', requireAuth, apiRoutes);
+app.use('/api/events', requireAuth, eventsRoutes);
+app.use('/api', requireAuth, stakingRoutes);
 
 // Serve static files from 'dist' directory
 let distPath;

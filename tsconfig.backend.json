@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
-    "module": "ESNext",
+    "target": "ES2022",
+    "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "esModuleInterop": true,
     "strict": true,
@@ -10,7 +10,7 @@
     "rootDir": "src/backend",
     "allowJs": true,
     "resolveJsonModule": true,
-    "types": ["node"]
+    "types": ["node", "express-session"]
   },
   "ts-node": {
     "esm": true,

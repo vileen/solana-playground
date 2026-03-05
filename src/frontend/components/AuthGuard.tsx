@@ -132,7 +132,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
             fontSize: '12px',
             marginTop: '24px',
           }}>
-            Password is stored locally in your browser
+            Secure server-side authentication
           </p>
         </div>
       </div>

@@ -24,7 +24,7 @@ export const fetchNftHolders = async (searchTerm, snapshotId, { signal } = {}) =
       url += `?${params.toString()}`;
     }
 
-    const response = await fetch(url, { signal });
+    const response = await fetch(url, { signal, credentials: 'include' });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -54,7 +54,7 @@ export const fetchTokenHolders = async (searchTerm, snapshotId, { signal } = {})
       url += `?${params.toString()}`;
     }
 
-    const response = await fetch(url, { signal });
+    const response = await fetch(url, { signal, credentials: 'include' });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -74,7 +74,7 @@ export const fetchSocialProfiles = async (searchTerm, { signal } = {}) => {
       url.searchParams.append('search', searchTerm);
     }
 
-    const response = await fetch(url.toString(), { signal });
+    const response = await fetch(url.toString(), { signal, credentials: 'include' });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -89,7 +89,7 @@ export const fetchSocialProfiles = async (searchTerm, { signal } = {}) => {
 // Take NFT snapshot
 export const takeNftSnapshot = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/snapshot`);
+    const response = await fetch(`${API_BASE_URL}/snapshot`, { credentials: 'include' });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -103,7 +103,7 @@ export const takeNftSnapshot = async () => {
 // Take token snapshot
 export const takeTokenSnapshot = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/token-snapshot`);
+    const response = await fetch(`${API_BASE_URL}/token-snapshot`, { credentials: 'include' });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -119,6 +119,7 @@ export const saveSocialProfileLegacy = async (walletAddress, twitter, discord, c
   try {
     const response = await fetch(`${API_BASE_URL}/social-profile`, {
       method: 'POST',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
       },
@@ -146,6 +147,7 @@ export const saveSocialProfile = async profileData => {
   try {
     const response = await fetch(`${API_BASE_URL}/social-profiles`, {
       method: 'POST',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
       },
@@ -177,6 +179,7 @@ export const deleteSocialProfile = async profileId => {
     console.log(`Deleting social profile at URL:`, url);
     const response = await fetch(url, {
       method: 'DELETE',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
       },
@@ -198,7 +201,7 @@ export const deleteSocialProfile = async profileId => {
 // Fetch latest token events
 export const fetchLatestTokenEvents = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/token-events/latest`);
+    const response = await fetch(`${API_BASE_URL}/token-events/latest`, { credentials: 'include' });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -212,7 +215,7 @@ export const fetchLatestTokenEvents = async () => {
 // Fetch latest NFT events
 export const fetchLatestNFTEvents = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/nft-events/latest`);
+    const response = await fetch(`${API_BASE_URL}/nft-events/latest`, { credentials: 'include' });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -226,7 +229,7 @@ export const fetchLatestNFTEvents = async () => {
 // Fetch token events for a specific snapshot
 export const fetchTokenEventsForSnapshot = async snapshotId => {
   try {
-    const response = await fetch(`${API_BASE_URL}/token-events/${snapshotId}`);
+    const response = await fetch(`${API_BASE_URL}/token-events/${snapshotId}`, { credentials: 'include' });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -240,7 +243,7 @@ export const fetchTokenEventsForSnapshot = async snapshotId => {
 // Fetch NFT events for a specific snapshot
 export const fetchNFTEventsForSnapshot = async snapshotId => {
   try {
-    const response = await fetch(`${API_BASE_URL}/nft-events/${snapshotId}`);
+    const response = await fetch(`${API_BASE_URL}/nft-events/${snapshotId}`, { credentials: 'include' });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -254,9 +257,7 @@ export const fetchNFTEventsForSnapshot = async snapshotId => {
 // Fetch token snapshots with their events
 export const fetchTokenSnapshotsWithEvents = async (limit = 5, skip = 0) => {
   try {
-    const response = await fetch(
-      `${API_BASE_URL}/events/token/snapshots?limit=${limit}&skip=${skip}`
-    );
+    const response = await fetch(`${API_BASE_URL}/events/token/snapshots?limit=${limit}&skip=${skip}`, { credentials: 'include' });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -270,9 +271,7 @@ export const fetchTokenSnapshotsWithEvents = async (limit = 5, skip = 0) => {
 // Fetch NFT snapshots with their events
 export const fetchNFTSnapshotsWithEvents = async (limit = 5, skip = 0) => {
   try {
-    const response = await fetch(
-      `${API_BASE_URL}/events/nft/snapshots?limit=${limit}&skip=${skip}`
-    );
+    const response = await fetch(`${API_BASE_URL}/events/nft/snapshots?limit=${limit}&skip=${skip}`, { credentials: 'include' });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -286,7 +285,7 @@ export const fetchNFTSnapshotsWithEvents = async (limit = 5, skip = 0) => {
 // Fetch NFT snapshots
 export const fetchNftSnapshots = async (limit = 10) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/nft/snapshots?limit=${limit}`);
+    const response = await fetch(`${API_BASE_URL}/nft/snapshots?limit=${limit}`, { credentials: 'include' });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -300,7 +299,7 @@ export const fetchNftSnapshots = async (limit = 10) => {
 // Fetch token snapshots
 export const fetchTokenSnapshots = async (limit = 10) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/token-snapshots?limit=${limit}`);
+    const response = await fetch(`${API_BASE_URL}/token-snapshots?limit=${limit}`, { credentials: 'include' });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -330,7 +329,7 @@ export const fetchStakingData = async (searchTerm = '', snapshotId, { signal } =
       url += `?${params.toString()}`;
     }
 
-    const response = await fetch(url, { signal });
+    const response = await fetch(url, { signal, credentials: 'include' });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -347,6 +346,7 @@ export const takeStakingSnapshot = async () => {
   try {
     const response = await fetch(`${API_BASE_URL}/staking-snapshot`, {
       method: 'POST',
+      credentials: 'include',
     });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -361,7 +361,7 @@ export const takeStakingSnapshot = async () => {
 // Fetch staking snapshots
 export const fetchStakingSnapshots = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/staking-snapshots`);
+    const response = await fetch(`${API_BASE_URL}/staking-snapshots`, { credentials: 'include' });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -390,7 +390,7 @@ export const fetchUnlockSummary = async (snapshotId, walletAddress, { signal } =
       url += `?${params.toString()}`;
     }
 
-    const response = await fetch(url, { signal });
+    const response = await fetch(url, { signal, credentials: 'include' });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
