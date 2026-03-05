@@ -71,20 +71,31 @@ app.use(cookieParser());
 
 // Session configuration
 const sessionSecret = process.env.SESSION_SECRET || 'solana-playground-secret-change-in-production';
-app.use(
-  session({
-    secret: sessionSecret,
-    resave: false,
-    saveUninitialized: false,
-    name: 'solana-playground.sid',
-    cookie: {
-      secure: process.env.NODE_ENV === 'production', // true for HTTPS, false for local HTTP
-      httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    },
-  })
-);
+const sessionMiddleware = session({
+  secret: sessionSecret,
+  resave: true,
+  saveUninitialized: true,
+  name: 'solana-playground.sid',
+  cookie: {
+    secure: true,
+    httpOnly: true,
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    sameSite: 'none',
+  },
+});
+
+// Test cookie endpoint
+app.get('/test-cookie', (req, res) => {
+  res.cookie('test-cookie', 'value123', { 
+    httpOnly: true, 
+    secure: true, 
+    sameSite: 'none',
+    maxAge: 7 * 24 * 60 * 60 * 1000 
+  });
+  res.json({ test: 'cookie set' });
+});
+
+app.use(sessionMiddleware);
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');

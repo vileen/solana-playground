@@ -11,21 +11,21 @@ router.post('/auth/login', (req, res) => {
   const { password } = req.body;
   const correctPassword = process.env.APP_PASSWORD || 'f09e8b8a8fc1';
 
-  console.log('[Auth] Login attempt, password correct:', password === correctPassword);
-  console.log('[Auth] Session before:', req.sessionID, req.session);
-
   if (password === correctPassword) {
+    // Set auth flag
     req.session.isAuthenticated = true;
-    req.session.save((err) => {
-      if (err) {
-        console.error('[Auth] Session save error:', err);
-        res.status(500).json({ error: 'Session error' });
-      } else {
-        console.log('[Auth] Session saved, ID:', req.sessionID);
-        console.log('[Auth] Session after:', req.session);
-        res.json({ success: true });
-      }
-    });
+    
+    // Manually set the session cookie (workaround for express-session issue)
+    const cookieOptions = {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none' as const,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    };
+    res.cookie('solana-playground.sid', req.sessionID, cookieOptions);
+    
+    console.log('[Auth] Login successful, cookie set for session:', req.sessionID);
+    res.json({ success: true });
   } else {
     res.status(401).json({ error: 'Invalid password' });
   }
