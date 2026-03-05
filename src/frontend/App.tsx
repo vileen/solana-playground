@@ -315,7 +315,7 @@ const HealthCheckWrapper: React.FC<{ children: React.ReactNode }> = ({ children 
   const checkHealth = async () => {
     setHealthStatus('checking');
     try {
-      const response = await fetch(`${API_BASE_URL}/health`, {
+      const response = await fetch(`${API_BASE_URL}/api/health`, {
         method: 'GET',
         signal: AbortSignal.timeout(5000)
       });
