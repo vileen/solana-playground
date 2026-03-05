@@ -27,11 +27,12 @@ import {
 import { getSavedTheme, loadThemeCSS, toggleTheme } from './utils/theme.js';
 
 // API Base URL for health check
-const API_BASE_URL =
-  (import.meta as any).env?.VITE_API_URL ||
-  (process.env.NODE_ENV === 'production' || window.location.hostname !== 'localhost'
-    ? '/api'
-    : 'http://localhost:3001/api');
+const VITE_API_URL = (import.meta as any).env?.VITE_API_URL || '';
+const API_BASE_URL = VITE_API_URL
+  ? `${VITE_API_URL.replace(/\/$/, '')}/api`
+  : (process.env.NODE_ENV === 'production' || window.location.hostname !== 'localhost'
+      ? '/api'
+      : 'http://localhost:3001/api');
 
 // Create a wrapper component that will handle route changes
 const AppContent: React.FC = () => {
@@ -315,7 +316,7 @@ const HealthCheckWrapper: React.FC<{ children: React.ReactNode }> = ({ children 
   const checkHealth = async () => {
     setHealthStatus('checking');
     try {
-      const response = await fetch(`${API_BASE_URL}/api/health`, {
+      const response = await fetch(`${API_BASE_URL}/health`, {
         method: 'GET',
         signal: AbortSignal.timeout(5000)
       });
