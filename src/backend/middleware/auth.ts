@@ -3,11 +3,11 @@ import type { NextFunction, Request, Response } from 'express';
 // Simple in-memory session store for manually set cookies
 const sessions = new Map<string, { isAuthenticated: boolean; createdAt: number }>();
 
-// Clean up old sessions every hour
+// Clean up old sessions every hour (30 day expiry)
 setInterval(() => {
   const now = Date.now();
   for (const [id, session] of sessions) {
-    if (now - session.createdAt > 7 * 24 * 60 * 60 * 1000) {
+    if (now - session.createdAt > 30 * 24 * 60 * 60 * 1000) {
       sessions.delete(id);
     }
   }

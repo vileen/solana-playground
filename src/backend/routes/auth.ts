@@ -18,12 +18,12 @@ router.post('/auth/login', (req, res) => {
     // Store session in our custom store
     setSession(sessionId, { isAuthenticated: true });
     
-    // Manually set the session cookie
+    // Manually set the session cookie (30 days)
     const cookieOptions = {
       httpOnly: true,
       secure: true,
       sameSite: 'none' as const,
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      maxAge: 30 * 24 * 60 * 60 * 1000,
     };
     res.cookie('solana-playground.sid', sessionId, cookieOptions);
     
