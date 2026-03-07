@@ -4,10 +4,10 @@ module.exports = {
       name: 'solana-playground',
       script: 'startup.sh',
       interpreter: 'bash',
-      cwd: '/opt/solana-playground',
+      cwd: '/Users/dominiksoczewka/Projects/solana-playground',
       env: {
         NODE_ENV: 'production',
-        PORT: '3001',
+        PORT: '3002',
       },
     },
   ],

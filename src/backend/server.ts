@@ -1,5 +1,5 @@
 import cookieParser from 'cookie-parser';
-import cors from 'cors';
+import { logger } from './utils/logger.js';import cors from 'cors';
 import express from 'express';
 import session from 'express-session';
 import { existsSync } from 'fs';
@@ -9,7 +9,8 @@ import { fileURLToPath } from 'url';
 
 import { DATA_DIR, PORT } from './config/config.js';
 import { requireAuth } from './middleware/auth.js';
-import apiRoutes from './routes/api.js';
+import { requestLogger } from './middleware/logger.js';
+import { errorHandler } from './middleware/error-handler.js';import apiRoutes from './routes/api.js';
 import authRoutes from './routes/auth.js';
 import eventsRoutes from './routes/events.js';
 import stakingRoutes from './routes/stakingRoutes.js';
@@ -66,7 +67,7 @@ const corsOptions = {
 
 // Apply middleware
 app.use(cors(corsOptions));
-app.use(express.json({ limit: '1mb' }));
+app.use(requestLogger);app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
 
 // Session configuration
@@ -151,6 +152,8 @@ app.get('*', (req, res) => {
 });
 
 // Start the server
+// Global error handler
+app.use(errorHandler);
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  logger.info(`Server started`, { port: PORT, env: process.env.NODE_ENV });
 });

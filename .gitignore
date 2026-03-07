@@ -8,3 +8,5 @@ data
 *.local
 .env
 backups/*.sql
+logs/
+*.log
