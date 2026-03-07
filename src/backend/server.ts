@@ -112,6 +112,45 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
+// Public logs endpoints for status dashboard (no auth required)
+app.get('/api/logs/error', (_req, res) => {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const logFile = path.join(process.cwd(), 'logs', 'error.log');
+    
+    if (!fs.existsSync(logFile)) {
+      return res.json({ logs: 'No error logs yet' });
+    }
+    
+    const logs = fs.readFileSync(logFile, 'utf-8');
+    const lines = logs.split('\n').filter(Boolean);
+    
+    res.json({ logs: lines.slice(-50).join('\n') });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to read logs' });
+  }
+});
+
+app.get('/api/logs/app', (_req, res) => {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const logFile = path.join(process.cwd(), 'logs', 'app.log');
+    
+    if (!fs.existsSync(logFile)) {
+      return res.json({ logs: 'No app logs yet' });
+    }
+    
+    const logs = fs.readFileSync(logFile, 'utf-8');
+    const lines = logs.split('\n').filter(Boolean);
+    
+    res.json({ logs: lines.slice(-50).join('\n') });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to read logs' });
+  }
+});
+
 // Create data directory if it doesn't exist
 mkdir(DATA_DIR, { recursive: true }).catch(console.error);
 
