@@ -137,8 +137,8 @@ if (process.env.NODE_ENV === 'production') {
   distPath = possiblePaths.find(path => existsSync(path)) || possiblePaths[0];
   console.log(`Using static files from: ${distPath}`);
 } else {
-  // In development, use the usual path
-  distPath = join(__dirname, '../../../dist');
+  // In development, use process.cwd() which is the project root when running with tsx
+  distPath = join(process.cwd(), 'dist');
 }
 
 app.use(express.static(distPath));
