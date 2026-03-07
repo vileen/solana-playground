@@ -1009,3 +1009,47 @@ router.get('/liquidity-pools/diagnostic', async (req: Request, res: Response) =>
 });
 
 export default router;
+
+// Logs endpoint for status dashboard
+apiRouter.get('/logs/error', (req, res) => {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const logFile = path.join(process.cwd(), 'logs', 'error.log');
+    
+    if (!fs.existsSync(logFile)) {
+      return res.json({ logs: 'No error logs yet' });
+    }
+    
+    const logs = fs.readFileSync(logFile, 'utf-8');
+    const lines = logs.split('\n').filter(Boolean);
+    
+    res.json({ 
+      logs: lines.slice(-50).join('\n') // Last 50 lines
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to read logs' });
+  }
+});
+
+// App logs endpoint
+apiRouter.get('/logs/app', (req, res) => {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const logFile = path.join(process.cwd(), 'logs', 'app.log');
+    
+    if (!fs.existsSync(logFile)) {
+      return res.json({ logs: 'No app logs yet' });
+    }
+    
+    const logs = fs.readFileSync(logFile, 'utf-8');
+    const lines = logs.split('\n').filter(Boolean);
+    
+    res.json({ 
+      logs: lines.slice(-50).join('\n')
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to read logs' });
+  }
+});
