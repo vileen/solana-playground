@@ -523,6 +523,7 @@ const EventsPanel: React.FC = () => {
             sortOrder={-1}
             className="p-datatable-sm"
           >
+            <Column header="#" body={(_, options) => options.rowIndex + 1} style={{ width: '50px' }} />
             <Column field="event_type" header="Type" body={eventTypeBadge} style={{ width: '120px' }} />
             <Column field="event_timestamp" header="When" body={timestampTemplate} sortable style={{ width: '150px' }} />
             <Column field="snapshot_timestamp" header="Snapshot" body={snapshotTimestampTemplate} style={{ width: '120px' }} />
@@ -547,6 +548,7 @@ const EventsPanel: React.FC = () => {
             sortOrder={-1}
             className="p-datatable-sm"
           >
+            <Column header="#" body={(_, options) => options.rowIndex + 1} style={{ width: '50px' }} />
             <Column field="event_type" header="Type" body={eventTypeBadge} style={{ width: '120px' }} />
             <Column field="event_timestamp" header="When" body={timestampTemplate} sortable style={{ width: '150px' }} />
             <Column field="snapshot_timestamp" header="Snapshot" body={snapshotTimestampTemplate} style={{ width: '120px' }} />

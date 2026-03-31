@@ -50,6 +50,7 @@ const TokenHoldersTable: React.FC<TokenHoldersTableProps> = ({
       rowsPerPageOptions={[10, 25, 50]}
       emptyMessage="No token holders found"
     >
+      <Column header="#" body={(_, options) => options.rowIndex + 1} style={{ width: '50px' }} />
       <Column field="address" header="Wallet Address" body={addressTemplate} sortable />
       <Column field="balance" header="Token Balance" body={balanceTemplate} sortable />
       <Column header="Actions" body={actionsTemplate} style={{ width: '150px' }} />

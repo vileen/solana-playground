@@ -738,6 +738,7 @@ const CombinedSnapshotsPanel: React.FC = () => {
         sortOrder={-1}
         className="p-datatable-sm"
       >
+        <Column header="#" body={(_, options) => options.rowIndex + 1} style={{ width: '50px' }} />
         <Column field="event_type" header="Type" body={eventTypeBadge} style={{ width: '100px' }} />
         <Column field="type" header="Asset" body={assetTypeBadge} style={{ width: '80px' }} />
         <Column

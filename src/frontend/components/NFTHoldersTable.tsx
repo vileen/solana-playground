@@ -50,6 +50,7 @@ const NFTHoldersTable: React.FC<NFTHoldersTableProps> = ({
       rowsPerPageOptions={[10, 25, 50]}
       emptyMessage="No NFT holders found"
     >
+      <Column header="#" body={(_, options) => options.rowIndex + 1} style={{ width: '50px' }} />
       <Column field="address" header="Wallet Address" body={addressTemplate} sortable />
       <Column field="nftCount" header="NFTs Owned" body={nftCountTemplate} sortable />
       <Column header="Actions" body={actionsTemplate} style={{ width: '150px' }} />

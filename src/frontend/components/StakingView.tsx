@@ -204,6 +204,7 @@ const StakingView = ({ onError, onSuccess }: StakingViewProps) => {
       <div className="p-3">
         <h5 className="mb-2">Staking Details for {data.walletAddress}</h5>
         <DataTable value={data.stakes} className="p-datatable-sm">
+          <Column header="#" body={(_, options) => options.rowIndex + 1} style={{ width: '50px' }} />
           <Column
             field="amount"
             header="Amount"
@@ -517,6 +518,7 @@ const StakingView = ({ onError, onSuccess }: StakingViewProps) => {
                   </div>
                 </div>
                 <DataTable value={unlockSummary} className="p-datatable-sm">
+                  <Column header="#" body={(_, options) => options.rowIndex + 1} style={{ width: '50px' }} />
                   <Column
                     field="date"
                     header="Unlock Date"
@@ -687,6 +689,7 @@ const StakingView = ({ onError, onSuccess }: StakingViewProps) => {
           rowsPerPageOptions={[10, 25, 50]}
         >
           <Column expander style={{ width: '3em' }} />
+          <Column header="#" body={(_, options) => options.rowIndex + 1} style={{ width: '50px' }} />
           <Column field="walletAddress" header="Wallet Address" body={addressTemplate} sortable />
           <Column
             field="socialProfile"

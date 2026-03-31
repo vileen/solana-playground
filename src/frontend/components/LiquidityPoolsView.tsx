@@ -416,6 +416,7 @@ const LiquidityPoolsView: React.FC<LiquidityPoolsViewProps> = ({ onError, onSucc
                 removableSort
                 dataKey="address"
               >
+                <Column header="#" body={(_, options) => options.rowIndex + 1} style={{ width: '50px' }} />
                 <Column
                   field="address"
                   header="Wallet Address"
@@ -453,6 +454,7 @@ const LiquidityPoolsView: React.FC<LiquidityPoolsViewProps> = ({ onError, onSucc
                 onRowToggle={e => setExpandedRows(e.data)}
                 rowExpansionTemplate={walletRowExpansionTemplate}
               >
+                <Column header="#" body={(_, options) => options.rowIndex + 1} style={{ width: '50px' }} />
                 <Column expander style={{ width: '3rem' }} />
                 <Column
                   field="address"
@@ -484,6 +486,7 @@ const LiquidityPoolsView: React.FC<LiquidityPoolsViewProps> = ({ onError, onSucc
                 removableSort
                 dataKey="poolAddress"
               >
+                <Column header="#" body={(_, options) => options.rowIndex + 1} style={{ width: '50px' }} />
                 <Column field="poolAddress" header="Pool Address" body={poolBodyTemplate} />
                 <Column
                   field="totalTokens"
@@ -511,6 +514,7 @@ const LiquidityPoolsView: React.FC<LiquidityPoolsViewProps> = ({ onError, onSucc
                 removableSort
                 dataKey="poolAddress"
               >
+                <Column header="#" body={(_, options) => options.rowIndex + 1} style={{ width: '50px' }} />
                 <Column field="poolAddress" header="Pool Address" body={poolBodyTemplate} />
                 <Column
                   field="totalTokens"
@@ -538,6 +542,7 @@ const LiquidityPoolsView: React.FC<LiquidityPoolsViewProps> = ({ onError, onSucc
                 removableSort
                 dataKey="poolAddress"
               >
+                <Column header="#" body={(_, options) => options.rowIndex + 1} style={{ width: '50px' }} />
                 <Column field="poolAddress" header="Pool Address" body={poolBodyTemplate} />
                 <Column
                   field="totalTokens"
@@ -614,6 +619,7 @@ const LiquidityPoolsView: React.FC<LiquidityPoolsViewProps> = ({ onError, onSucc
                     removableSort
                     dataKey="address"
                   >
+                    <Column header="#" body={(_, options) => options.rowIndex + 1} style={{ width: '50px' }} />
                     <Column
                       field="address"
                       header="Contributor Address"
@@ -713,6 +719,7 @@ const LiquidityPoolsView: React.FC<LiquidityPoolsViewProps> = ({ onError, onSucc
                               sortMode="multiple"
                               removableSort
                             >
+                              <Column header="#" body={(_, options) => options.rowIndex + 1} style={{ width: '50px' }} />
                               <Column
                                 field="address"
                                 header="Address"
@@ -830,6 +837,7 @@ const LiquidityPoolsView: React.FC<LiquidityPoolsViewProps> = ({ onError, onSucc
                               sortMode="multiple"
                               removableSort
                             >
+                              <Column header="#" body={(_, options) => options.rowIndex + 1} style={{ width: '50px' }} />
                               <Column
                                 field="address"
                                 header="Address"
@@ -947,6 +955,7 @@ const LiquidityPoolsView: React.FC<LiquidityPoolsViewProps> = ({ onError, onSucc
                               sortMode="multiple"
                               removableSort
                             >
+                              <Column header="#" body={(_, options) => options.rowIndex + 1} style={{ width: '50px' }} />
                               <Column
                                 field="address"
                                 header="Address"
