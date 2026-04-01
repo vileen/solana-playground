@@ -247,6 +247,7 @@ const NftHolders = forwardRef<{ fetchHolders: () => Promise<void> }, NftHoldersP
           }}
         >
           <Column expander style={{ width: '3rem' }} />
+          <Column header="#" body={(_, options) => options.rowIndex + 1} style={{ width: '50px' }} />
           <Column field="address" header="Wallet" body={addressTemplate} sortable />
           <Column field="nftCount" header="NFTs" sortable />
           <Column field="gen1Count" header="Gen1" sortable />

@@ -239,6 +239,7 @@ const TokenHolders = forwardRef<{ fetchHolders: () => Promise<void> }, TokenHold
             setSortOrder(e.sortOrder === 1 ? 1 : -1);
           }}
         >
+          <Column header="#" body={(_, options) => options.rowIndex + 1} style={{ width: '50px' }} />
           <Column field="address" header="Wallet" body={addressTemplate} sortable />
           <Column field="balance" header="Balance" body={tokenBalanceTemplate} sortable />
           <Column field="social" header="Social" body={socialTemplate} sortable />
