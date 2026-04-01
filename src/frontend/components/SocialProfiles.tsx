@@ -330,6 +330,7 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
       <div className="wallet-details p-3">
         <h4 className="mb-3">Wallets: {data.wallets.length}</h4>
         <DataTable value={data.wallets} className="p-datatable-sm" size="small" dataKey="address">
+          <Column header="#" body={(_, options) => options.rowIndex + 1} style={{ width: '50px' }} />
           <Column
             field="address"
             header="Wallet Address"
@@ -567,6 +568,7 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
           removableSort={false}
         >
           <Column expander style={{ width: '3rem' }} />
+          <Column header="#" body={(_, options) => options.rowIndex + 1} style={{ width: '50px' }} />
           <Column field="displayName" header="Identity" body={primaryIdentifierTemplate} sortable />
           <Column field="twitter" header="X" body={twitterTemplate} sortable />
           <Column field="discord" header="Discord" body={discordTemplate} sortable />
