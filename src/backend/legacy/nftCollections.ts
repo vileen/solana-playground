@@ -75,19 +75,91 @@ async function fetchCollectionNFTs(collectionId: string, collectionType: 'Gen1' 
   return allItems;
 }
 
-// Get all NFTs from both collections
-export async function getCollectionNFTs() {
-  console.log('Starting NFT collection fetch from both Gen1 and Infant collections...');
+// Fetch detached NFTs by authority (for NFTs not in any collection)
+async function fetchDetachedNFTs(): Promise<any[]> {
+  const allItems: any[] = [];
+  const pageSize = 1000;
+  let page = 1;
 
-  // Fetch from both collections in parallel
-  const [gen1Items, infantItems] = await Promise.all([
+  const AUTHORITY_ADDRESS = 'F4emUyYXZxTKs34r5VRERTESrmrQ76D9ohseoTtgGRE8';
+  console.log(`Fetching detached NFTs by authority ${AUTHORITY_ADDRESS}...`);
+
+  for (let i = 0; i < 20; i++) {
+    const requestBody = {
+      jsonrpc: '2.0',
+      id: 'my-id',
+      method: 'getAssetsByAuthority',
+      params: {
+        authorityAddress: AUTHORITY_ADDRESS,
+        page,
+        limit: pageSize,
+      },
+    };
+
+    const response = await fetch(`${FULL_RPC_URL}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody),
+    });
+
+    const responseData = await response.json();
+    if (responseData.error) {
+      console.error('RPC Error:', responseData.error);
+      throw new Error(`RPC Error: ${responseData.error.message}`);
+    }
+
+    const { result } = responseData;
+    if (!result || !result.items) break;
+
+    allItems.push(...result.items);
+
+    if (result.items.length < pageSize) break;
+    page++;
+  }
+
+  // Filter to only TYR NFTs that are NOT part of any collection (detached)
+  return allItems
+    .filter((item: any) => {
+      const name = item.content?.metadata?.name || '';
+      const isTyr = (name.startsWith('TYR-') && /^TYR-\d+/.test(name)) ||
+                    (name.startsWith('TYR-Infant-') && /^TYR-Infant-\d+/.test(name));
+      const hasNoCollection = !item.grouping || item.grouping.length === 0;
+      return isTyr && hasNoCollection;
+    })
+    .map((item: any) => {
+      const name = item.content?.metadata?.name || '';
+      const collectionType = name.startsWith('TYR-Infant-') ? 'Infant' : 'Gen1';
+      return { ...item, collectionType };
+    });
+}
+
+// Get all NFTs from both collections plus detached ones
+export async function getCollectionNFTs() {
+  console.log('Starting NFT collection fetch...');
+
+  // Fetch from collections and detached in parallel
+  const [gen1Items, infantItems, detachedItems] = await Promise.all([
     fetchCollectionNFTs(GEN1_COLLECTION_ID, 'Gen1'),
     fetchCollectionNFTs(INFANT_COLLECTION_ID, 'Infant'),
+    fetchDetachedNFTs(),
   ]);
 
-  const allItems = [...gen1Items, ...infantItems];
+  // Merge and deduplicate by mint ID
+  const allItemsMap = new Map<string, any>();
 
-  console.log(`Total: ${gen1Items.length} Gen1 + ${infantItems.length} Infant = ${allItems.length} NFTs`);
+  for (const item of gen1Items) allItemsMap.set(item.id, item);
+  for (const item of infantItems) allItemsMap.set(item.id, item);
+  for (const item of detachedItems) {
+    if (!allItemsMap.has(item.id)) {
+      allItemsMap.set(item.id, item);
+    }
+  }
+
+  const allItems = Array.from(allItemsMap.values());
+  const gen1Count = allItems.filter((i: any) => i.collectionType === 'Gen1').length;
+  const infantCount = allItems.filter((i: any) => i.collectionType === 'Infant').length;
+
+  console.log(`Total: ${gen1Count} Gen1 + ${infantCount} Infant (${detachedItems.length} detached) = ${allItems.length} NFTs`);
   return allItems;
 }
 
