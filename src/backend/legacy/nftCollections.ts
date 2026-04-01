@@ -17,14 +17,20 @@ export async function getCollectionNFTs() {
   const pageSize = 1000;
   let page = 1;
 
+  // Use collection ID instead of authority to ensure we get all TYR NFTs
+  // The authority method was missing some NFTs due to pagination limits
+  // when mixed with other collections' NFTs
+  const COLLECTION_ID = 'HJx4HRAT3RiFq7cy9fSrvP92usAmJ7bJgPccQTyroT2r';
+
   for (let i = 0; i < 20; i++) {
     // up to 20000 NFTs (20 pages)
     const requestBody = {
       jsonrpc: '2.0',
       id: 'my-id',
-      method: 'getAssetsByAuthority',
+      method: 'getAssetsByGroup',
       params: {
-        authorityAddress: 'F4emUyYXZxTKs34r5VRERTESrmrQ76D9ohseoTtgGRE8',
+        groupKey: 'collection',
+        groupValue: COLLECTION_ID,
         page,
         limit: pageSize,
       },
