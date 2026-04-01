@@ -11,32 +11,32 @@ const NFT_SNAPSHOT_FILE = join(DATA_DIR, 'nft_snapshot.json');
 // Snapshot file pattern for timestamp-based files
 const NFT_SNAPSHOT_PATTERN = /^snapshot_\d+\.json$/;
 
-// Get all NFTs from collections
-export async function getCollectionNFTs() {
+// Collection IDs for TYR NFTs
+const GEN1_COLLECTION_ID = 'HJx4HRAT3RiFq7cy9fSrvP92usAmJ7bJgPccQTyroT2r';
+const INFANT_COLLECTION_ID = '6fXJ7FgxoovfAbrFpvH1cJcAiHdPuum2bmVxLjuqqV6L';
+
+// Fetch NFTs from a specific collection
+async function fetchCollectionNFTs(collectionId: string, collectionType: 'Gen1' | 'Infant'): Promise<any[]> {
   const allItems: any[] = [];
   const pageSize = 1000;
   let page = 1;
 
-  // Use collection ID instead of authority to ensure we get all TYR NFTs
-  // The authority method was missing some NFTs due to pagination limits
-  // when mixed with other collections' NFTs
-  const COLLECTION_ID = 'HJx4HRAT3RiFq7cy9fSrvP92usAmJ7bJgPccQTyroT2r';
+  console.log(`Fetching ${collectionType} NFTs from collection ${collectionId}...`);
 
   for (let i = 0; i < 20; i++) {
-    // up to 20000 NFTs (20 pages)
     const requestBody = {
       jsonrpc: '2.0',
       id: 'my-id',
       method: 'getAssetsByGroup',
       params: {
         groupKey: 'collection',
-        groupValue: COLLECTION_ID,
+        groupValue: collectionId,
         page,
         limit: pageSize,
       },
     };
 
-    console.log(`Fetching page ${page} for update authority...`);
+    console.log(`Fetching page ${page} for ${collectionType}...`);
     const response = await fetch(`${FULL_RPC_URL}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -52,20 +52,17 @@ export async function getCollectionNFTs() {
     const { result } = responseData;
     if (!result || !result.items) break;
 
-    // Filter and categorize NFTs into Gen1 and Infant collections
+    // Filter and categorize NFTs
     const filteredItems = result.items
       .filter((item: any) => {
         const name = item.content?.metadata?.name || '';
-        return (
-          (name.startsWith('TYR-') && /^TYR-\d+/.test(name)) ||
-          (name.startsWith('TYR-Infant-') && /^TYR-Infant-\d+/.test(name))
-        );
+        return collectionType === 'Gen1'
+          ? name.startsWith('TYR-') && /^TYR-\d+/.test(name)
+          : name.startsWith('TYR-Infant-') && /^TYR-Infant-\d+/.test(name);
       })
       .map((item: any) => {
         const name = item.content?.metadata?.name || '';
-        // Add collection type to the item
-        const type = name.startsWith('TYR-Infant-') ? 'Infant' : 'Gen1';
-        return { ...item, collectionType: type };
+        return { ...item, collectionType };
       });
 
     allItems.push(...filteredItems);
@@ -74,7 +71,23 @@ export async function getCollectionNFTs() {
     page++;
   }
 
-  console.log('Total assets fetched:', allItems.length);
+  console.log(`Fetched ${allItems.length} ${collectionType} NFTs`);
+  return allItems;
+}
+
+// Get all NFTs from both collections
+export async function getCollectionNFTs() {
+  console.log('Starting NFT collection fetch from both Gen1 and Infant collections...');
+
+  // Fetch from both collections in parallel
+  const [gen1Items, infantItems] = await Promise.all([
+    fetchCollectionNFTs(GEN1_COLLECTION_ID, 'Gen1'),
+    fetchCollectionNFTs(INFANT_COLLECTION_ID, 'Infant'),
+  ]);
+
+  const allItems = [...gen1Items, ...infantItems];
+
+  console.log(`Total: ${gen1Items.length} Gen1 + ${infantItems.length} Infant = ${allItems.length} NFTs`);
   return allItems;
 }
 
