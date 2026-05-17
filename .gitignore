@@ -10,3 +10,6 @@ data
 backups/*.sql
 logs/
 *.log
+
+# Local assistant notes
+AGENTS.md
