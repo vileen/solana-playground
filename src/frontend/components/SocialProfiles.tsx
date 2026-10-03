@@ -89,23 +89,28 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
     }, [searchTerm]);
 
     const loadData = async (signal?: AbortSignal) => {
-      await loadLostWallets();
-      await loadSocialProfiles(signal);
+      const lostSet = await loadLostWallets();
+      await loadSocialProfiles(signal, lostSet);
     };
 
-    const loadLostWallets = async () => {
+    const loadLostWallets = async (): Promise<Set<string>> => {
       try {
         const wallets = await fetchLostWallets();
         const lostSet = new Set<string>(wallets.map((w: any) => w.wallet_address));
         setLostWallets(lostSet);
+        return lostSet;
       } catch (error) {
         console.error('Error loading lost wallets:', error);
+        return new Set();
       }
     };
 
-    const loadSocialProfiles = async (signal?: AbortSignal) => {
+    const loadSocialProfiles = async (signal?: AbortSignal, lostSet?: Set<string>) => {
       try {
         setLoading(true);
+        
+        // Use passed lostSet or fall back to state
+        const lostWalletsSet = lostSet || lostWallets;
 
         // Step 1: Fetch social profiles first (this now returns all wallets for matching profiles)
         const profiles = await fetchSocialProfiles(searchTerm, { signal });
@@ -224,7 +229,7 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
             gen1Count: nftData.gen1Count,
             infantCount: nftData.infantCount,
             nftCount: nftData.nftCount,
-            isLost: lostWallets.has(profile.address),
+            isLost: lostWalletsSet.has(profile.address),
             stakingData: stakingInfo,
           };
 
