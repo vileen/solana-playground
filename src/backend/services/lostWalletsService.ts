@@ -68,6 +68,35 @@ export async function markWalletAsLost(
 
       const socialId = walletResult.rowCount > 0 ? walletResult.rows[0].social_id : null;
 
+      // Get wallet balance from latest token snapshot if not provided
+      let amount = lostAmount;
+      if (!amount) {
+        const balanceResult = await client.query(`
+          SELECT COALESCE(th.balance, 0) as balance
+          FROM token_holders th
+          JOIN token_snapshots ts ON th.snapshot_id = ts.id
+          WHERE th.address = $1
+          ORDER BY ts.timestamp DESC
+          LIMIT 1
+        `, [walletAddress]);
+        
+        amount = balanceResult.rowCount > 0 ? parseFloat(balanceResult.rows[0].balance) : 0;
+
+        // If no token balance, check staking
+        if (amount === 0) {
+          const stakingResult = await client.query(`
+            SELECT COALESCE(swd.total_staked, 0) as staked
+            FROM staking_wallet_data swd
+            JOIN staking_snapshots ss ON swd.snapshot_id = ss.id
+            WHERE swd.wallet_address = $1
+            ORDER BY ss.timestamp DESC
+            LIMIT 1
+          `, [walletAddress]);
+          
+          amount = stakingResult.rowCount > 0 ? parseFloat(stakingResult.rows[0].staked) : 0;
+        }
+      }
+
       // Insert or update lost wallet
       await client.query(`
         INSERT INTO lost_wallets (wallet_address, social_id, reason, lost_amount, is_lost)
@@ -78,7 +107,7 @@ export async function markWalletAsLost(
           reason = COALESCE($3, lost_wallets.reason),
           lost_amount = COALESCE($4, lost_wallets.lost_amount),
           recovered_at = NULL
-      `, [walletAddress, socialId, reason || null, lostAmount || null]);
+      `, [walletAddress, socialId, reason || null, amount]);
 
       // Mark in token_holders
       await client.query(
@@ -98,7 +127,7 @@ export async function markWalletAsLost(
         [walletAddress]
       );
 
-      console.log(`[Lost Wallets] Marked ${walletAddress} as lost`);
+      console.log(`[Lost Wallets] Marked ${walletAddress} as lost (amount: ${amount})`);
       return true;
     });
   } catch (error) {
@@ -270,7 +299,10 @@ export async function getTokenInfo(excludeSocialIds?: string[]): Promise<{
     }
 
     // Calculate real circulating (excluding lost and excluded profiles)
-    const realCirculating = totalSupply - lostTokens - excludedTokens;
+    // Include both token balance and staked amounts
+    const totalLost = lostTokens + lostStaked;
+    const totalExcluded = excludedTokens + excludedStaked;
+    const realCirculating = totalSupply - totalLost - totalExcluded;
     
     // For mcap, we typically use circulating supply, not total
     // But user wants: FDV - lost - excluded = real mcap basis
@@ -278,9 +310,9 @@ export async function getTokenInfo(excludeSocialIds?: string[]): Promise<{
 
     return {
       totalSupply,
-      lostTokens,
+      lostTokens: totalLost,  // Combined lost (tokens + staked)
       lostStaked,
-      excludedTokens,
+      excludedTokens: totalExcluded,  // Combined excluded (tokens + staked)
       excludedStaked,
       realCirculating,
       realMcap,

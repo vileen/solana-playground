@@ -351,6 +351,7 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
       try {
         setLoading(true);
         await markWalletLost(wallet.address, 'Marked as lost from Social Profiles');
+        // Reload lost wallets first, then profiles
         await loadLostWallets();
         await loadSocialProfiles();
         onSuccess(`Wallet ${wallet.address.slice(0, 8)}... marked as lost`);
@@ -365,6 +366,7 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
       try {
         setLoading(true);
         await recoverWallet(wallet.address);
+        // Reload lost wallets first, then profiles
         await loadLostWallets();
         await loadSocialProfiles();
         onSuccess(`Wallet ${wallet.address.slice(0, 8)}... recovered`);
