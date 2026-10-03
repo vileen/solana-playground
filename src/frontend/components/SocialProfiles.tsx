@@ -84,10 +84,14 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
 
     useEffect(() => {
       const abortController = new AbortController();
-      loadSocialProfiles(abortController.signal);
-      loadLostWallets();
+      loadData(abortController.signal);
       return () => abortController.abort();
     }, [searchTerm]);
+
+    const loadData = async (signal?: AbortSignal) => {
+      await loadLostWallets();
+      await loadSocialProfiles(signal);
+    };
 
     const loadLostWallets = async () => {
       try {
