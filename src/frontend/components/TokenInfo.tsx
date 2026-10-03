@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Card } from 'primereact/card';
 import { Chart } from 'primereact/chart';
-import { MultiSelect } from 'primereact/multiselect';
 import { Button } from 'primereact/button';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
@@ -249,21 +248,29 @@ const TokenInfo: React.FC = () => {
               <label className="block text-sm font-medium mb-2">
                 Select profiles to exclude (e.g. team wallets, treasury)
               </label>
-              <MultiSelect
-                value={selectedProfiles}
-                options={socialProfiles}
-                onChange={(e) => handleProfileChange(e.value)}
-                optionLabel="twitter"
-                placeholder="Select profiles"
-                className="w-full"
-                display="chip"
-                itemTemplate={(option) => (
-                  <div>
-                    <span className="font-bold">{option.twitter || 'Unknown'}</span>
-                    {option.discord && <span className="text-sm text-color-secondary ml-2">({option.discord})</span>}
+              <div className="flex flex-column gap-2" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                {socialProfiles.map((profile) => (
+                  <div key={profile.id} className="flex align-items-center">
+                    <input
+                      type="checkbox"
+                      id={`profile-${profile.id}`}
+                      checked={selectedProfiles.some(p => p.id === profile.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          handleProfileChange([...selectedProfiles, profile]);
+                        } else {
+                          handleProfileChange(selectedProfiles.filter(p => p.id !== profile.id));
+                        }
+                      }}
+                      className="mr-2"
+                    />
+                    <label htmlFor={`profile-${profile.id}`} className="text-sm cursor-pointer">
+                      <span className="font-bold">{profile.twitter || 'Unknown'}</span>
+                      {profile.discord && <span className="text-color-secondary ml-1">({profile.discord})</span>}
+                    </label>
                   </div>
-                )}
-              />
+                ))}
+              </div>
             </div>
             {selectedProfiles.length > 0 && (
               <div className="text-sm text-color-secondary">

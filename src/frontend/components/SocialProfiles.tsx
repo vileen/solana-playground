@@ -220,6 +220,7 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
             gen1Count: nftData.gen1Count,
             infantCount: nftData.infantCount,
             nftCount: nftData.nftCount,
+            isLost: lostWallets.has(profile.address),
             stakingData: stakingInfo,
           };
 
@@ -264,11 +265,8 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
           }
         });
 
-        // Convert map to array and mark lost wallets
-        const groupedProfilesArray = Array.from(groupedProfiles.values()).map(profile => ({
-          ...profile,
-          isLost: profile.wallets.some(w => lostWallets.has(w.address)),
-        }));
+        // Convert map to array
+        const groupedProfilesArray = Array.from(groupedProfiles.values());
 
         // Since we're already filtering on the backend, we don't need additional frontend filtering when there's a searchTerm
         // Only apply frontend filtering when there's no search term (i.e., when we're showing all data)
@@ -609,7 +607,6 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
       return {
         'highlight-row': rowData.totalNftCount >= 5 || rowData.totalTokenBalance >= 10000,
         'whale-row': rowData.totalNftCount >= 10 || rowData.totalTokenBalance >= 100000,
-        'lost-row': rowData.isLost,
       };
     };
 
