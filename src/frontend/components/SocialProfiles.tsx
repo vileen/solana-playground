@@ -34,6 +34,7 @@ interface WalletData {
   gen1Count: number;
   infantCount: number;
   nftCount: number;
+  isLost?: boolean;
   stakingData?: {
     totalStaked: number;
     totalLocked: number;
@@ -344,6 +345,34 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
       }
     };
 
+    const handleMarkWalletAsLost = async (wallet: WalletData) => {
+      try {
+        setLoading(true);
+        await markWalletLost(wallet.address, 'Marked as lost from Social Profiles');
+        await loadLostWallets();
+        await loadSocialProfiles();
+        onSuccess(`Wallet ${wallet.address.slice(0, 8)}... marked as lost`);
+      } catch (error: any) {
+        onError(`Failed to mark as lost: ${error.message}`);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const handleRecoverWallet = async (wallet: WalletData) => {
+      try {
+        setLoading(true);
+        await recoverWallet(wallet.address);
+        await loadLostWallets();
+        await loadSocialProfiles();
+        onSuccess(`Wallet ${wallet.address.slice(0, 8)}... recovered`);
+      } catch (error: any) {
+        onError(`Failed to recover: ${error.message}`);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     // Row expansion template to show wallet details
     const rowExpansionTemplate = (data: GroupedSocialProfile) => (
       <div className="wallet-details p-3">
@@ -400,6 +429,29 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
           <Column field="gen1Count" header="Gen1 Count" />
           <Column field="infantCount" header="Infant Count" />
           <Column field="nftCount" header="Total NFTs" />
+          <Column
+            header="Lost"
+            body={(wallet: WalletData) =>
+              wallet.isLost ? (
+                <Button
+                  icon="pi pi-undo"
+                  className="p-button-rounded p-button-text p-button-success"
+                  onClick={() => handleRecoverWallet(wallet)}
+                  tooltip="Recover wallet"
+                  style={{ padding: '0.25rem' }}
+                />
+              ) : (
+                <Button
+                  icon="pi pi-exclamation-triangle"
+                  className="p-button-rounded p-button-text p-button-danger"
+                  onClick={() => handleMarkWalletAsLost(wallet)}
+                  tooltip="Mark as lost"
+                  style={{ padding: '0.25rem' }}
+                />
+              )
+            }
+            style={{ width: '4rem' }}
+          />
           <Column
             body={(wallet: WalletData) => (
               <a

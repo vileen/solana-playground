@@ -93,84 +93,55 @@ const TokenInfo: React.FC = () => {
 
     const documentStyle = getComputedStyle(document.documentElement);
     const textColor = documentStyle.getPropertyValue('--text-color') || '#495057';
-    const textColorSecondary = documentStyle.getPropertyValue('--text-color-secondary') || '#6c757d';
-    const surfaceBorder = documentStyle.getPropertyValue('--surface-border') || '#dfe7ef';
 
     const data = {
-      labels: ['Total Supply (FDV)', 'Lost Tokens', 'Excluded Profiles', 'Real Circulating'],
+      labels: ['Real Circulating', 'Lost Tokens', 'Excluded Profiles'],
       datasets: [
         {
-          label: 'Token Amount',
           data: [
-            tokenInfo.totalSupply,
+            tokenInfo.realCirculating,
             tokenInfo.lostTokens,
             tokenInfo.excludedTokens,
-            tokenInfo.realCirculating,
           ],
           backgroundColor: [
-            'rgba(59, 130, 246, 0.5)',   // blue
-            'rgba(239, 68, 68, 0.5)',     // red
-            'rgba(245, 158, 11, 0.5)',    // amber
-            'rgba(34, 197, 94, 0.5)',     // green
+            'rgba(34, 197, 94, 0.8)',     // green
+            'rgba(239, 68, 68, 0.8)',     // red
+            'rgba(245, 158, 11, 0.8)',    // amber
           ],
           borderColor: [
-            'rgb(59, 130, 246)',
+            'rgb(34, 197, 94)',
             'rgb(239, 68, 68)',
             'rgb(245, 158, 11)',
-            'rgb(34, 197, 94)',
           ],
-          borderWidth: 1,
+          borderWidth: 2,
         },
       ],
     };
 
     const options = {
-      indexAxis: 'y' as const,
       maintainAspectRatio: false,
-      aspectRatio: 0.8,
+      aspectRatio: 1,
       plugins: {
         legend: {
+          position: 'bottom' as const,
           labels: {
             color: textColor,
+            usePointStyle: true,
+            padding: 20,
           },
         },
         tooltip: {
           callbacks: {
             label: function(context: any) {
-              let label = context.dataset.label || '';
-              if (label) {
-                label += ': ';
-              }
-              label += new Intl.NumberFormat('en-US', {
+              const label = context.label || '';
+              const value = context.parsed;
+              const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0);
+              const percentage = ((value / total) * 100).toFixed(2);
+              return `${label}: ${new Intl.NumberFormat('en-US', {
                 notation: 'compact',
                 compactDisplay: 'short',
-              }).format(context.parsed.x);
-              return label;
+              }).format(value)} (${percentage}%)`;
             },
-          },
-        },
-      },
-      scales: {
-        x: {
-          ticks: {
-            color: textColorSecondary,
-            callback: function(value: any) {
-              return new Intl.NumberFormat('en-US', {
-                notation: 'compact',
-                compactDisplay: 'short',
-              }).format(value);
-            },
-          },
-          grid: {
-            color: surfaceBorder,
-          },
-        },
-        y: {
-          ticks: {
-            color: textColorSecondary,
-          },
-          grid: {
-            color: surfaceBorder,
           },
         },
       },
@@ -263,10 +234,10 @@ const TokenInfo: React.FC = () => {
         </div>
 
         {/* Chart */}
-        <div className="col-12 lg:col-8">
+        <div className="col-12 lg:col-6">
           <Card title="Token Supply Breakdown" className="mb-3">
-            <div style={{ height: '300px' }}>
-              {chartData && <Chart type="bar" data={chartData} options={chartOptions} />}
+            <div style={{ height: '350px' }}>
+              {chartData && <Chart type="pie" data={chartData} options={chartOptions} />}
             </div>
           </Card>
         </div>
