@@ -5,7 +5,6 @@ import { Button } from 'primereact/button';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { Tag } from 'primereact/tag';
-import { InputText } from 'primereact/inputtext';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 
 import { fetchTokenInfo, fetchLostWallets, fetchSocialProfiles } from '../services/api.js';
@@ -72,12 +71,22 @@ const TokenInfo: React.FC = () => {
       ]);
       setTokenInfo(info);
       setLostWallets(wallets);
-      // Add displayName for profiles
-      const profilesWithDisplay = profiles.map((p: any) => ({
-        ...p,
-        displayName: p.twitter || p.discord || p.comment || p.id?.slice(0, 8) || 'Unknown',
-      }));
-      setSocialProfiles(profilesWithDisplay);
+      // Deduplicate profiles by social_id (API returns one entry per wallet)
+      const seenIds = new Set<string>();
+      const uniqueProfiles: SocialProfile[] = [];
+      
+      for (const p of profiles) {
+        const profileId = p.id || p.social_id;
+        if (profileId && !seenIds.has(profileId)) {
+          seenIds.add(profileId);
+          uniqueProfiles.push({
+            ...p,
+            displayName: p.twitter || p.discord || p.comment || profileId.slice(0, 8),
+          });
+        }
+      }
+      
+      setSocialProfiles(uniqueProfiles);
     } catch (error) {
       console.error('Error loading token info:', error);
     } finally {
@@ -279,11 +288,13 @@ const TokenInfo: React.FC = () => {
                 Select profiles to exclude (e.g. team wallets, treasury)
               </label>
               <div className="mb-2">
-                <InputText
+                <input
+                  type="text"
                   value={profileFilter}
-                  onInput={(e: any) => setProfileFilter(e.target.value)}
+                  onChange={(e) => setProfileFilter(e.target.value)}
                   placeholder="Search profiles..."
-                  className="w-full"
+                  className="w-full p-2 border-1 border-round"
+                  style={{ borderColor: 'var(--surface-border)' }}
                 />
               </div>
               <div className="flex flex-column gap-2" style={{ maxHeight: '200px', overflowY: 'auto' }}>
