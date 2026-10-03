@@ -17,6 +17,7 @@ import ProfileDialog from './components/ProfileDialog.js';
 import SocialProfiles from './components/SocialProfiles.js';
 import StakingView from './components/StakingView.js';
 import TokenHolders from './components/TokenHolders.js';
+import TokenInfo from './components/TokenInfo.js';
 import { AuthProvider, useAuth } from './contexts/AuthContext.js';
 import { ROUTE_TO_TAB_INDEX, useAppNavigation } from './hooks/useAppNavigation.js';
 import {
@@ -269,6 +270,10 @@ const AppContent: React.FC = () => {
               onSuccess={handleSuccess}
               onShowSocialDialog={showSocialDialog}
             />
+          </TabPanel>
+
+          <TabPanel header="Token Info">
+            <TokenInfo />
           </TabPanel>
 
           <TabPanel header="Events">

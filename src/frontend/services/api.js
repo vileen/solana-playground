@@ -88,6 +88,74 @@ export const fetchSocialProfiles = async (searchTerm, { signal } = {}) => {
   }
 };
 
+// Fetch token info for real mcap calculation
+export const fetchTokenInfo = async (excludeSocialIds) => {
+  try {
+    let url = `${API_BASE_URL}/token-info`;
+    if (excludeSocialIds && excludeSocialIds.length > 0) {
+      url += `?exclude=${excludeSocialIds.join(',')}`;
+    }
+    const response = await fetch(url, { credentials: 'include' });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching token info:', error);
+    throw error;
+  }
+};
+
+// Fetch lost wallets
+export const fetchLostWallets = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/lost-wallets`, { credentials: 'include' });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching lost wallets:', error);
+    throw error;
+  }
+};
+
+// Mark wallet as lost
+export const markWalletLost = async (walletAddress, reason, lostAmount) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/lost-wallets`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ walletAddress, reason, lostAmount }),
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error marking wallet as lost:', error);
+    throw error;
+  }
+};
+
+// Recover wallet
+export const recoverWallet = async (walletAddress) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/lost-wallets/${walletAddress}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error recovering wallet:', error);
+    throw error;
+  }
+};
+
 // Take NFT snapshot
 export const takeNftSnapshot = async () => {
   try {

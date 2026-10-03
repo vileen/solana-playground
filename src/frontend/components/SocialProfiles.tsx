@@ -13,6 +13,9 @@ import {
   fetchSocialProfiles,
   fetchStakingData,
   fetchTokenHolders,
+  markWalletLost,
+  recoverWallet,
+  fetchLostWallets,
 } from '../services/api.js';
 
 import ProfileDialog from './ProfileDialog.js';
@@ -53,6 +56,7 @@ interface GroupedSocialProfile {
   totalLocked: number;
   totalUnlocked: number;
   totalTokensAndStaked: number;
+  isLost?: boolean;
 }
 
 // Use forwardRef to expose methods to parent component
@@ -63,6 +67,7 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
     const appNavigation = useAppNavigation();
 
     const [socialProfiles, setSocialProfiles] = useState<GroupedSocialProfile[]>([]);
+    const [lostWallets, setLostWallets] = useState<Set<string>>(new Set());
     const [loading, setLoading] = useState(false);
     const [expandedRows, setExpandedRows] = useState<any>(null);
     const [profileDialogVisible, setProfileDialogVisible] = useState(false);
@@ -79,8 +84,19 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
     useEffect(() => {
       const abortController = new AbortController();
       loadSocialProfiles(abortController.signal);
+      loadLostWallets();
       return () => abortController.abort();
     }, [searchTerm]);
+
+    const loadLostWallets = async () => {
+      try {
+        const wallets = await fetchLostWallets();
+        const lostSet = new Set<string>(wallets.map((w: any) => w.wallet_address));
+        setLostWallets(lostSet);
+      } catch (error) {
+        console.error('Error loading lost wallets:', error);
+      }
+    };
 
     const loadSocialProfiles = async (signal?: AbortSignal) => {
       try {
@@ -247,8 +263,11 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
           }
         });
 
-        // Convert map to array
-        const groupedProfilesArray = Array.from(groupedProfiles.values());
+        // Convert map to array and mark lost wallets
+        const groupedProfilesArray = Array.from(groupedProfiles.values()).map(profile => ({
+          ...profile,
+          isLost: profile.wallets.some(w => lostWallets.has(w.address)),
+        }));
 
         // Since we're already filtering on the backend, we don't need additional frontend filtering when there's a searchTerm
         // Only apply frontend filtering when there's no search term (i.e., when we're showing all data)
@@ -475,19 +494,70 @@ const SocialProfiles = forwardRef<{ loadSocialProfiles: () => Promise<void> }, S
         : '0';
     };
 
+    const handleMarkAsLost = async (profile: GroupedSocialProfile) => {
+      try {
+        setLoading(true);
+        // Mark all wallets in this profile as lost
+        for (const wallet of profile.wallets) {
+          await markWalletLost(wallet.address, `Profile marked as lost: ${profile.displayName}`);
+        }
+        await loadLostWallets();
+        await loadSocialProfiles();
+        onSuccess(`Profile "${profile.displayName}" marked as lost`);
+      } catch (error: any) {
+        onError(`Failed to mark as lost: ${error.message}`);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const handleRecover = async (profile: GroupedSocialProfile) => {
+      try {
+        setLoading(true);
+        for (const wallet of profile.wallets) {
+          await recoverWallet(wallet.address);
+        }
+        await loadLostWallets();
+        await loadSocialProfiles();
+        onSuccess(`Profile "${profile.displayName}" recovered`);
+      } catch (error: any) {
+        onError(`Failed to recover: ${error.message}`);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     const socialActionsTemplate = (rowData: GroupedSocialProfile) => (
-      <Button
-        icon="pi pi-user-edit"
-        className="p-button-rounded p-button-text"
-        onClick={() => openEditProfileDialog(rowData)}
-        tooltip="Edit social info"
-      />
+      <div className="flex gap-1">
+        <Button
+          icon="pi pi-user-edit"
+          className="p-button-rounded p-button-text"
+          onClick={() => openEditProfileDialog(rowData)}
+          tooltip="Edit social info"
+        />
+        {rowData.isLost ? (
+          <Button
+            icon="pi pi-undo"
+            className="p-button-rounded p-button-text p-button-success"
+            onClick={() => handleRecover(rowData)}
+            tooltip="Recover wallet"
+          />
+        ) : (
+          <Button
+            icon="pi pi-exclamation-triangle"
+            className="p-button-rounded p-button-text p-button-danger"
+            onClick={() => handleMarkAsLost(rowData)}
+            tooltip="Mark as lost"
+          />
+        )}
+      </div>
     );
 
     const getRowClassName = (rowData: GroupedSocialProfile) => {
       return {
         'highlight-row': rowData.totalNftCount >= 5 || rowData.totalTokenBalance >= 10000,
         'whale-row': rowData.totalNftCount >= 10 || rowData.totalTokenBalance >= 100000,
+        'lost-row': rowData.isLost,
       };
     };
 

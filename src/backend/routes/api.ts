@@ -3,6 +3,12 @@ import { Request, Response, Router } from 'express';
 import { ENV } from '../config/env.js';
 import { query } from '../db/index.js';
 import {
+  getLostWallets,
+  markWalletAsLost,
+  recoverWallet,
+  getTokenInfo,
+} from '../services/lostWalletsService.js';
+import {
   getNFTEventsForSnapshot,
   getNFTSnapshotsWithEvents,
   getTokenEventsForSnapshot,
@@ -39,6 +45,69 @@ import {
 // Fallback to file-based versions when needed
 
 const router = Router();
+
+// ========== LOST WALLETS & TOKEN INFO ==========
+
+// Get all lost wallets
+router.get('/lost-wallets', async (_req: Request, res: Response) => {
+  try {
+    const wallets = await getLostWallets();
+    res.json(wallets);
+  } catch (error) {
+    console.error('Error fetching lost wallets:', error);
+    res.status(500).json({ error: 'Failed to fetch lost wallets' });
+  }
+});
+
+// Mark wallet as lost
+router.post('/lost-wallets', async (req: Request, res: Response) => {
+  try {
+    const { walletAddress, reason, lostAmount } = req.body;
+    if (!walletAddress) {
+      res.status(400).json({ error: 'walletAddress is required' });
+      return;
+    }
+    const success = await markWalletAsLost(walletAddress, reason, lostAmount);
+    if (success) {
+      res.json({ success: true });
+    } else {
+      res.status(500).json({ error: 'Failed to mark wallet as lost' });
+    }
+  } catch (error) {
+    console.error('Error marking wallet as lost:', error);
+    res.status(500).json({ error: 'Failed to mark wallet as lost' });
+  }
+});
+
+// Recover wallet
+router.delete('/lost-wallets/:address', async (req: Request, res: Response) => {
+  try {
+    const { address } = req.params;
+    const success = await recoverWallet(address);
+    if (success) {
+      res.json({ success: true });
+    } else {
+      res.status(500).json({ error: 'Failed to recover wallet' });
+    }
+  } catch (error) {
+    console.error('Error recovering wallet:', error);
+    res.status(500).json({ error: 'Failed to recover wallet' });
+  }
+});
+
+// Get token info for real mcap
+router.get('/token-info', async (req: Request, res: Response) => {
+  try {
+    // @ts-ignore
+    const { exclude } = req.query;
+    const excludeIds = exclude ? (exclude as string).split(',') : undefined;
+    const info = await getTokenInfo(excludeIds);
+    res.json(info);
+  } catch (error) {
+    console.error('Error fetching token info:', error);
+    res.status(500).json({ error: 'Failed to fetch token info' });
+  }
+});
 
 // Get NFT holders with optional search filter
 router.get('/holders', async (req: Request, res: Response) => {

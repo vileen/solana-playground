@@ -121,6 +121,24 @@ body {
   background-color: rgba(99, 102, 241, 0.2) !important;
 }
 
+.lost-row {
+  background-color: rgba(239, 68, 68, 0.08) !important;
+  opacity: 0.85;
+}
+
+[data-theme='dark'] .lost-row {
+  background-color: rgba(239, 68, 68, 0.15) !important;
+}
+
+.lost-row td {
+  text-decoration: line-through;
+  text-decoration-color: rgba(239, 68, 68, 0.4);
+}
+
+.lost-row td:last-child {
+  text-decoration: none;
+}
+
 /* Table header styles */
 .table-header {
   margin-bottom: 1rem;

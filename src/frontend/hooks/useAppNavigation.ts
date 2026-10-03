@@ -10,6 +10,7 @@ interface NavigationOptions {
 export const TAB_ROUTES = {
   NFT_HOLDERS: '/nft-holders',
   TOKEN_HOLDERS: '/token-holders',
+  TOKEN_INFO: '/token-info',
   EVENTS: '/events',
   TIMELINE: '/timeline',
   SOCIAL_PROFILES: '/social-profiles',
@@ -20,6 +21,7 @@ export const TAB_ROUTES = {
 export const TAB_INDEX_TO_ROUTE = [
   TAB_ROUTES.NFT_HOLDERS,
   TAB_ROUTES.TOKEN_HOLDERS,
+  TAB_ROUTES.TOKEN_INFO,
   TAB_ROUTES.EVENTS,
   TAB_ROUTES.TIMELINE,
   TAB_ROUTES.STAKING,
@@ -30,10 +32,11 @@ export const TAB_INDEX_TO_ROUTE = [
 export const ROUTE_TO_TAB_INDEX: Record<string, number> = {
   [TAB_ROUTES.NFT_HOLDERS]: 0,
   [TAB_ROUTES.TOKEN_HOLDERS]: 1,
-  [TAB_ROUTES.EVENTS]: 2,
-  [TAB_ROUTES.TIMELINE]: 3,
-  [TAB_ROUTES.STAKING]: 4,
-  [TAB_ROUTES.SOCIAL_PROFILES]: 5,
+  [TAB_ROUTES.TOKEN_INFO]: 2,
+  [TAB_ROUTES.EVENTS]: 3,
+  [TAB_ROUTES.TIMELINE]: 4,
+  [TAB_ROUTES.STAKING]: 5,
+  [TAB_ROUTES.SOCIAL_PROFILES]: 6,
 };
 
 /**

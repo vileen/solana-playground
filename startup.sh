@@ -1,6 +1,15 @@
 #!/bin/bash
 # Startup script for Render deployment
 
+# Load environment variables from .env.local if it exists
+if [ -f ".env.local" ]; then
+  echo "Loading environment from .env.local"
+  export $(grep -v '^#' .env.local | xargs)
+elif [ -f ".env" ]; then
+  echo "Loading environment from .env"
+  export $(grep -v '^#' .env | xargs)
+fi
+
 echo "=== SERVER STARTUP SHELL SCRIPT ==="
 echo "Current directory: $(pwd)"
 echo "Node version: $(node -v)"
