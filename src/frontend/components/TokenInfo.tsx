@@ -156,12 +156,14 @@ const TokenInfo: React.FC = () => {
           color: '#fff',
           font: {
             weight: 'bold' as const,
-            size: 14,
+            size: 12,
           },
           formatter: (value: number, ctx: any) => {
-            const total = ctx.dataset.data.reduce((a: number, b: number) => a + b, 0);
-            const percentage = ((value / total) * 100).toFixed(1);
-            return `${percentage}%`;
+            return new Intl.NumberFormat('en-US', {
+              notation: 'compact',
+              compactDisplay: 'short',
+              maximumFractionDigits: 1,
+            }).format(value);
           },
         },
       },
