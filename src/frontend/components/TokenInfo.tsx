@@ -5,6 +5,8 @@ import { Button } from 'primereact/button';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { Tag } from 'primereact/tag';
+import { InputText } from 'primereact/inputtext';
+import ChartDataLabels from 'chartjs-plugin-datalabels';
 
 import { fetchTokenInfo, fetchLostWallets, fetchSocialProfiles } from '../services/api.js';
 
@@ -37,6 +39,7 @@ interface SocialProfile {
   discord?: string;
   comment?: string;
   wallets?: Array<{ address: string }>;
+  displayName?: string;
 }
 
 const TokenInfo: React.FC = () => {
@@ -44,6 +47,7 @@ const TokenInfo: React.FC = () => {
   const [lostWallets, setLostWallets] = useState<LostWallet[]>([]);
   const [socialProfiles, setSocialProfiles] = useState<SocialProfile[]>([]);
   const [selectedProfiles, setSelectedProfiles] = useState<SocialProfile[]>([]);
+  const [profileFilter, setProfileFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [chartData, setChartData] = useState<any>(null);
   const [chartOptions, setChartOptions] = useState<any>(null);
@@ -68,7 +72,12 @@ const TokenInfo: React.FC = () => {
       ]);
       setTokenInfo(info);
       setLostWallets(wallets);
-      setSocialProfiles(profiles);
+      // Add displayName for profiles
+      const profilesWithDisplay = profiles.map((p: any) => ({
+        ...p,
+        displayName: p.twitter || p.discord || p.comment || p.id?.slice(0, 8) || 'Unknown',
+      }));
+      setSocialProfiles(profilesWithDisplay);
     } catch (error) {
       console.error('Error loading token info:', error);
     } finally {
@@ -141,6 +150,18 @@ const TokenInfo: React.FC = () => {
                 compactDisplay: 'short',
               }).format(value)} (${percentage}%)`;
             },
+          },
+        },
+        datalabels: {
+          color: '#fff',
+          font: {
+            weight: 'bold' as const,
+            size: 14,
+          },
+          formatter: (value: number, ctx: any) => {
+            const total = ctx.dataset.data.reduce((a: number, b: number) => a + b, 0);
+            const percentage = ((value / total) * 100).toFixed(1);
+            return `${percentage}%`;
           },
         },
       },
@@ -236,7 +257,14 @@ const TokenInfo: React.FC = () => {
         <div className="col-12 lg:col-6">
           <Card title="Token Supply Breakdown" className="mb-3">
             <div style={{ height: '350px' }}>
-              {chartData && <Chart type="pie" data={chartData} options={chartOptions} />}
+              {chartData && (
+                <Chart 
+                  type="pie" 
+                  data={chartData} 
+                  options={chartOptions}
+                  plugins={[ChartDataLabels]}
+                />
+              )}
             </div>
           </Card>
         </div>
@@ -248,28 +276,46 @@ const TokenInfo: React.FC = () => {
               <label className="block text-sm font-medium mb-2">
                 Select profiles to exclude (e.g. team wallets, treasury)
               </label>
+              <div className="mb-2">
+                <InputText
+                  value={profileFilter}
+                  onChange={(e) => setProfileFilter(e.target.value)}
+                  placeholder="Search profiles..."
+                  className="w-full"
+                />
+              </div>
               <div className="flex flex-column gap-2" style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                {socialProfiles.map((profile) => (
-                  <div key={profile.id} className="flex align-items-center">
-                    <input
-                      type="checkbox"
-                      id={`profile-${profile.id}`}
-                      checked={selectedProfiles.some(p => p.id === profile.id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          handleProfileChange([...selectedProfiles, profile]);
-                        } else {
-                          handleProfileChange(selectedProfiles.filter(p => p.id !== profile.id));
-                        }
-                      }}
-                      className="mr-2"
-                    />
-                    <label htmlFor={`profile-${profile.id}`} className="text-sm cursor-pointer">
-                      <span className="font-bold">{profile.twitter || 'Unknown'}</span>
-                      {profile.discord && <span className="text-color-secondary ml-1">({profile.discord})</span>}
-                    </label>
-                  </div>
-                ))}
+                {socialProfiles
+                  .filter(p => 
+                    !profileFilter || 
+                    p.displayName?.toLowerCase().includes(profileFilter.toLowerCase()) ||
+                    p.twitter?.toLowerCase().includes(profileFilter.toLowerCase()) ||
+                    p.discord?.toLowerCase().includes(profileFilter.toLowerCase()) ||
+                    p.comment?.toLowerCase().includes(profileFilter.toLowerCase())
+                  )
+                  .map((profile) => (
+                    <div key={profile.id} className="flex align-items-center">
+                      <input
+                        type="checkbox"
+                        id={`profile-${profile.id}`}
+                        checked={selectedProfiles.some(p => p.id === profile.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            handleProfileChange([...selectedProfiles, profile]);
+                          } else {
+                            handleProfileChange(selectedProfiles.filter(p => p.id !== profile.id));
+                          }
+                        }}
+                        className="mr-2"
+                      />
+                      <label htmlFor={`profile-${profile.id}`} className="text-sm cursor-pointer">
+                        <span className="font-bold">{profile.displayName}</span>
+                        {profile.twitter && profile.displayName !== profile.twitter && (
+                          <span className="text-color-secondary ml-1">({profile.twitter})</span>
+                        )}
+                      </label>
+                    </div>
+                  ))}
               </div>
             </div>
             {selectedProfiles.length > 0 && (
