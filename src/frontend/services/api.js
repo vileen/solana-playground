@@ -442,6 +442,75 @@ export const fetchStakingSnapshots = async () => {
   }
 };
 
+// Fetch excluded profiles
+export const fetchExcludedProfiles = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/excluded-profiles`, { credentials: 'include' });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching excluded profiles:', error);
+    return [];
+  }
+};
+
+// Add profile to excluded list
+export const excludeProfile = async (socialId) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/excluded-profiles`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ socialId }),
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error excluding profile:', error);
+    throw error;
+  }
+};
+
+// Remove profile from excluded list
+export const includeProfile = async (socialId) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/excluded-profiles/${socialId}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error including profile:', error);
+    throw error;
+  }
+};
+
+// Set entire excluded profiles list
+export const setExcludedProfiles = async (socialIds) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/excluded-profiles`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ socialIds }),
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error setting excluded profiles:', error);
+    throw error;
+  }
+};
+
 // Fetch unlock summary
 export const fetchUnlockSummary = async (snapshotId, walletAddress, { signal } = {}) => {
   try {

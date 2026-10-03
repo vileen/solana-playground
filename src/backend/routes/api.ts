@@ -27,6 +27,12 @@ import {
   searchWalletLiquidityTransfers,
 } from '../services/liquidityPoolService.js';
 import {
+  getExcludedProfiles,
+  excludeProfile,
+  includeProfile,
+  setExcludedProfiles,
+} from '../services/excludedProfilesService.js';
+import {
   createHolderSnapshot,
   getHolders,
   loadHolderSnapshot,
@@ -106,6 +112,75 @@ router.get('/token-info', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error fetching token info:', error);
     res.status(500).json({ error: 'Failed to fetch token info' });
+  }
+});
+
+// ========== EXCLUDED PROFILES ==========
+
+// Get all excluded profiles
+router.get('/excluded-profiles', async (_req: Request, res: Response) => {
+  try {
+    const profiles = await getExcludedProfiles();
+    res.json(profiles);
+  } catch (error) {
+    console.error('Error fetching excluded profiles:', error);
+    res.status(500).json({ error: 'Failed to fetch excluded profiles' });
+  }
+});
+
+// Add profile to excluded list
+router.post('/excluded-profiles', async (req: Request, res: Response) => {
+  try {
+    const { socialId } = req.body;
+    if (!socialId) {
+      res.status(400).json({ error: 'socialId is required' });
+      return;
+    }
+    const success = await excludeProfile(socialId);
+    if (success) {
+      res.json({ success: true });
+    } else {
+      res.status(500).json({ error: 'Failed to exclude profile' });
+    }
+  } catch (error) {
+    console.error('Error excluding profile:', error);
+    res.status(500).json({ error: 'Failed to exclude profile' });
+  }
+});
+
+// Remove profile from excluded list
+router.delete('/excluded-profiles/:socialId', async (req: Request, res: Response) => {
+  try {
+    const { socialId } = req.params;
+    const success = await includeProfile(socialId);
+    if (success) {
+      res.json({ success: true });
+    } else {
+      res.status(500).json({ error: 'Failed to include profile' });
+    }
+  } catch (error) {
+    console.error('Error including profile:', error);
+    res.status(500).json({ error: 'Failed to include profile' });
+  }
+});
+
+// Set entire excluded profiles list
+router.put('/excluded-profiles', async (req: Request, res: Response) => {
+  try {
+    const { socialIds } = req.body;
+    if (!Array.isArray(socialIds)) {
+      res.status(400).json({ error: 'socialIds must be an array' });
+      return;
+    }
+    const success = await setExcludedProfiles(socialIds);
+    if (success) {
+      res.json({ success: true });
+    } else {
+      res.status(500).json({ error: 'Failed to set excluded profiles' });
+    }
+  } catch (error) {
+    console.error('Error setting excluded profiles:', error);
+    res.status(500).json({ error: 'Failed to set excluded profiles' });
   }
 });
 

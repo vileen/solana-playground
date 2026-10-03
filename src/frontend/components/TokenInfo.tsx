@@ -7,7 +7,7 @@ import { Column } from 'primereact/column';
 import { Tag } from 'primereact/tag';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 
-import { fetchTokenInfo, fetchLostWallets, fetchSocialProfiles } from '../services/api.js';
+import { fetchTokenInfo, fetchLostWallets, fetchSocialProfiles, fetchExcludedProfiles, excludeProfile, includeProfile } from '../services/api.js';
 
 interface TokenInfoData {
   totalSupply: number;
@@ -64,13 +64,15 @@ const TokenInfo: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [info, wallets, profiles] = await Promise.all([
+      const [info, wallets, profiles, excludedIds] = await Promise.all([
         fetchTokenInfo(),
         fetchLostWallets(),
         fetchSocialProfiles(),
+        fetchExcludedProfiles(),
       ]);
       setTokenInfo(info);
       setLostWallets(wallets);
+      
       // Deduplicate profiles by social_id (API returns one entry per wallet)
       const seenIds = new Set<string>();
       const uniqueProfiles: SocialProfile[] = [];
@@ -87,6 +89,18 @@ const TokenInfo: React.FC = () => {
       }
       
       setSocialProfiles(uniqueProfiles);
+      
+      // Set selected profiles from excluded IDs loaded from DB
+      const excludedSet = new Set(excludedIds);
+      const preSelected = uniqueProfiles.filter(p => excludedSet.has(p.id));
+      setSelectedProfiles(preSelected);
+      
+      // If there are excluded profiles, fetch token info with exclusions
+      if (preSelected.length > 0) {
+        const excludeIds = preSelected.map(p => p.id);
+        const infoWithExclusions = await fetchTokenInfo(excludeIds);
+        setTokenInfo(infoWithExclusions);
+      }
     } catch (error) {
       console.error('Error loading token info:', error);
     } finally {
@@ -97,6 +111,27 @@ const TokenInfo: React.FC = () => {
   const handleProfileChange = async (profiles: SocialProfile[]) => {
     setSelectedProfiles(profiles);
     const excludeIds = profiles.map(p => p.id);
+    
+    // Save to DB
+    try {
+      // Find profiles to add (in new selection but wasn't before)
+      const prevIds = new Set(selectedProfiles.map(p => p.id));
+      const toAdd = profiles.filter(p => !prevIds.has(p.id));
+      
+      // Find profiles to remove (was before but not in new selection)
+      const newIds = new Set(profiles.map(p => p.id));
+      const toRemove = selectedProfiles.filter(p => !newIds.has(p.id));
+      
+      // Apply changes to DB
+      await Promise.all([
+        ...toAdd.map(p => excludeProfile(p.id)),
+        ...toRemove.map(p => includeProfile(p.id)),
+      ]);
+    } catch (error) {
+      console.error('Error saving excluded profiles:', error);
+    }
+    
+    // Fetch updated token info
     try {
       const info = await fetchTokenInfo(excludeIds);
       setTokenInfo(info);
@@ -283,6 +318,26 @@ const TokenInfo: React.FC = () => {
         {/* Profile Exclusion */}
         <div className="col-12 lg:col-4">
           <Card title="Exclude Profiles from Calculation" className="mb-3">
+            {/* Currently Excluded List */}
+            {selectedProfiles.length > 0 && (
+              <div className="mb-3 p-2 border-1 border-round" style={{ borderColor: 'var(--surface-border)', background: 'var(--surface-50)' }}>
+                <div className="text-sm font-medium mb-2 text-500">Currently Excluded ({selectedProfiles.length}):</div>
+                <div className="flex flex-wrap gap-1">
+                  {selectedProfiles.map(p => (
+                    <Tag
+                      key={p.id}
+                      value={p.displayName}
+                      severity="danger"
+                      className="text-xs"
+                      onClick={() => handleProfileChange(selectedProfiles.filter(sp => sp.id !== p.id))}
+                      style={{ cursor: 'pointer' }}
+                    />
+                  ))}
+                </div>
+                <div className="text-xs text-400 mt-1">Click to remove</div>
+              </div>
+            )}
+            
             <div className="mb-3">
               <label className="block text-sm font-medium mb-2">
                 Select profiles to exclude (e.g. team wallets, treasury)
