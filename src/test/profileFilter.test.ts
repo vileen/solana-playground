@@ -43,15 +43,15 @@ console.log(`Test 1 - No filter: ${result1.length === 5 ? 'PASS' : 'FAIL'} (expe
 
 // Test 2: Filter by twitter
 const result2 = filterProfiles(testProfiles, 'john');
-console.log(`Test 2 - Filter 'john': ${result2.length === 1 && result2[0].id === '1' ? 'PASS' : 'FAIL'} (expected 1, got ${result2.length})`);
+console.log(`Test 2 - Filter 'john': ${result2.length === 1 && result2[0]?.id === '1' ? 'PASS' : 'FAIL'} (expected 1, got ${result2.length})`);
 
 // Test 3: Filter by discord
 const result3 = filterProfiles(testProfiles, 'jane');
-console.log(`Test 3 - Filter 'jane': ${result3.length === 1 && result3[0].id === '2' ? 'PASS' : 'FAIL'} (expected 1, got ${result3.length})`);
+console.log(`Test 3 - Filter 'jane': ${result3.length === 1 && result3[0]?.id === '2' ? 'PASS' : 'FAIL'} (expected 1, got ${result3.length})`);
 
 // Test 4: Filter by comment
 const result4 = filterProfiles(testProfiles, 'team');
-console.log(`Test 4 - Filter 'team': ${result4.length === 1 && result4[0].id === '3' ? 'PASS' : 'FAIL'} (expected 1, got ${result4.length})`);
+console.log(`Test 4 - Filter 'team': ${result4.length === 1 && result4[0]?.id === '3' ? 'PASS' : 'FAIL'} (expected 1, got ${result4.length})`);
 
 // Test 5: Case insensitive
 const result5 = filterProfiles(testProfiles, 'JOHN');
@@ -59,7 +59,7 @@ console.log(`Test 5 - Filter 'JOHN' (case insensitive): ${result5.length === 1 ?
 
 // Test 6: Partial match
 const result6 = filterProfiles(testProfiles, 'adm');
-console.log(`Test 6 - Filter 'adm': ${result6.length === 1 && result6[0].id === '4' ? 'PASS' : 'FAIL'} (expected 1, got ${result6.length})`);
+console.log(`Test 6 - Filter 'adm': ${result6.length === 1 && result6[0]?.id === '4' ? 'PASS' : 'FAIL'} (expected 1, got ${result6.length})`);
 
 // Test 7: No match
 const result7 = filterProfiles(testProfiles, 'nonexistent');
@@ -67,6 +67,6 @@ console.log(`Test 7 - Filter 'nonexistent': ${result7.length === 0 ? 'PASS' : 'F
 
 // Test 8: Match by displayName
 const result8 = filterProfiles(testProfiles, 'unknown');
-console.log(`Test 8 - Filter 'unknown': ${result8.length === 1 && result8[0].id === '5' ? 'PASS' : 'FAIL'} (expected 1, got ${result8.length})`);
+console.log(`Test 8 - Filter 'unknown': ${result8.length === 1 && result8[0]?.id === '5' ? 'PASS' : 'FAIL'} (expected 1, got ${result8.length})`);
 
 console.log('\nAll tests completed.');
