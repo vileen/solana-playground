@@ -281,20 +281,23 @@ const TokenInfo: React.FC = () => {
               <div className="mb-2">
                 <InputText
                   value={profileFilter}
-                  onChange={(e) => setProfileFilter(e.target.value)}
+                  onInput={(e: any) => setProfileFilter(e.target.value)}
                   placeholder="Search profiles..."
                   className="w-full"
                 />
               </div>
               <div className="flex flex-column gap-2" style={{ maxHeight: '200px', overflowY: 'auto' }}>
                 {socialProfiles
-                  .filter(p => 
-                    !profileFilter || 
-                    p.displayName?.toLowerCase().includes(profileFilter.toLowerCase()) ||
-                    p.twitter?.toLowerCase().includes(profileFilter.toLowerCase()) ||
-                    p.discord?.toLowerCase().includes(profileFilter.toLowerCase()) ||
-                    p.comment?.toLowerCase().includes(profileFilter.toLowerCase())
-                  )
+                  .filter(p => {
+                    if (!profileFilter) return true;
+                    const search = profileFilter.toLowerCase();
+                    return (
+                      (p.displayName && p.displayName.toLowerCase().includes(search)) ||
+                      (p.twitter && p.twitter.toLowerCase().includes(search)) ||
+                      (p.discord && p.discord.toLowerCase().includes(search)) ||
+                      (p.comment && p.comment.toLowerCase().includes(search))
+                    );
+                  })
                   .map((profile) => (
                     <div key={profile.id} className="flex align-items-center">
                       <input
