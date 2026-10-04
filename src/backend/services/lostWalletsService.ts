@@ -1,5 +1,46 @@
 import { query, withTransaction } from '../db/index.js';
 
+const GP_TOKEN_ADDRESS = '31k88G5Mq7ptbRDf3AM13HAq6wRQHXHikR8hik7wPygk';
+
+interface TokenPrice {
+  price: number;
+  fdv: number;
+  mcap: number;
+}
+
+/**
+ * Fetch token price from Jupiter API
+ */
+async function fetchTokenPrice(): Promise<TokenPrice | null> {
+  try {
+    const response = await fetch(
+      `https://api.jup.ag/price/v2?ids=${GP_TOKEN_ADDRESS}`,
+      { signal: AbortSignal.timeout(10000) }
+    );
+    
+    if (!response.ok) {
+      console.error('Jupiter API error:', response.status);
+      return null;
+    }
+    
+    const data = await response.json();
+    const priceData = data?.data?.[GP_TOKEN_ADDRESS];
+    
+    if (!priceData?.price) {
+      console.error('No price data from Jupiter');
+      return null;
+    }
+    
+    const price = parseFloat(priceData.price);
+    
+    // FDV and mcap will be calculated with supply data
+    return { price, fdv: 0, mcap: 0 };
+  } catch (error) {
+    console.error('Error fetching token price:', error);
+    return null;
+  }
+}
+
 export interface LostWallet {
   id: number;
   wallet_address: string;
@@ -224,8 +265,15 @@ export async function getTokenInfo(excludeSocialIds?: string[]): Promise<{
   excludedStaked: number;
   realCirculating: number;
   realMcap: number;
+  tokenPrice?: number;
+  fdv?: number;
+  mcapWithPrice?: number;
 }> {
   try {
+    // Fetch price from Jupiter (non-blocking, fallback to 0)
+    const priceData = await fetchTokenPrice().catch(() => null);
+    const tokenPrice = priceData?.price || 0;
+    
     // Get latest token snapshot
     const tokenResult = await query(`
       SELECT ts.total_supply, ts.id as snapshot_id
@@ -243,6 +291,9 @@ export async function getTokenInfo(excludeSocialIds?: string[]): Promise<{
         excludedStaked: 0,
         realCirculating: 0,
         realMcap: 0,
+        tokenPrice,
+        fdv: 0,
+        mcapWithPrice: 0,
       };
     }
 
@@ -304,6 +355,10 @@ export async function getTokenInfo(excludeSocialIds?: string[]): Promise<{
     const totalExcluded = excludedTokens + excludedStaked;
     const realCirculating = totalSupply - totalLost - totalExcluded;
     
+    // Calculate FDV and mcap with price
+    const fdv = totalSupply * tokenPrice;
+    const mcapWithPrice = realCirculating * tokenPrice;
+    
     // For mcap, we typically use circulating supply, not total
     // But user wants: FDV - lost - excluded = real mcap basis
     const realMcap = realCirculating;
@@ -316,6 +371,9 @@ export async function getTokenInfo(excludeSocialIds?: string[]): Promise<{
       excludedStaked,
       realCirculating,
       realMcap,
+      tokenPrice,
+      fdv,
+      mcapWithPrice,
     };
   } catch (error) {
     console.error('Error getting token info:', error);
@@ -327,6 +385,9 @@ export async function getTokenInfo(excludeSocialIds?: string[]): Promise<{
       excludedStaked: 0,
       realCirculating: 0,
       realMcap: 0,
+      tokenPrice: 0,
+      fdv: 0,
+      mcapWithPrice: 0,
     };
   }
 }

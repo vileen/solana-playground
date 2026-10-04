@@ -17,6 +17,9 @@ interface TokenInfoData {
   excludedStaked: number;
   realCirculating: number;
   realMcap: number;
+  tokenPrice?: number;
+  fdv?: number;
+  mcapWithPrice?: number;
 }
 
 interface LostWallet {
@@ -299,6 +302,49 @@ const TokenInfo: React.FC = () => {
           </Card>
         </div>
 
+        {/* Price Row */}
+        <div className="col-12 md:col-3">
+          <Card className="mb-3">
+            <div className="text-center">
+              <div className="text-sm text-color-secondary mb-2">Token Price</div>
+              <div className="text-2xl font-bold text-blue-500">
+                ${(tokenInfo?.tokenPrice || 0).toFixed(6)}
+              </div>
+              <div className="text-xs text-color-secondary mt-1">
+                Graphite Protocol ($GP)
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        <div className="col-12 md:col-3">
+          <Card className="mb-3">
+            <div className="text-center">
+              <div className="text-sm text-color-secondary mb-2">FDV</div>
+              <div className="text-2xl font-bold text-purple-500">
+                ${formatNumber(tokenInfo?.fdv || 0)}
+              </div>
+              <div className="text-xs text-color-secondary mt-1">
+                ${formatFullNumber(tokenInfo?.fdv || 0)}
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        <div className="col-12 md:col-3">
+          <Card className="mb-3">
+            <div className="text-center">
+              <div className="text-sm text-color-secondary mb-2">Real Mcap</div>
+              <div className="text-2xl font-bold text-green-500">
+                ${formatNumber(tokenInfo?.mcapWithPrice || 0)}
+              </div>
+              <div className="text-xs text-color-secondary mt-1">
+                ${formatFullNumber(tokenInfo?.mcapWithPrice || 0)}
+              </div>
+            </div>
+          </Card>
+        </div>
+
         {/* Chart */}
         <div className="col-12 lg:col-6">
           <Card title="Token Supply Breakdown" className="mb-3">
@@ -402,17 +448,6 @@ const TokenInfo: React.FC = () => {
             )}
           </Card>
 
-          {/* Lost Staked Info */}
-          <Card title="Lost Staked Tokens" className="mb-3">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-red-500">
-                {formatNumber(tokenInfo?.lostStaked || 0)}
-              </div>
-              <div className="text-sm text-color-secondary mt-1">
-                {formatFullNumber(tokenInfo?.lostStaked || 0)} $GP in lost staking positions
-              </div>
-            </div>
-          </Card>
         </div>
 
         {/* Lost Wallets Table */}
@@ -432,14 +467,12 @@ const TokenInfo: React.FC = () => {
                 )}
               />
               <Column
-                field="twitter"
-                header="Twitter"
-                body={(row: LostWallet) => row.twitter || '-'}
-              />
-              <Column
-                field="discord"
-                header="Discord"
-                body={(row: LostWallet) => row.discord || '-'}
+                field="profile"
+                header="Profile"
+                body={(row: LostWallet) => {
+                  const identity = row.comment || row.discord || row.twitter;
+                  return identity || '-';
+                }}
               />
               <Column
                 field="reason"
