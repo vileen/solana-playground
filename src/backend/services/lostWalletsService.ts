@@ -14,7 +14,7 @@ interface TokenPrice {
 async function fetchTokenPrice(): Promise<TokenPrice | null> {
   try {
     const response = await fetch(
-      `https://api.jup.ag/price/v2?ids=${GP_TOKEN_ADDRESS}`,
+      `https://api.jup.ag/price/v3?ids=${GP_TOKEN_ADDRESS}`,
       { signal: AbortSignal.timeout(10000) }
     );
     
@@ -24,14 +24,14 @@ async function fetchTokenPrice(): Promise<TokenPrice | null> {
     }
     
     const data = await response.json();
-    const priceData = data?.data?.[GP_TOKEN_ADDRESS];
+    const priceData = data?.[GP_TOKEN_ADDRESS];
     
-    if (!priceData?.price) {
+    if (!priceData?.usdPrice) {
       console.error('No price data from Jupiter');
       return null;
     }
     
-    const price = parseFloat(priceData.price);
+    const price = priceData.usdPrice;
     
     // FDV and mcap will be calculated with supply data
     return { price, fdv: 0, mcap: 0 };

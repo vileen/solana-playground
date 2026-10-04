@@ -254,7 +254,7 @@ const TokenInfo: React.FC = () => {
                 {formatNumber(tokenInfo?.totalSupply || 0)}
               </div>
               <div className="text-xs text-color-secondary mt-1">
-                {formatFullNumber(tokenInfo?.totalSupply || 0)} $GP
+                {formatFullNumber(tokenInfo?.totalSupply || 0)}
               </div>
             </div>
           </Card>
@@ -268,7 +268,7 @@ const TokenInfo: React.FC = () => {
                 {formatNumber(tokenInfo?.lostTokens || 0)}
               </div>
               <div className="text-xs text-color-secondary mt-1">
-                {formatFullNumber(tokenInfo?.lostTokens || 0)} $GP
+                {formatFullNumber(tokenInfo?.lostTokens || 0)}
               </div>
             </div>
           </Card>
@@ -282,7 +282,7 @@ const TokenInfo: React.FC = () => {
                 {formatNumber(tokenInfo?.excludedTokens || 0)}
               </div>
               <div className="text-xs text-color-secondary mt-1">
-                {formatFullNumber(tokenInfo?.excludedTokens || 0)} $GP
+                {formatFullNumber(tokenInfo?.excludedTokens || 0)}
               </div>
             </div>
           </Card>
@@ -296,7 +296,7 @@ const TokenInfo: React.FC = () => {
                 {formatNumber(tokenInfo?.realCirculating || 0)}
               </div>
               <div className="text-xs text-color-secondary mt-1">
-                {formatFullNumber(tokenInfo?.realCirculating || 0)} $GP
+                {formatFullNumber(tokenInfo?.realCirculating || 0)}
               </div>
             </div>
           </Card>
@@ -308,10 +308,7 @@ const TokenInfo: React.FC = () => {
             <div className="text-center">
               <div className="text-sm text-color-secondary mb-2">Token Price</div>
               <div className="text-2xl font-bold text-blue-500">
-                ${(tokenInfo?.tokenPrice || 0).toFixed(6)}
-              </div>
-              <div className="text-xs text-color-secondary mt-1">
-                Graphite Protocol ($GP)
+                ${(tokenInfo?.tokenPrice || 0).toFixed(4)}
               </div>
             </div>
           </Card>
