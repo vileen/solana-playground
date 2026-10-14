@@ -40,7 +40,7 @@ jobs:
           GITHUB_PAGES: true
           # Backend URL - set this in GitHub repository secrets
           # For local backend testing, use ngrok or similar
-          VITE_API_URL: ${{ secrets.VITE_API_URL || 'https://solana.vileen.pl' }}
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
 
       # Fix SPA routing: copy index.html to 404.html for GitHub Pages
       - name: Fix SPA routing
