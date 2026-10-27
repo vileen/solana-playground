@@ -51,6 +51,7 @@ const TokenInfo: React.FC = () => {
   const [selectedProfiles, setSelectedProfiles] = useState<SocialProfile[]>([]);
   const [profileFilter, setProfileFilter] = useState('');
   const [loading, setLoading] = useState(true);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [chartData, setChartData] = useState<any>(null);
   const [chartOptions, setChartOptions] = useState<any>(null);
 
@@ -59,21 +60,21 @@ const TokenInfo: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (tokenInfo) {
+    // Only update chart after initial load is complete
+    if (tokenInfo && initialLoadComplete) {
       updateChart();
     }
-  }, [tokenInfo, selectedProfiles]);
+  }, [tokenInfo, selectedProfiles, initialLoadComplete]);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const [info, wallets, profiles, excludedIds] = await Promise.all([
-        fetchTokenInfo(),
+      // First fetch exclusions to determine which token-info call to make
+      const [wallets, profiles, excludedIds] = await Promise.all([
         fetchLostWallets(),
         fetchSocialProfiles(),
         fetchExcludedProfiles(),
       ]);
-      setTokenInfo(info);
       setLostWallets(wallets);
       
       // Deduplicate profiles by social_id (API returns one entry per wallet)
@@ -98,16 +99,15 @@ const TokenInfo: React.FC = () => {
       const preSelected = uniqueProfiles.filter(p => excludedSet.has(p.id));
       setSelectedProfiles(preSelected);
       
-      // If there are excluded profiles, fetch token info with exclusions
-      if (preSelected.length > 0) {
-        const excludeIds = preSelected.map(p => p.id);
-        const infoWithExclusions = await fetchTokenInfo(excludeIds);
-        setTokenInfo(infoWithExclusions);
-      }
+      // Fetch token info WITH exclusions if any exist, otherwise without
+      const excludeIds = preSelected.map(p => p.id);
+      const info = await fetchTokenInfo(excludeIds.length > 0 ? excludeIds : undefined);
+      setTokenInfo(info);
     } catch (error) {
       console.error('Error loading token info:', error);
     } finally {
       setLoading(false);
+      setInitialLoadComplete(true);
     }
   };
 
